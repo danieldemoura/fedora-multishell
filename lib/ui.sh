@@ -28,7 +28,6 @@ ui_banner() {
     echo "  ██║     ███████╗██████╔╝╚██████╔╝██║  ██║██║  ██║"
     echo "  ╚═╝     ╚══════╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝"
     echo -e "${CLR_RESET}"
-    echo -e "  ${CLR_BOLD}── Niri + iNiR Shell + SDDM ──${CLR_RESET}"
     echo -e "  ${CLR_DIM}Fedora 44 Minimal | Pure Wayland | Out-of-the-box${CLR_RESET}"
     echo ""
 }
@@ -99,14 +98,18 @@ ui_secure_boot_warning() {
 # Resumo da Configuração Escolhida
 ui_summary_box() {
     local env_name="$1"
-    local gpu_name="$2"
-    local kbd_name="$3"
+    local shell_name="$2"
+    local comp_name="$3"
+    local gpu_name="$4"
+    local kbd_name="$5"
 
     echo ""
     echo -e "${CLR_CYAN}╔═════════════════════════════════════════════════════════╗${CLR_RESET}"
     echo -e "${CLR_CYAN}║             RESUMO DAS DEFINIÇÕES DA SESSÃO             ║${CLR_RESET}"
     echo -e "${CLR_CYAN}╠═════════════════════════════════════════════════════════╣${CLR_RESET}"
-    printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Ambiente de Execução" "$env_name"
+    printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Ambiente" "$env_name"
+    printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Interface Gráfica" "$shell_name"
+    printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Compositor" "$comp_name"
     printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Driver Gráfico / GPU" "$gpu_name"
     printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Layout de Teclado" "$kbd_name"
     echo -e "${CLR_CYAN}╚═════════════════════════════════════════════════════════╝${CLR_RESET}"

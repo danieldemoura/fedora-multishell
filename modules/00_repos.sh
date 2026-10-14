@@ -34,7 +34,7 @@ log_success "RPM Fusion configurado com sucesso."
 log_info "Garantindo suporte a plugins do DNF (dnf-plugins-core)..."
 sudo dnf install -y dnf-plugins-core
 
-# 3. Habilitação dos Repositórios Fedora COPR (Niri e Quickshell) com Idempotência
+# 3. Habilitação Condicional de Repositórios conforme a Seleção do Usuário
 enable_copr_repo() {
     local copr_name="$1"
     local repo_file_pattern="$2"
@@ -49,8 +49,33 @@ enable_copr_repo() {
     fi
 }
 
-enable_copr_repo "yalter/niri" "yalter:niri"
-enable_copr_repo "errornointernet/quickshell" "errornointernet:quickshell"
+# Se o compositor for Niri: ativa o COPR yalter/niri
+if [[ "${SELECTED_COMPOSITOR:-niri}" == "niri" ]]; then
+    enable_copr_repo "yalter/niri" "yalter:niri"
+fi
+
+# Se a shell for iNiR: ativa o COPR errornointernet/quickshell
+if [[ "${SELECTED_SHELL:-inir}" == "inir" ]]; then
+    enable_copr_repo "errornointernet/quickshell" "errornointernet:quickshell"
+fi
+
+# Se o compositor for Umbriel: adiciona o repositório Terra do Fyra Labs
+if [[ "${SELECTED_COMPOSITOR:-}" == "umbriel" ]]; then
+    log_info "Verificando repositório Terra do Fyra Labs para o compositor Umbriel..."
+    if rpm -q terra-release >/dev/null 2>&1 || ls /etc/yum.repos.d/*terra*.repo >/dev/null 2>&1; then
+        log_info "Repositório Terra do Fyra Labs já está configurado. Pulando..."
+    else
+        log_info "Instalando pacotes de repositório Terra (terra-release e terra-gpg-keys)..."
+        sudo dnf install -y --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' \
+            terra-release terra-gpg-keys || {
+            log_warn "Tentativa via repofrompath falhou. Tentando download direto dos pacotes RPM do Terra..."
+            sudo dnf install -y \
+                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-release.rpm" \
+                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-gpg-keys.rpm" || true
+        }
+        log_success "Repositório Terra do Fyra Labs configurado com sucesso."
+    fi
+fi
 
 # 4. Instalação do Repositório Brave Software
 log_info "Configurando repositório oficial do Brave Browser..."

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/05_desktop_apps.sh
+# fedora-inir: modules/03_desktop_apps.sh
 # Instalação de aplicações desktop, Brave Origin, codecs e Loja GNOME Software
 # ==============================================================================
 set -euo pipefail
@@ -18,7 +18,7 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=../lib/utils.sh
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
 
-ui_section_header "MÓDULO 05: APLICAÇÕES DE USUÁRIO E MULTIMÍDIA"
+ui_section_header "MÓDULO 03: APLICAÇÕES DE USUÁRIO E MULTIMÍDIA"
 
 # 1. Instalação dos Aplicativos do Usuário e Codecs
 log_info "Sincronizando ffmpeg com repositório RPM Fusion (swap ffmpeg-free -> ffmpeg)..."

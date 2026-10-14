@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # fedora-inir: modules/07_post_install.sh
-# Configurações de pós-instalação: Keyring, Niri config.kdl, ABNT2, VM flags, target gráfico e testes
+# Configurações de pós-instalação: Keyring, Compositor config (Niri/Umbriel),
+# autostart de Shell (iNiR/Noctalia), ABNT2, VM flags, target gráfico e testes
 # ==============================================================================
 set -euo pipefail
 
@@ -22,8 +23,11 @@ ui_section_header "MÓDULO 07: PÓS-INSTALAÇÃO E VALIDAÇÕES"
 
 REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"
+SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-niri}"
+SELECTED_SHELL="${SELECTED_SHELL:-inir}"
 
 log_info "Executando ajustes pós-instalação para o usuário: ${REAL_USER} (${REAL_HOME})"
+log_info "Configurações ativas -> Compositor: ${SELECTED_COMPOSITOR} | Shell: ${SELECTED_SHELL}"
 
 # 1. Inicialização do cofre de credenciais e vínculo canônico com o PAM
 log_info "Configurando integração silenciosa do GNOME Keyring com o PAM..."
@@ -40,33 +44,34 @@ sudo chmod 600 "${KEYRINGS_DIR}/default"
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
 log_success "Ponteiro do chaveiro canônico 'login' configurado em ${KEYRINGS_DIR}/default."
 
-# 2. Configuração do Compositor Niri (~/.config/niri/config.kdl)
-NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
-NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
-SYSTEM_NIRI_CONF="/usr/share/doc/niri/config.kdl"
+# 2. Configuração do Compositor Ativo (Niri ou Umbriel)
+if [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
+    NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
+    NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
+    SYSTEM_NIRI_CONF="/usr/share/doc/niri/config.kdl"
 
-log_info "Configurando ambiente do Niri em ${NIRI_CONFIG_FILE}..."
-sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
+    log_info "Configurando ambiente do Niri em ${NIRI_CONFIG_FILE}..."
+    sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
 
-# Backup do config se já existir
-if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
-    backup_file "${NIRI_CONFIG_FILE}" false
-fi
+    # Backup do config se já existir
+    if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
+        backup_file "${NIRI_CONFIG_FILE}" false
+    fi
 
-# Copia a configuração padrão do Niri se o arquivo do usuário ainda não existir
-if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
-    if [[ -f "${SYSTEM_NIRI_CONF}" ]]; then
-        sudo -u "${REAL_USER}" cp "${SYSTEM_NIRI_CONF}" "${NIRI_CONFIG_FILE}"
-        log_info "Configuração padrão copiada de ${SYSTEM_NIRI_CONF}."
-    elif [[ -f "/usr/share/doc/niri-git/config.kdl" ]]; then
-        sudo -u "${REAL_USER}" cp "/usr/share/doc/niri-git/config.kdl" "${NIRI_CONFIG_FILE}"
-        log_info "Configuração padrão copiada de /usr/share/doc/niri-git/config.kdl."
-    elif [[ -f "/etc/niri/config.kdl" ]]; then
-        sudo -u "${REAL_USER}" cp "/etc/niri/config.kdl" "${NIRI_CONFIG_FILE}"
-        log_info "Configuração padrão copiada de /etc/niri/config.kdl."
-    else
-        log_info "Criando arquivo base inicial config.kdl para Niri..."
-        sudo -u "${REAL_USER}" tee "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+    # Copia a configuração padrão do Niri se o arquivo do usuário ainda não existir
+    if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
+        if [[ -f "${SYSTEM_NIRI_CONF}" ]]; then
+            sudo -u "${REAL_USER}" cp "${SYSTEM_NIRI_CONF}" "${NIRI_CONFIG_FILE}"
+            log_info "Configuração padrão copiada de ${SYSTEM_NIRI_CONF}."
+        elif [[ -f "/usr/share/doc/niri-git/config.kdl" ]]; then
+            sudo -u "${REAL_USER}" cp "/usr/share/doc/niri-git/config.kdl" "${NIRI_CONFIG_FILE}"
+            log_info "Configuração padrão copiada de /usr/share/doc/niri-git/config.kdl."
+        elif [[ -f "/etc/niri/config.kdl" ]]; then
+            sudo -u "${REAL_USER}" cp "/etc/niri/config.kdl" "${NIRI_CONFIG_FILE}"
+            log_info "Configuração padrão copiada de /etc/niri/config.kdl."
+        else
+            log_info "Criando arquivo base inicial config.kdl para Niri..."
+            sudo -u "${REAL_USER}" tee "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
 // Niri Base Configuration
 input {
     keyboard {
@@ -74,16 +79,14 @@ input {
         }
     }
 }
-
-spawn-at-startup "inir" "run"
 EOF
+        fi
     fi
-fi
 
-# Injeta inicialização do iNiR e customizações no config.kdl
-log_info "Ajustando autostart do iNiR e parâmetros no config.kdl do Niri..."
+    # Injeta autostart da shell selecionada e flags de teclado/VM no config.kdl
+    log_info "Ajustando autostart de '${SELECTED_SHELL}' e parâmetros no config.kdl do Niri..."
 
-python3 - "$NIRI_CONFIG_FILE" "${IS_VM:-false}" "${KEYBOARD_ABNT2:-true}" <<'PYEOF'
+    python3 - "$NIRI_CONFIG_FILE" "${IS_VM:-false}" "${KEYBOARD_ABNT2:-true}" "${SELECTED_SHELL}" <<'PYEOF'
 import os
 import re
 import sys
@@ -91,18 +94,23 @@ import sys
 config_file = sys.argv[1]
 is_vm = (sys.argv[2].lower() == "true")
 is_abnt2 = (sys.argv[3].lower() == "true")
+shell_type = sys.argv[4].lower()
 
 content = ""
 if os.path.exists(config_file):
     with open(config_file, "r", encoding="utf-8") as f:
         content = f.read()
 
-# 1. Garante autostart do iNiR via spawn-at-startup
-spawn_inir = 'spawn-at-startup "inir" "run"'
-if spawn_inir not in content:
-    content = f'{spawn_inir}\n' + content
+# Define linha de autostart conforme a shell
+if shell_type == "inir":
+    spawn_cmd = 'spawn-at-startup "inir" "run"'
+else:
+    spawn_cmd = 'spawn-at-startup "noctalia"'
 
-# 2. Configura layout de teclado ABNT2 no bloco input/keyboard se solicitado
+if spawn_cmd not in content:
+    content = f'{spawn_cmd}\n' + content
+
+# Configura layout de teclado ABNT2 no bloco input/keyboard se solicitado
 if is_abnt2:
     if 'layout "br"' not in content:
         if re.search(r'xkb\s*\{', content):
@@ -129,7 +137,7 @@ if is_abnt2:
         else:
             content += '\ninput {\n    keyboard {\n        xkb {\n            layout "br";\n        }\n    }\n}\n'
 
-# 3. Adiciona configurações / flags para ambiente VM (software rendering / cursores)
+# Flags para ambiente VM (software rendering / cursores)
 if is_vm:
     vm_comment = "// Configurações para VM"
     if vm_comment not in content:
@@ -146,6 +154,106 @@ with open(config_file, "w", encoding="utf-8") as f:
 
 print("[OK] Arquivo config.kdl do Niri ajustado com sucesso.")
 PYEOF
+
+elif [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
+    UMB_CONFIG_DIR="${REAL_HOME}/.config/umbriel"
+    UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
+    SYSTEM_UMB_CONF="/usr/share/umbriel/config.toml"
+
+    log_info "Configurando ambiente do Umbriel em ${UMB_CONFIG_FILE}..."
+    sudo -u "${REAL_USER}" mkdir -p "${UMB_CONFIG_DIR}"
+
+    if [[ -f "${UMB_CONFIG_FILE}" ]]; then
+        backup_file "${UMB_CONFIG_FILE}" false
+    fi
+
+    # Copia modelo de configuração caso ausente
+    if [[ ! -f "${UMB_CONFIG_FILE}" ]]; then
+        if [[ -f "${SYSTEM_UMB_CONF}" ]]; then
+            sudo -u "${REAL_USER}" cp "${SYSTEM_UMB_CONF}" "${UMB_CONFIG_FILE}"
+            log_info "Configuração padrão copiada de ${SYSTEM_UMB_CONF}."
+        elif [[ -f "/etc/umbriel/config.toml" ]]; then
+            sudo -u "${REAL_USER}" cp "/etc/umbriel/config.toml" "${UMB_CONFIG_FILE}"
+            log_info "Configuração padrão copiada de /etc/umbriel/config.toml."
+        else
+            log_info "Criando modelo base inicial config.toml para Umbriel..."
+            sudo -u "${REAL_USER}" tee "${UMB_CONFIG_FILE}" >/dev/null <<'EOF'
+[general]
+
+[input.keyboard]
+
+[cursor]
+EOF
+        fi
+    fi
+
+    log_info "Ajustando autostart, layout ABNT2 e parâmetros no config.toml do Umbriel..."
+    python3 - "$UMB_CONFIG_FILE" "${IS_VM:-false}" "${KEYBOARD_ABNT2:-true}" <<'PYEOF'
+import os
+import re
+import sys
+
+config_file = sys.argv[1]
+is_vm = (sys.argv[2].lower() == "true")
+is_abnt2 = (sys.argv[3].lower() == "true")
+
+content = ""
+if os.path.exists(config_file):
+    with open(config_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+# 1. Garante a seção [general] e injeta autostart = ["noctalia"]
+if "[general]" in content:
+    if 'autostart' not in content:
+        content = re.sub(
+            r'(\[general\])',
+            r'\1\nautostart = ["noctalia"]',
+            content,
+            count=1
+        )
+else:
+    content = '[general]\nautostart = ["noctalia"]\n\n' + content
+
+# 2. Configura layout de teclado ABNT2 se solicitado
+if is_abnt2:
+    if 'layout = "br"' not in content:
+        if "[input.keyboard]" in content:
+            content = re.sub(
+                r'(\[input\.keyboard\])',
+                r'\1\nlayout = "br"',
+                content,
+                count=1
+            )
+        elif "[input]" in content:
+            content = re.sub(
+                r'(\[input\])',
+                r'\1\n[input.keyboard]\nlayout = "br"',
+                content,
+                count=1
+            )
+        else:
+            content += '\n[input.keyboard]\nlayout = "br"\n'
+
+# 3. Configura cursor para VM (hardware_cursor = false)
+if is_vm:
+    if "hardware_cursor" not in content:
+        if "[cursor]" in content:
+            content = re.sub(
+                r'(\[cursor\])',
+                r'\1\nhardware_cursor = false',
+                content,
+                count=1
+            )
+        else:
+            content += '\n[cursor]\nhardware_cursor = false\n'
+
+with open(config_file, "w", encoding="utf-8") as f:
+    f.write(content)
+
+print("[OK] Arquivo config.toml do Umbriel ajustado com sucesso.")
+PYEOF
+
+fi
 
 # Garante permissões estritas para o usuário real
 ensure_user_ownership "${REAL_HOME}/.config"
@@ -190,46 +298,80 @@ else
     exit 1
 fi
 
-# Teste 3: Niri config existência e validação oficial
-if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
-    log_success "[Checklist] Arquivo ${NIRI_CONFIG_FILE} verificado no disco."
-else
-    log_error "[Checklist] Falha crítica: ${NIRI_CONFIG_FILE} não existe!"
-    exit 1
-fi
-
-log_info "Executando validador oficial do Niri (niri validate)..."
-if command -v niri >/dev/null 2>&1; then
-    if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
-        log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração."
+# Teste 3: Validação do Compositor Selecionado
+if [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
+    if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
+        log_success "[Checklist] Arquivo ${NIRI_CONFIG_FILE} verificado no disco."
     else
-        log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração!"
-        while IFS= read -r val_line; do
-            log_error "  [niri validate] ${val_line}"
-        done <<< "${NIRI_VAL_OUTPUT}"
+        log_error "[Checklist] Falha crítica: ${NIRI_CONFIG_FILE} não existe!"
         exit 1
     fi
-elif [[ -x "/usr/bin/niri" ]]; then
-    if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
-        log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo."
+
+    log_info "Executando validador oficial do Niri (niri validate)..."
+    if command -v niri >/dev/null 2>&1; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração."
+        else
+            log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração!"
+            while IFS= read -r val_line; do
+                log_error "  [niri validate] ${val_line}"
+            done <<< "${NIRI_VAL_OUTPUT}"
+            exit 1
+        fi
+    elif [[ -x "/usr/bin/niri" ]]; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo."
+        else
+            log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração!"
+            while IFS= read -r val_line; do
+                log_error "  [niri validate] ${val_line}"
+            done <<< "${NIRI_VAL_OUTPUT}"
+            exit 1
+        fi
     else
-        log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração!"
-        while IFS= read -r val_line; do
-            log_error "  [niri validate] ${val_line}"
-        done <<< "${NIRI_VAL_OUTPUT}"
+        log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
+    fi
+
+    CONFIG_OWNER="$(stat -c '%U' "${NIRI_CONFIG_FILE}" 2>/dev/null || echo 'desconhecido')"
+    if [[ "$CONFIG_OWNER" == "$REAL_USER" ]]; then
+        log_success "[Checklist] Propriedade de ${NIRI_CONFIG_FILE} pertence corretamente ao usuário '${REAL_USER}'."
+    else
+        log_warn "[Checklist] Proprietário do arquivo é '${CONFIG_OWNER}'. Corrigindo permissão..."
+        ensure_user_ownership "${NIRI_CONFIG_DIR}"
+    fi
+
+elif [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
+    if [[ -f "${UMB_CONFIG_FILE}" ]]; then
+        log_success "[Checklist] Arquivo ${UMB_CONFIG_FILE} verificado no disco."
+    else
+        log_error "[Checklist] Falha crítica: ${UMB_CONFIG_FILE} não existe!"
         exit 1
     fi
-else
-    log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
-fi
 
-# Teste 4: Permissões do usuário para o config do Niri
-CONFIG_OWNER="$(stat -c '%U' "${NIRI_CONFIG_FILE}" 2>/dev/null || echo 'desconhecido')"
-if [[ "$CONFIG_OWNER" == "$REAL_USER" ]]; then
-    log_success "[Checklist] Propriedade de ${NIRI_CONFIG_FILE} pertence corretamente ao usuário '${REAL_USER}'."
-else
-    log_warn "[Checklist] Proprietário do arquivo é '${CONFIG_OWNER}'. Corrigindo permissão..."
-    ensure_user_ownership "${NIRI_CONFIG_DIR}"
+    log_info "Executando validador oficial do Umbriel (umbriel config validate)..."
+    if command -v umbriel >/dev/null 2>&1; then
+        if UMB_VAL_OUTPUT="$(sudo -u "${REAL_USER}" umbriel config validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: 'umbriel config validate' confirmou o arquivo de configuração."
+        else
+            log_warn "[Checklist] Aviso na validação do Umbriel: ${UMB_VAL_OUTPUT}"
+        fi
+    elif [[ -x "/usr/bin/umbriel" ]]; then
+        if UMB_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/umbriel config validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: '/usr/bin/umbriel config validate' confirmou o arquivo."
+        else
+            log_warn "[Checklist] Aviso na validação do Umbriel: ${UMB_VAL_OUTPUT}"
+        fi
+    else
+        log_warn "[Checklist] Binário 'umbriel' não encontrado no PATH para executar a validação nativa imediata."
+    fi
+
+    CONFIG_OWNER="$(stat -c '%U' "${UMB_CONFIG_FILE}" 2>/dev/null || echo 'desconhecido')"
+    if [[ "$CONFIG_OWNER" == "$REAL_USER" ]]; then
+        log_success "[Checklist] Propriedade de ${UMB_CONFIG_FILE} pertence corretamente ao usuário '${REAL_USER}'."
+    else
+        log_warn "[Checklist] Proprietário do arquivo é '${CONFIG_OWNER}'. Corrigindo permissão..."
+        ensure_user_ownership "${UMB_CONFIG_DIR}"
+    fi
 fi
 
 # Teste 5: Validação de ausência de NVIDIA em VM

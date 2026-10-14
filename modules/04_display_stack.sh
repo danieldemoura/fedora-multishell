@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/03_display_stack.sh
+# fedora-inir: modules/04_display_stack.sh
 # Instalação e configuração do SDDM e PAM Keyring
 # ==============================================================================
 set -euo pipefail
@@ -18,7 +18,7 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=../lib/utils.sh
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
 
-ui_section_header "MÓDULO 03: PILHA DO DISPLAY MANAGER E LOGIN (SDDM)"
+ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (SDDM)"
 
 # 1. Instalação do SDDM e Módulo PAM GNOME Keyring
 log_info "Instalando sddm e gnome-keyring-pam via DNF..."
@@ -81,4 +81,4 @@ EOF
     log_success "Arquivo ${PAM_SDDM} criado com suporte ao pam_gnome_keyring."
 fi
 
-log_success "Módulo 03 (Display Stack - SDDM) concluído com sucesso."
+log_success "Módulo 04 (Display Stack - SDDM) concluído com sucesso."

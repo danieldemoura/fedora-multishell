@@ -32,31 +32,65 @@ check_internet
 start_sudo_keepalive
 
 # 5. Menu Interativo - Pergunta 1: Seleção de Ambiente
-ui_section_header "[1] SELEÇÃO DO AMBIENTE DE INSTALAÇÃO"
-echo "  Por favor, informe a plataforma onde o sistema irá rodar:"
-echo "    [1] Máquina Física (Bare Metal / Notebook / PC)"
-echo "    [2] Máquina Virtual (VMware / VirtualBox / QEMU-KVM)"
+ui_section_header "SELEÇÃO DO AMBIENTE DE INSTALAÇÃO"
+echo "  [1] Máquina Física (Bare Metal / Notebook / PC)"
+echo "  [2] Máquina Virtual (VMware / VirtualBox / QEMU-KVM)"
 echo ""
-read -r -p "  Escolha uma opção [1-2] (Padrão: 1): " env_choice
+read -r -p "  Escolha uma opção: " env_choice
 env_choice="${env_choice:-1}"
 
 if [[ "$env_choice" == "2" ]]; then
     IS_VM=true
-    INSTALL_NVIDIA=false
     ENV_DESC="Máquina Virtual (VM)"
-    GPU_DESC="Mesa / Software Emulation"
 else
     IS_VM=false
     ENV_DESC="Máquina Física (Bare Metal)"
-    
-    # Menu Interativo - Pergunta 2: Drivers NVIDIA (apenas se máquina física)
-    ui_section_header "[2] SELEÇÃO DE DRIVER DE VÍDEO (NVIDIA)"
-    echo "  Seu computador possui uma placa de vídeo dedicada NVIDIA?"
-    echo "  Se optar por não, os drivers livres de alta performance da Mesa serão usados."
+fi
+
+# Menu Interativo - Pergunta 2: Seleção da Interface Gráfica (Desktop Shell)
+ui_section_header "SELEÇÃO DA INTERFACE GRÁFICA (DESKTOP SHELL)"
+echo "  [1] iNiR Shell (Interface moderna com cores dinâmicas)"
+echo "  [2] Noctalia Shell (Interface gráfica nativa em C++/Qt)"
+echo ""
+read -r -p "  Escolha uma opção: " shell_choice
+shell_choice="${shell_choice:-1}"
+
+if [[ "$shell_choice" == "2" ]]; then
+    SELECTED_SHELL="noctalia"
+    SHELL_DESC="Noctalia Shell (C++/Qt)"
+
+    # Sub-pergunta de Compositor (apenas se Noctalia)
     echo ""
+    echo "  Qual compositor Wayland você deseja utilizar com o Noctalia?"
+    echo "    [1] Niri (Rolagem horizontal contínua de janelas)"
+    echo "    [2] Umbriel (Rolagem e múltiplos modos de janelas)"
+    echo ""
+    read -r -p "  Escolha uma opção: " comp_choice
+    comp_choice="${comp_choice:-1}"
+
+    if [[ "$comp_choice" == "2" ]]; then
+        SELECTED_COMPOSITOR="umbriel"
+        COMP_DESC="Umbriel (Scrolling & Dynamic Tiling)"
+    else
+        SELECTED_COMPOSITOR="niri"
+        COMP_DESC="Niri (Scrollable Tiling)"
+    fi
+else
+    SELECTED_SHELL="inir"
+    SHELL_DESC="iNiR Shell (Material You)"
+    SELECTED_COMPOSITOR="niri"
+    COMP_DESC="Niri (Scrollable Tiling)"
+fi
+
+# Menu Interativo - Pergunta 3: Driver de Vídeo Dedicado (NVIDIA)
+if [[ "$IS_VM" == true ]]; then
+    INSTALL_NVIDIA=false
+    GPU_DESC="Mesa / Software Emulation"
+else
+    ui_section_header "DRIVER DE VÍDEO DEDICADO (NVIDIA)"
     read -r -p "  Deseja instalar os drivers proprietários da NVIDIA? [s/N]: " nvidia_choice
     nvidia_choice="${nvidia_choice:-n}"
-    
+
     if [[ "$nvidia_choice" =~ ^[sSyY]$ ]]; then
         INSTALL_NVIDIA=true
         GPU_DESC="NVIDIA Proprietário (akmods)"
@@ -68,11 +102,9 @@ else
     fi
 fi
 
-# Menu Interativo - Pergunta 3: Layout de Teclado
-ui_section_header "[3] CONFIGURAÇÃO DE TECLADO"
-echo "  Deseja definir o padrão Brasileiro ABNT2 (com tecla ç e acentuação br)?"
-echo ""
-read -r -p "  Configurar layout ABNT2 no compositor? [S/n]: " kbd_choice
+# Menu Interativo - Pergunta 4: Configuração de Teclado
+ui_section_header "CONFIGURAÇÃO DE TECLADO"
+read -r -p "  Deseja configurar o padrão Brasileiro ABNT2 (com tecla ç)? [S/n]: " kbd_choice
 kbd_choice="${kbd_choice:-s}"
 
 if [[ "$kbd_choice" =~ ^[sSyY]$ ]]; then
@@ -85,12 +117,14 @@ fi
 
 # Exporta variáveis para os módulos
 export IS_VM
+export SELECTED_SHELL
+export SELECTED_COMPOSITOR
 export INSTALL_NVIDIA
 export KEYBOARD_ABNT2
 export LOG_FILE
 
 # 6. Resumo e Confirmação de Instalação
-ui_summary_box "$ENV_DESC" "$GPU_DESC" "$KBD_DESC"
+ui_summary_box "$ENV_DESC" "$SHELL_DESC" "$COMP_DESC" "$GPU_DESC" "$KBD_DESC"
 
 read -r -p "  Deseja iniciar a instalação com estas definições? [S/n]: " confirm_install
 confirm_install="${confirm_install:-s}"
@@ -103,17 +137,17 @@ fi
 
 START_TIME=$(date +%s)
 echo ""
-log_info "Iniciando processo de instalação modular do Fedora iNiR..."
+log_info "Iniciando processo de instalação modular do Fedora Workstation..."
 
-# 7. Execução Sequencial dos Módulos
+# 7. Execução Sequencial dos Módulos (Arquitetura em Camadas)
 modules=(
     "00_repos.sh"
     "01_system_hardware.sh"
     "02_gpu_drivers.sh"
-    "03_display_stack.sh"
-    "04_compositor.sh"
-    "05_desktop_apps.sh"
-    "06_inir_shell.sh"
+    "03_desktop_apps.sh"
+    "04_display_stack.sh"
+    "05_compositor.sh"
+    "06_desktop_shell.sh"
     "07_post_install.sh"
 )
 
@@ -152,15 +186,14 @@ if [[ "${INSTALL_NVIDIA:-false}" == true ]] && [[ "${IS_VM:-false}" == false ]];
     echo ""
 fi
 
-echo -e "  Seu sistema está pronto para inicializar na interface ${CLR_BOLD}iNiR Pure Wayland${CLR_RESET}."
+echo -e "  Seu sistema está pronto para inicializar na interface ${CLR_BOLD}${SHELL_DESC} (${COMP_DESC})${CLR_RESET}."
 echo ""
-read -r -p "  Deseja reiniciar o sistema agora? [s/N]: " reboot_choice
-reboot_choice="${reboot_choice:-n}"
+read -r -p "  Deseja reiniciar o sistema agora? [S/n]: " reboot_choice
+reboot_choice="${reboot_choice:-s}"
 
 if [[ "$reboot_choice" =~ ^[sSyY]$ ]]; then
-    log_info "Reiniciando o sistema em 3 segundos..."
-    sleep 3
-    sudo systemctl reboot
+    log_info "Reiniciando o sistema..."
+    sudo reboot
 else
-    log_info "Instalação finalizada. Para iniciar a interface, execute manualmente: sudo systemctl reboot"
+    log_info "Instalação finalizada. Para iniciar a interface, execute manualmente: sudo reboot"
 fi
