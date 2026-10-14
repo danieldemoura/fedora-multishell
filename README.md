@@ -37,9 +37,10 @@ fedora-inir/
 │   ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, som e energia
 │   ├── 02_gpu_drivers.sh            # Drivers Mesa abertos ou NVIDIA com akmods
 │   ├── 03_display_stack.sh          # SDDM e integração PAM
-│   ├── 04_compositor_shell.sh       # Deno provision, Niri, Quickshell, iNiR Shell e Portais XDG
+│   ├── 04_compositor.sh             # Compositor Niri, Quickshell, Deno (/usr/local/bin), Xwayland-satellite e Portais
 │   ├── 05_desktop_apps.sh           # Apps de usuário, Brave Origin e Loja GNOME Software
-│   └── 06_post_install.sh           # Configuração do Niri (config.kdl), iNiR autostart, ABNT2, ativação do SDDM e validações
+│   ├── 06_inir_shell.sh             # Módulo Dedicado Shell: sudo -v antecipado, clone, ./setup install -y e permissões
+│   └── 07_post_install.sh           # Configuração do Niri (config.kdl), iNiR autostart, ABNT2, ativação do SDDM e validações
 └── templates/
     └── pam_sddm.template            # Configuração do Gnome Keyring no PAM para o SDDM
 ```

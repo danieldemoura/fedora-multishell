@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/06_post_install.sh
+# fedora-inir: modules/07_post_install.sh
 # Configurações de pós-instalação: Keyring, Niri config.kdl, ABNT2, VM flags, target gráfico e testes
 # ==============================================================================
 set -euo pipefail
@@ -18,7 +18,7 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=../lib/utils.sh
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
 
-ui_section_header "MÓDULO 06: PÓS-INSTALAÇÃO E VALIDAÇÕES"
+ui_section_header "MÓDULO 07: PÓS-INSTALAÇÃO E VALIDAÇÕES"
 
 REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"
@@ -277,4 +277,4 @@ else
 fi
 
 echo ""
-log_success "Módulo 06 (Pós-Instalação) concluído com 100% de sucesso!"
+log_success "Módulo 07 (Pós-Instalação) concluído com 100% de sucesso!"

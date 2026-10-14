@@ -36,9 +36,10 @@ fedora-inir/
 │   ├── 01_system_hardware.sh        # Firmware, som (PipeWire), energia (Tuned) e rede
 │   ├── 02_gpu_drivers.sh            # Drivers gráficos (Mesa livre ou NVIDIA se solicitado)
 │   ├── 03_display_stack.sh          # SDDM e integração PAM
-│   ├── 04_compositor_shell.sh       # Provisionamento Deno, Niri, Quickshell, Xwayland-satellite, iNiR e Portais
+│   ├── 04_compositor.sh             # Compositor Niri, Quickshell, Deno (/usr/local/bin), Xwayland-satellite e Portais
 │   ├── 05_desktop_apps.sh           # Apps de uso diário, Loja GNOME Software, codecs multimídia e fontes
-│   └── 06_post_install.sh           # Configuração do Niri (config.kdl), iNiR autostart, ABNT2, ativação do SDDM e validações
+│   ├── 06_inir_shell.sh             # Módulo Dedicado Shell: sudo -v antecipado, clone, ./setup install -y e permissões
+│   └── 07_post_install.sh           # Configuração do Niri (config.kdl), iNiR autostart, ABNT2, ativação do SDDM e validações
 └── templates/
     └── pam_sddm.template            # Bloco do pam_gnome_keyring.so para o PAM do SDDM
 ```
@@ -142,36 +143,62 @@ O instalador conta com uma interface em linha de comando elegante, padronizada e
 - Atribuição dos grupos `video,render,input` ao usuário `sddm`.
 - Integração PAM em `/etc/pam.d/sddm` com `pam_gnome_keyring.so` para desbloqueio transparente do cofre de senhas no login.
 
-### Módulo 04: Compositor, Shell e Portais (`04_compositor_shell.sh`)
-- Provisionamento defensivo do runtime oficial **Deno** em `/usr/local/bin/deno` baixado na home do usuário para evitar saturação do `/tmp`.
-- Instalação via DNF: `niri`, `quickshell`, `xwayland-satellite`, `xdg-desktop-portal-gnome`, `xdg-desktop-portal-gtk`, `git`, `polkit`, `gnome-keyring`, `swaylock`.
-- Configuração de prioridade de portais em `/etc/xdg/xdg-desktop-portal/niri-portals.conf`.
-- Instalação do Desktop Shell iNiR:
-  1. Clone de `https://github.com/snowarch/inir.git` para `${REAL_HOME}/.config/inir`.
-  2. Execução não-interativa sob o usuário real:
-     `sudo -u "${REAL_USER}" bash -c "cd '${REAL_HOME}/.config/inir' && ./setup install -y"`
-  3. Garantia de posse `${REAL_USER}:${REAL_USER}` em toda a pasta `${REAL_HOME}/.config`.
+### Módulo 04: Isolamento do Compositor Wayland (`04_compositor.sh`)
+- Provisionamento preventivo do runtime oficial **Deno** em `/usr/local/bin/deno` baixado diretamente no `$HOME` (`${REAL_HOME}`) do usuário para não esgotar a partição tmpfs do `/tmp`.
+- Instalação via DNF exclusivamente dos componentes centrais e pontes do compositor:
+  `niri`, `quickshell`, `xwayland-satellite`, `xdg-desktop-portal-gnome`, `xdg-desktop-portal-gtk`, `git`, `polkit`, `gnome-keyring`, `swaylock`.
+- Configuração do arquivo de portais em `/etc/xdg/xdg-desktop-portal/niri-portals.conf`.
+- Remoção completa de clonagem ou execução do shell iNiR deste módulo (responsabilidade transferida para o Módulo 06).
 
 ### Módulo 05: Aplicações de Usuário e Multimídia (`05_desktop_apps.sh`)
 - Swap `ffmpeg-free` por `ffmpeg`.
-- Instalação dos pacotes de `config/packages-apps.conf` (incluindo `python3.12`, `python3.12-devel`, `cairo-devel`, `cairo-gobject-devel`, `gobject-introspection-devel`, `unzip`, `socat`, `mpv`, `matugen`, etc.).
+- Instalação dos pacotes de `config/packages-apps.conf`.
 - Instalação do Brave Origin (com contingência de script oficial).
 - Instalação da GNOME Software com integração Flathub e aplicativos Flatpak declarativos (`config/packages-flatpak.conf`).
 
-### Módulo 06: Pós-Instalação e Ajustes do Niri (`06_post_install.sh`)
-- Inicialização preventiva do cofre PAM (`~/.local/share/keyrings/default` contendo `login` e permissão `600`).
-- Configuração do Niri (`~/.config/niri/config.kdl`):
-  1. Criação/cópia da configuração padrão se ausente.
-  2. Injeção de autostart: `spawn-at-startup "inir" "run"`.
-  3. Configuração do teclado ABNT2 (`layout "br"`) se `KEYBOARD_ABNT2=true`.
-  4. Configurações para VM se `IS_VM=true`.
-- Validação oficial da configuração com `sudo -u "${REAL_USER}" niri validate`.
-- Ativação forçada do SDDM com `sudo systemctl enable --force sddm.service` e `sudo systemctl set-default graphical.target`.
-- Checklist interno de testes e validações.
+### Módulo 06: Módulo Dedicado do Shell (`06_inir_shell.sh`)
+- Única responsabilidade: compilar e configurar o Desktop Shell do iNiR.
+- **Renovação Antecipada do Sudo:** Execução de `sudo -v` logo no início para atualizar o timestamp administrativo, garantindo que as chamadas internas de `sudo` do instalador do iNiR herdem o acesso sem pausar o terminal pedindo senha.
+- **Clonagem do iNiR:** Clone de `https://github.com/snowarch/inir.git` para `${REAL_HOME}/.config/inir` caso o diretório ainda não exista.
+- **Instalação Não-Interativa sob Usuário Real:**
+  `sudo -u "${REAL_USER}" bash -c "cd '${REAL_HOME}/.config/inir' && ./setup install -y"`
+- **Correção de Permissões:** `chown -R "${REAL_USER}:${REAL_USER}" "${REAL_HOME}/.config/inir"`.
+
+### Módulo 07: Pós-Instalação do Sistema e Validações (`07_post_install.sh`)
+- Finalização do sistema operacional e testes de integridade:
+  1. **Chaveiro PAM:** Criação preventiva de `~/.local/share/keyrings/default` com conteúdo `login` e permissão `600`.
+  2. **Configuração do Niri (`~/.config/niri/config.kdl`):**
+     - Copiar o template padrão caso ausente.
+     - Injetar a linha de autostart: `spawn-at-startup "inir" "run"`.
+     - Configurar teclado ABNT2 (`layout "br"`) se `KEYBOARD_ABNT2=true`.
+     - Injetar flags de renderização se `IS_VM=true`.
+  3. **Diretórios de Usuário e Permissões:**
+     - Executar `sudo -u "${REAL_USER}" xdg-user-dirs-update`.
+     - Garantir que `${REAL_HOME}/.config` e `${REAL_HOME}/.local` pertençam recursivamente ao `${REAL_USER}:${REAL_USER}`.
+  4. **Ativação Defensiva do SDDM:**
+     - Desativação de outros gerenciadores e ativação forçada do SDDM:
+       ```bash
+       sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
+       sudo systemctl enable --force sddm.service
+       sudo systemctl set-default graphical.target
+       ```
+  5. **Compilação NVIDIA:** Se `INSTALL_NVIDIA=true`, executar `sudo akmods --force`.
+  6. **Validações Finais:** Executar `sudo -u "${REAL_USER}" niri validate` e registrar o checklist final no log.
 
 ---
 
-## 5. CRITÉRIOS DE TESTE E VALIDAÇÃO
+## 5. REGISTRO FORMAL DE DECISÕES DE PROGRAMAÇÃO DEFENSIVA E CASOS DE BORDA
+
+| Decisão Arquitetural / Defensiva | Justificativa Técnica e Prevenção de Falhas |
+| :--- | :--- |
+| **`sudo systemctl disable gdm lightdm greetd` em sistema minimal** | Atua como rede de segurança essencial para evitar conflitos de display manager caso o usuário reexecute o instalador (desativando instâncias do Greetd de testes anteriores) ou caso o script seja rodado sobre Fedora Workstation/Spins que contenham GDM/LightDM pré-instalados. Evita dois serviços de login competindo pelo mesmo DRM/KMS. |
+| **Renovação Antecipada do Sudo (`sudo -v`) no Módulo 06** | O timeout padrão de credenciais administrativas do `sudo` no Linux varia tipicamente entre 5 e 15 minutos. Em conexões lentas ou etapas anteriores demoradas (como download de pacotes no Módulo 05), as credenciais expiram. Renovar explicitamente o timestamp com `sudo -v` antes de acionar `./setup install -y` do iNiR garante que seus comandos internos rodando com privilégios não pausam a execução em segundo plano para pedir senha interativamente. |
+| **Layout de Teclado (`layout "br"`) vs Idioma da Interface** | O parâmetro `layout "br"` injetado no bloco `xkb` do Niri afeta exclusivamente a tabela física de mapeamento dos scancodes do hardware (viabilizando a tecla `Ç`, `~`, `^` e pontuações do padrão brasileiro ABNT2), operando de forma totalmente independente e desacoplada do idioma da interface gráfica ou widgets do iNiR (que permanecem em inglês nativo). |
+| **Download do Deno no `$HOME` em vez de `/tmp`** | Em sistemas Fedora modernos, `/tmp` é montado como `tmpfs` residente em memória RAM, frequentemente com limite de 50% da memória física ou restrições severas de inodes/blocos. Durante downloads paralelos ou compilações simultâneas em máquinas virtuais com pouca memória (ex: 2GB-4GB), extrair arquivos no `/tmp` provoca erro de *No space left on device* (`curl: (23) Failure writing output to destination`). Utilizar `${REAL_HOME}` protege contra o esgotamento da partição temporária em memória. |
+
+---
+
+## 6. CRITÉRIOS DE TESTE E VALIDAÇÃO
 
 - [x] **Validação do SDDM:** Testar se o serviço `sddm.service` está habilitado e a integração com `pam_gnome_keyring.so` está presente em `/etc/pam.d/sddm`.
 - [x] **Validação do Niri:** Validar a configuração do Niri utilizando `sudo -u "$REAL_USER" niri validate`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/04_compositor_shell.sh
-# Instalação do Compositor Niri, Quickshell, Xwayland-satellite, Desktop Shell iNiR e Portais
+# fedora-inir: modules/04_compositor.sh
+# Instalação do Compositor Niri, Quickshell, Xwayland-satellite e Portais XDG
 # ==============================================================================
 set -euo pipefail
 
@@ -18,28 +18,16 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=../lib/utils.sh
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
 
-ui_section_header "MÓDULO 04: COMPOSITOR, SHELL E PORTAIS XDG"
+ui_section_header "MÓDULO 04: COMPOSITOR NIRI E PONTES DE SISTEMA"
 
 REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"
 
-# 1. Garantia das Dependências de Compilação e Runtimes do iNiR
-log_info "Garantindo dependências essenciais de compilação e execução do iNiR..."
-sudo dnf install -y \
-    python3.12 \
-    python3.12-devel \
-    cairo-devel \
-    cairo-gobject-devel \
-    gobject-introspection-devel \
-    unzip \
-    socat \
-    mpv
-
-# 2. Pré-instalação defensiva do runtime Deno para o iNiR
+# 1. Provisionamento preventivo do runtime Deno em /usr/local/bin/deno
+# Baixado diretamente na pasta pessoal ($REAL_HOME) para não esgotar blocos/inodes na tmpfs do /tmp
 if ! command -v deno &>/dev/null; then
-    log_info "Pré-instalando runtime oficial do Deno para o iNiR..."
+    log_info "Provisionando preventivamente o runtime oficial do Deno..."
     DENO_TMP_ZIP="${REAL_HOME}/deno-install-temp.zip"
-    # Baixa direto na pasta pessoal para não esgotar blocos/inodes na tmpfs do /tmp
     curl -fsSL "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip" -o "${DENO_TMP_ZIP}"
     sudo unzip -o "${DENO_TMP_ZIP}" -d /usr/local/bin/
     sudo chmod +x /usr/local/bin/deno
@@ -49,27 +37,24 @@ else
     log_info "Runtime Deno já detectado no sistema: $(deno --version | head -n1)"
 fi
 
-# 3. Instalação dos Componentes Centrais da Interface Wayland
-log_info "Instalando Niri, Quickshell, Xwayland-satellite e Portais XDG via DNF..."
+# 2. Instalação via DNF dos Componentes do Compositor e Pontes de Sistema
+log_info "Instalando Niri, Quickshell, Xwayland-satellite, Portais e utilitários de sessão via DNF..."
 sudo dnf install -y \
     niri \
     quickshell \
     xwayland-satellite \
-    xdg-desktop-portal \
-    xdg-desktop-portal-gtk \
     xdg-desktop-portal-gnome \
+    xdg-desktop-portal-gtk \
     git \
     polkit \
     gnome-keyring \
-    libsecret \
     swaylock
 
-# 4. Configuração de Prioridade dos Portais XDG para a Sessão Niri
-log_info "Configurando integração e prioridades de portais XDG..."
+# 3. Configuração do arquivo de portais em /etc/xdg/xdg-desktop-portal/niri-portals.conf
+log_info "Configurando integração e prioridades de portais XDG para Niri..."
 sudo mkdir -p /usr/share/xdg-desktop-portal/portals
 sudo mkdir -p /etc/xdg/xdg-desktop-portal
 
-# Garante fallback ordenado para sessões Niri
 sudo tee /etc/xdg/xdg-desktop-portal/niri-portals.conf >/dev/null <<'EOF'
 [preferred]
 default=gtk;gnome;
@@ -77,35 +62,6 @@ org.freedesktop.impl.portal.ScreenCast=gnome;
 org.freedesktop.impl.portal.Screenshot=gnome;
 EOF
 
-log_success "Portais XDG configurados."
+log_success "Arquivo /etc/xdg/xdg-desktop-portal/niri-portals.conf configurado."
 
-# 5. Instalação do Desktop Shell iNiR
-log_info "Configurando Desktop Shell iNiR para o usuário: ${REAL_USER}..."
-INIR_DIR="${REAL_HOME}/.config/inir"
-
-if [[ -d "${INIR_DIR}/.git" ]]; then
-    log_info "Repositório do iNiR já clonado em ${INIR_DIR}. Atualizando..."
-    sudo -u "${REAL_USER}" git -C "${INIR_DIR}" pull --ff-only || true
-elif [[ -d "${INIR_DIR}" ]]; then
-    log_warn "Diretório ${INIR_DIR} já existe, mas não é um repositório git. Fazendo backup..."
-    sudo -u "${REAL_USER}" mv "${INIR_DIR}" "${INIR_DIR}.bak.$(date +%s)"
-    sudo -u "${REAL_USER}" git clone https://github.com/snowarch/inir.git "${INIR_DIR}"
-else
-    sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config"
-    sudo -u "${REAL_USER}" git clone https://github.com/snowarch/inir.git "${INIR_DIR}"
-fi
-
-# Execução do instalador nativo do iNiR em modo não-interativo sob o usuário real
-if [[ -f "${INIR_DIR}/setup" ]]; then
-    log_info "Executando instalador nativo do iNiR (./setup install -y)..."
-    sudo -u "${REAL_USER}" chmod +x "${INIR_DIR}/setup"
-    sudo -u "${REAL_USER}" bash -c "cd '${INIR_DIR}' && ./setup install -y"
-    log_success "Instalador nativo do iNiR executado com sucesso."
-else
-    log_warn "Script ./setup não encontrado em ${INIR_DIR}."
-fi
-
-# Garante que o diretório clonado e suas dependências pertençam a REAL_USER:REAL_USER
-ensure_user_ownership "${REAL_HOME}/.config"
-
-log_success "Módulo 04 (Compositor e Shell) concluído com sucesso."
+log_success "Módulo 04 (Compositor Niri e Pontes de Sistema) concluído com sucesso."

@@ -106,17 +106,18 @@ echo ""
 log_info "Iniciando processo de instalação modular do Fedora iNiR..."
 
 # 7. Execução Sequencial dos Módulos
-MODULES=(
+modules=(
     "00_repos.sh"
     "01_system_hardware.sh"
     "02_gpu_drivers.sh"
     "03_display_stack.sh"
-    "04_compositor_shell.sh"
+    "04_compositor.sh"
     "05_desktop_apps.sh"
-    "06_post_install.sh"
+    "06_inir_shell.sh"
+    "07_post_install.sh"
 )
 
-for mod in "${MODULES[@]}"; do
+for mod in "${modules[@]}"; do
     mod_path="${INSTALLER_ROOT}/modules/${mod}"
     if [[ -f "$mod_path" ]]; then
         chmod +x "$mod_path"
