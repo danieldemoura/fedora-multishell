@@ -105,7 +105,10 @@ if os.path.exists(config_file):
 if shell_type == "inir":
     spawn_cmd = 'spawn-at-startup "inir" "run"'
 else:
-    spawn_cmd = 'spawn-at-startup "noctalia"'
+    if is_vm:
+        spawn_cmd = 'spawn-at-startup "env" "LIBGL_ALWAYS_SOFTWARE=1" "noctalia"'
+    else:
+        spawn_cmd = 'spawn-at-startup "noctalia"'
 
 if spawn_cmd not in content:
     content = f'{spawn_cmd}\n' + content
@@ -182,7 +185,7 @@ elif [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
 
 [input.keyboard]
 
-[cursor]
+[input.cursor]
 EOF
         fi
     fi
@@ -202,19 +205,35 @@ if os.path.exists(config_file):
     with open(config_file, "r", encoding="utf-8") as f:
         content = f.read()
 
-# 1. Garante a seção [general] e injeta autostart = ["noctalia"]
+# Causa Raiz da Sintaxe: Descomenta explicitamente a linha '# [general]' para torná-la '[general]' ativo no TOML
+content = re.sub(r'^[ \t]*#[ \t]*\[general\][ \t]*$', '[general]', content, flags=re.MULTILINE)
+
+# 1. Autostart do Noctalia sob [general]
+if is_vm:
+    autostart_line = 'autostart = ["env LIBGL_ALWAYS_SOFTWARE=1 noctalia"]'
+else:
+    autostart_line = 'autostart = ["noctalia"]'
+
 if "[general]" in content:
-    if 'autostart' not in content:
+    # Remove autostart existente se houver sob [general] ou substitui
+    if re.search(r'\[general\][^\[]*?autostart\s*=', content):
+        content = re.sub(
+            r'(\[general\][^\[]*?autostart\s*=\s*)(?:\[[^\]]*\]|"[^"]*")',
+            r'\1' + ('["env LIBGL_ALWAYS_SOFTWARE=1 noctalia"]' if is_vm else '["noctalia"]'),
+            content,
+            count=1
+        )
+    else:
         content = re.sub(
             r'(\[general\])',
-            r'\1\nautostart = ["noctalia"]',
+            r'\1\n' + autostart_line,
             content,
             count=1
         )
 else:
-    content = '[general]\nautostart = ["noctalia"]\n\n' + content
+    content = f'[general]\n{autostart_line}\n\n' + content
 
-# 2. Configura layout de teclado ABNT2 se solicitado
+# 2. Configura layout de teclado ABNT2 sob [input.keyboard] se solicitado
 if is_abnt2:
     if 'layout = "br"' not in content:
         if "[input.keyboard]" in content:
@@ -234,18 +253,32 @@ if is_abnt2:
         else:
             content += '\n[input.keyboard]\nlayout = "br"\n'
 
-# 3. Configura cursor para VM (hardware_cursor = false)
+# 3. Configura cursor para VM (hardware_cursor = false sob [input.cursor])
 if is_vm:
-    if "hardware_cursor" not in content:
-        if "[cursor]" in content:
+    if "hardware_cursor = false" not in content and "hardware_cursor=false" not in content:
+        if "[input.cursor]" in content:
+            content = re.sub(
+                r'(\[input\.cursor\])',
+                r'\1\nhardware_cursor = false',
+                content,
+                count=1
+            )
+        elif "[cursor]" in content:
             content = re.sub(
                 r'(\[cursor\])',
                 r'\1\nhardware_cursor = false',
                 content,
                 count=1
             )
+        elif "[input]" in content:
+            content = re.sub(
+                r'(\[input\])',
+                r'\1\n[input.cursor]\nhardware_cursor = false',
+                content,
+                count=1
+            )
         else:
-            content += '\n[cursor]\nhardware_cursor = false\n'
+            content += '\n[input.cursor]\nhardware_cursor = false\n'
 
 with open(config_file, "w", encoding="utf-8") as f:
     f.write(content)
@@ -272,30 +305,54 @@ if [[ "${IS_VM:-false}" == false ]] && [[ "${INSTALL_NVIDIA:-false}" == true ]];
     log_success "Compilação do módulo NVIDIA concluída."
 fi
 
-# 5. Definição do Alvo Gráfico e Ativação do SDDM
-log_info "Configurando inicialização gráfica padrão (SDDM)..."
-sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
-sudo systemctl enable --force sddm.service
-sudo systemctl set-default graphical.target
-log_success "Target gráfico e sddm.service definidos como padrão."
+# 5. Definição do Alvo Gráfico e Ativação do Display Manager no Systemd
+if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
+    log_info "Configurando inicialização gráfica padrão (Greetd com Noctalia Greeter)..."
+    sudo systemctl disable gdm lightdm sddm 2>/dev/null || true
+    sudo systemctl enable --force greetd.service
+    sudo systemctl set-default graphical.target
+    log_success "Target gráfico e greetd.service definidos como padrão."
+else
+    log_info "Configurando inicialização gráfica padrão (SDDM)..."
+    sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
+    sudo systemctl enable --force sddm.service
+    sudo systemctl set-default graphical.target
+    log_success "Target gráfico e sddm.service definidos como padrão."
+fi
 
 # 6. Checklist Interno de Testes e Validação
 echo ""
 log_info "Iniciando checagens internas de integridade do sistema..."
 
-# Teste 1: Serviço SDDM
-if systemctl is-enabled sddm.service >/dev/null 2>&1; then
-    log_success "[Checklist] sddm.service está devidamente habilitado no systemd."
-else
-    log_warn "[Checklist] sddm.service não reportou status enabled via systemctl is-enabled."
-fi
+# Teste 1: Serviço de Display Manager
+if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
+    if systemctl is-enabled greetd.service >/dev/null 2>&1; then
+        log_success "[Checklist] greetd.service está devidamente habilitado no systemd."
+    else
+        log_warn "[Checklist] greetd.service não reportou status enabled via systemctl is-enabled."
+    fi
 
-# Teste 2: PAM do SDDM
-if [[ -f "/etc/pam.d/sddm" ]] && grep -q "pam_gnome_keyring.so" /etc/pam.d/sddm; then
-    log_success "[Checklist] /etc/pam.d/sddm contém integração ativa com pam_gnome_keyring.so."
+    # Teste 2: PAM do Greetd
+    if [[ -f "/etc/pam.d/greetd" ]] && grep -q "pam_gnome_keyring.so" /etc/pam.d/greetd; then
+        log_success "[Checklist] /etc/pam.d/greetd contém integração ativa com pam_gnome_keyring.so."
+    else
+        log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/greetd!"
+        exit 1
+    fi
 else
-    log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/sddm!"
-    exit 1
+    if systemctl is-enabled sddm.service >/dev/null 2>&1; then
+        log_success "[Checklist] sddm.service está devidamente habilitado no systemd."
+    else
+        log_warn "[Checklist] sddm.service não reportou status enabled via systemctl is-enabled."
+    fi
+
+    # Teste 2: PAM do SDDM
+    if [[ -f "/etc/pam.d/sddm" ]] && grep -q "pam_gnome_keyring.so" /etc/pam.d/sddm; then
+        log_success "[Checklist] /etc/pam.d/sddm contém integração ativa com pam_gnome_keyring.so."
+    else
+        log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/sddm!"
+        exit 1
+    fi
 fi
 
 # Teste 3: Validação do Compositor Selecionado
