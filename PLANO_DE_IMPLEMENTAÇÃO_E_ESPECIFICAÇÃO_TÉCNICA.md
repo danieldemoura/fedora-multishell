@@ -127,7 +127,7 @@ modules=(
 - Repositórios condicionais:
   - Se `SELECTED_COMPOSITOR == "niri"`: ativa COPR `yalter/niri`.
   - Se `SELECTED_SHELL == "inir"`: ativa COPR `errornointernet/quickshell`.
-  - Se `SELECTED_COMPOSITOR == "umbriel"`: ativa o repositório Terra do Fyra Labs (`terra-release` e `terra-gpg-keys`).
+  - Se `SELECTED_SHELL == "noctalia"`: ativa o repositório Terra do Fyra Labs (`terra-release` e `terra-gpg-keys`, necessário para `noctalia-greeter` e `umbriel-nightly`).
 - Atualização e sincronização via `dnf upgrade --refresh -y`.
 
 ### Módulo 01: Infraestrutura de Hardware e Áudio (`01_system_hardware.sh`)

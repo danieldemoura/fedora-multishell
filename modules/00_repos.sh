@@ -59,9 +59,9 @@ if [[ "${SELECTED_SHELL:-inir}" == "inir" ]]; then
     enable_copr_repo "errornointernet/quickshell" "errornointernet:quickshell"
 fi
 
-# Se o compositor for Umbriel: adiciona o repositório Terra do Fyra Labs
-if [[ "${SELECTED_COMPOSITOR:-}" == "umbriel" ]]; then
-    log_info "Verificando repositório Terra do Fyra Labs para o compositor Umbriel..."
+# Se a shell escolhida for Noctalia: ativa o repositório Terra do Fyra Labs (necessário para o noctalia-greeter e umbriel)
+if [[ "${SELECTED_SHELL:-}" == "noctalia" ]]; then
+    log_info "Verificando repositório Terra do Fyra Labs para Noctalia Shell e dependências (noctalia-greeter / umbriel)..."
     if rpm -q terra-release >/dev/null 2>&1 || ls /etc/yum.repos.d/*terra*.repo >/dev/null 2>&1; then
         log_info "Repositório Terra do Fyra Labs já está configurado. Pulando..."
     else
