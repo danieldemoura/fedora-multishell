@@ -182,15 +182,23 @@ elif [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
             log_info "Criando modelo base inicial config.toml para Umbriel..."
             sudo -u "${REAL_USER}" tee "${UMB_CONFIG_FILE}" >/dev/null <<'EOF'
 [general]
+autostart = ["noctalia"]
+show_cheatsheet = false
 
 [input.keyboard]
 
 [input.cursor]
+
+[keybinds]
+"Mod+Return" = "spawn:kitty"
+"Mod" = "spawn:noctalia msg panel-toggle launcher"
+"Mod+Q" = "window-close"
+"Mod+Escape" = "quit"
 EOF
         fi
     fi
 
-    log_info "Ajustando autostart, layout ABNT2 e parâmetros no config.toml do Umbriel..."
+    log_info "Ajustando autostart, layout ABNT2, environment e parâmetros no config.toml do Umbriel..."
     python3 - "$UMB_CONFIG_FILE" "${IS_VM:-false}" "${KEYBOARD_ABNT2:-true}" <<'PYEOF'
 import os
 import re
@@ -205,35 +213,44 @@ if os.path.exists(config_file):
     with open(config_file, "r", encoding="utf-8") as f:
         content = f.read()
 
-# Causa Raiz da Sintaxe: Descomenta explicitamente a linha '# [general]' para torná-la '[general]' ativo no TOML
+# 1. Garante cabeçalho [general] descomentado
 content = re.sub(r'^[ \t]*#[ \t]*\[general\][ \t]*$', '[general]', content, flags=re.MULTILINE)
 
-# 1. Autostart do Noctalia sob [general]
-if is_vm:
-    autostart_line = 'autostart = ["env LIBGL_ALWAYS_SOFTWARE=1 noctalia"]'
-else:
-    autostart_line = 'autostart = ["noctalia"]'
+# Garante a existência de [general] se não existir
+if "[general]" not in content:
+    content = "[general]\n\n" + content
 
-if "[general]" in content:
-    # Remove autostart existente se houver sob [general] ou substitui
-    if re.search(r'\[general\][^\[]*?autostart\s*=', content):
-        content = re.sub(
-            r'(\[general\][^\[]*?autostart\s*=\s*)(?:\[[^\]]*\]|"[^"]*")',
-            r'\1' + ('["env LIBGL_ALWAYS_SOFTWARE=1 noctalia"]' if is_vm else '["noctalia"]'),
-            content,
-            count=1
-        )
-    else:
-        content = re.sub(
-            r'(\[general\])',
-            r'\1\n' + autostart_line,
-            content,
-            count=1
-        )
-else:
-    content = f'[general]\n{autostart_line}\n\n' + content
+# 2. Descomenta qualquer 'autostart = ...' sob [general] ou linha comentada
+content = re.sub(r'^[ \t]*#[ \t]*(autostart\s*=)', r'\1', content, flags=re.MULTILINE)
 
-# 2. Configura layout de teclado ABNT2 sob [input.keyboard] se solicitado
+# 3. Define autostart estritamente como ["noctalia"]
+if re.search(r'\[general\][^\[]*?autostart\s*=', content):
+    content = re.sub(
+        r'(\[general\][^\[]*?autostart\s*=\s*)(?:\[[^\]]*\]|"[^"]*"|[^\n]+)',
+        r'\1["noctalia"]',
+        content,
+        count=1
+    )
+else:
+    content = re.sub(
+        r'(\[general\])',
+        r'\1\nautostart = ["noctalia"]',
+        content,
+        count=1
+    )
+
+# 4. Desativa a modal de cheatsheet sob [general] para evitar bloqueio de foco no boot
+# Remove variantes comentadas ou ativas anteriores de show_cheatsheet
+content = re.sub(r'^[ \t]*#?[ \t]*show_cheatsheet\s*=.*$', '', content, flags=re.MULTILINE)
+# Adiciona show_cheatsheet = false logo sob [general]
+content = re.sub(
+    r'(\[general\])',
+    r'\1\nshow_cheatsheet = false',
+    content,
+    count=1
+)
+
+# 5. Configura layout de teclado ABNT2 sob [input.keyboard] se solicitado
 if is_abnt2:
     if 'layout = "br"' not in content:
         if "[input.keyboard]" in content:
@@ -253,8 +270,9 @@ if is_abnt2:
         else:
             content += '\n[input.keyboard]\nlayout = "br"\n'
 
-# 3. Configura cursor para VM (hardware_cursor = false sob [input.cursor])
+# 6. Configurações para Máquina Virtual (hardware_cursor e seção nativa [environment])
 if is_vm:
+    # Cursor por software sob [input.cursor]
     if "hardware_cursor = false" not in content and "hardware_cursor=false" not in content:
         if "[input.cursor]" in content:
             content = re.sub(
@@ -279,6 +297,45 @@ if is_vm:
             )
         else:
             content += '\n[input.cursor]\nhardware_cursor = false\n'
+
+    # Seção nativa [environment] com flags de renderização de VM
+    if "[environment]" in content:
+        if "LIBGL_ALWAYS_SOFTWARE" not in content:
+            content = re.sub(
+                r'(\[environment\])',
+                r'\1\nLIBGL_ALWAYS_SOFTWARE = "1"',
+                content,
+                count=1
+            )
+        if "WLR_NO_HARDWARE_CURSORS" not in content:
+            content = re.sub(
+                r'(\[environment\])',
+                r'\1\nWLR_NO_HARDWARE_CURSORS = "1"',
+                content,
+                count=1
+            )
+    else:
+        content += '\n[environment]\nLIBGL_ALWAYS_SOFTWARE = "1"\nWLR_NO_HARDWARE_CURSORS = "1"\n'
+
+# 7. Preservação / Garantia de Atalhos Nativos ([keybinds])
+# Se por algum motivo o arquivo de configuração não possuir bloco [keybinds] ou faltar atalhos essenciais:
+if "[keybinds]" not in content:
+    content += '\n[keybinds]\n"Mod+Return" = "spawn:kitty"\n"Mod" = "spawn:noctalia msg panel-toggle launcher"\n'
+else:
+    if '"Mod+Return"' not in content:
+        content = re.sub(
+            r'(\[keybinds\])',
+            r'\1\n"Mod+Return" = "spawn:kitty"',
+            content,
+            count=1
+        )
+    if '"Mod"' not in content and "'Mod'" not in content:
+        content = re.sub(
+            r'(\[keybinds\])',
+            r'\1\n"Mod" = "spawn:noctalia msg panel-toggle launcher"',
+            content,
+            count=1
+        )
 
 with open(config_file, "w", encoding="utf-8") as f:
     f.write(content)
