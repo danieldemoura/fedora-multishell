@@ -169,7 +169,7 @@ modules=(
 ### Módulo 05: Roteador de Compositor Wayland (`05_compositor.sh`)
 - Instalação de utilitários comuns: `git`, `polkit`, `gnome-keyring`, `swaylock`.
 - Despacha a execução para o submódulo correspondente:
-  - **`compositors/niri.sh`**: Instala `niri`, `xwayland-satellite`, `xdg-desktop-portal-gnome`, `xdg-desktop-portal-gtk` e configura `/etc/xdg/xdg-desktop-portal/niri-portals.conf`.
+  - **`compositors/niri.sh`**: Instala `niri`, `xwayland-satellite`, `xdg-desktop-portal-gnome`, `xdg-desktop-portal-gtk` com `--exclude=alacritty` (preservando dependências normais e fracas), executa remoção defensiva caso o Alacritty já exista e configura `/etc/xdg/xdg-desktop-portal/niri-portals.conf`.
   - **`compositors/umbriel.sh`**: Instala `umbriel-nightly`, `xwayland-satellite`, `xdg-desktop-portal-umbriel-nightly`, `xdg-desktop-portal-gtk`.
 
 ### Módulo 06: Roteador de Desktop Shell (`06_desktop_shell.sh`)
@@ -211,6 +211,7 @@ modules=(
 | **Templates Declarativos vs `/usr/share/doc`** | A adoção de templates próprios na pasta do instalador elimina a dependência de arquivos de exemplo do sistema operacional (que sofrem com caminhos versionados no Fedora e causavam o erro de atalhos vazios `not bound`), garantindo que tanto o Niri quanto o Umbriel iniciem com mapeamento completo de atalhos, mouse e teclas Fn. |
 | **Injeção Dinâmica de Variáveis de VM vs Templates Limpos** | Os templates em `templates/` são mantidos intencionalmente limpos e otimizados para Máquinas Físicas (Bare Metal). A injeção das variáveis de ambiente (`LIBGL_ALWAYS_SOFTWARE=1`, `WLR_NO_HARDWARE_CURSORS=1` e `hardware_cursor = false`) ocorre em tempo de execução via `07_post_install.sh` somente se `IS_VM=true`. Isso previne que computadores reais com GPU dedicada tenham sua aceleração desativada, ao mesmo tempo em que blinda máquinas virtuais contra telas pretas e fechamentos inesperados (*crashes*) do QtQuick. |
 | **Isolamento de Templates por Shell** | A cópia dos templates do Umbriel e Niri ocorre estritamente quando `SELECTED_SHELL="noctalia"`, preservando a autonomia e configuração gerada pelo instalador nativo do iNiR quando este for o escolhido. |
+| **Exclusão e Remoção Defensiva do Alacritty (`compositors/niri.sh`)** | O pacote upstream do Niri pode trazer o Alacritty como dependência recomendada ou fraca. A flag `--exclude=alacritty` aliada à remoção defensiva subsequente garante que apenas o Kitty permaneça como emulador de terminal oficial do sistema, sem quebrar as outras dependências normais e fracas do Niri. |
 
 ---
 

@@ -80,7 +80,7 @@ layout {
 
 // Opacidade global (no Umbriel vinha junto com blur)
 window-rule {
-    opacity 0.87
+    // opacity 0.87
 }
 
 window-rule {
@@ -131,7 +131,7 @@ binds {
     // --- Aplicativos e sessão ---
     Mod+Return repeat=false { spawn "kitty"; }
     // "Mod" sozinho não é suportado no niri; usando Mod+D para o launcher
-    Mod+D { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
+    Mod+space { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     Mod+Q repeat=false { close-window; }
     Mod+Shift+Escape allow-inhibiting=false repeat=false { toggle-keyboard-shortcuts-inhibit; }
     Mod+Shift+Slash { show-hotkey-overlay; }
