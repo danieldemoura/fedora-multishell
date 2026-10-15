@@ -28,6 +28,13 @@ if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
     log_info "Instalando greetd, greetd-selinux e noctalia-greeter via DNF..."
     sudo dnf install -y greetd greetd-selinux noctalia-greeter gnome-keyring-pam
 
+    # Prepara o diretório de estado do greeter e ativa a sincronização sem senha para o usuário
+    log_info "Configurando diretório de estado e autorização do Noctalia Greeter..."
+    sudo mkdir -p /var/lib/noctalia-greeter
+    sudo chown -R greetd:greetd /var/lib/noctalia-greeter
+    sudo noctalia-greeter passwordless-sync enable "${REAL_USER}"
+    log_success "Sincronização de aparência (passwordless-sync) ativada para '${REAL_USER}'."
+
     # 2. Permissões de hardware para o usuário greetd
     log_info "Configurando permissões de hardware (video, render, input) para o usuário greetd..."
     sudo usermod -aG video,render,input greetd 2>/dev/null || true

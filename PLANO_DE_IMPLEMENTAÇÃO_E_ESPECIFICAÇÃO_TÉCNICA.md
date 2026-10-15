@@ -145,9 +145,17 @@ modules=(
 - Garante que a tipografia e o Kitty já existam no disco antes de a interface gráfica ser configurada.
 
 ### Módulo 04: Camada de Display Manager (`04_display_stack.sh`)
-- Instalação do `sddm` e `gnome-keyring-pam`.
-- Atribuição dos grupos de hardware `video,render,input` ao usuário `sddm`.
-- Configuração de integração PAM em `/etc/pam.d/sddm` com `pam_gnome_keyring.so` para desbloqueio silencioso do cofre de senhas no login.
+- **Se `SELECTED_SHELL == "noctalia"` (Greetd + Noctalia Greeter):**
+  - Instalação de `greetd`, `greetd-selinux`, `noctalia-greeter` e `gnome-keyring-pam`.
+  - Configuração do diretório de estado `/var/lib/noctalia-greeter` (posse `greetd:greetd`).
+  - Execução de `noctalia-greeter passwordless-sync enable "${REAL_USER}"` para autorização nativa Polkit da sincronização de aparência sem senha.
+  - Atribuição dos grupos de hardware `video,render,input` ao usuário `greetd`.
+  - Configuração do `/etc/greetd/config.toml` (com flags defensivas de software rendering para VM se aplicável).
+  - Configuração de integração PAM em `/etc/pam.d/greetd` com `pam_gnome_keyring.so` para desbloqueio silencioso do cofre de senhas no login.
+- **Se padrão (`sddm`):**
+  - Instalação do `sddm` e `gnome-keyring-pam`.
+  - Atribuição dos grupos de hardware `video,render,input` ao usuário `sddm`.
+  - Configuração de integração PAM em `/etc/pam.d/sddm` com `pam_gnome_keyring.so` para desbloqueio silencioso do cofre de senhas no login.
 
 ### Módulo 05: Roteador de Compositor Wayland (`05_compositor.sh`)
 - Instalação de utilitários comuns: `git`, `polkit`, `gnome-keyring`, `swaylock`.
@@ -188,6 +196,7 @@ modules=(
 
 | Decisão Arquitetural / Defensiva | Justificativa Técnica e Prevenção de Falhas |
 | :--- | :--- |
+| **Autorização do Noctalia Greeter (`passwordless-sync`)** | O diretório `/var/lib/noctalia-greeter` com posse de `greetd:greetd` e a execução de `noctalia-greeter passwordless-sync enable` autorizam formalmente via Polkit a sincronização bidirecional do papel de parede e temas do desktop com a tela de login sem exigir senha administrativa. |
 | **Desativação preventiva de GDM / LightDM / Greetd** | Atua como rede de segurança essencial para evitar conflitos de display manager caso o usuário reexecute o instalador (desativando instâncias do Greetd de testes anteriores) ou caso o script seja rodado sobre Fedora Workstation/Spins que contenham GDM/LightDM pré-instalados. Evita dois serviços de login competindo pelo mesmo DRM/KMS. |
 | **Execução de `sudo -v` antecipado em `shells/inir.sh`** | O timeout padrão de credenciais administrativas do `sudo` no Linux varia entre 5 e 15 minutos. Em etapas anteriores demoradas (como download de apps e codecs no Módulo 03), o timestamp pode expirar. Renovar explicitamente o timestamp com `sudo -v` antes de acionar `./setup install -y` do iNiR garante que seus comandos internos com privilégios não pausam a execução em segundo plano para pedir senha interativamente. |
 | **Isolamento do download do Deno na Home em vez do `/tmp`** | No Fedora moderno, `/tmp` é montado como `tmpfs` em memória RAM, com restrições severas de inodes/blocos e tamanho limitado. Em downloads paralelos ou em máquinas virtuais com 2GB-4GB de RAM, extrair arquivos no `/tmp` provoca erro de *No space left on device* (`curl: (23) Failure writing output to destination`). Baixar no `${REAL_HOME}` protege contra o esgotamento da partição temporária em memória. |

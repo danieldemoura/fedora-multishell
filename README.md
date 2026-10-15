@@ -39,7 +39,7 @@ fedora-inir/
 │   ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, som e energia (Tuned)
 │   ├── 02_gpu_drivers.sh            # Drivers Mesa abertos ou NVIDIA com akmods
 │   ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin e Flatpaks
-│   ├── 04_display_stack.sh          # Camada de Display Manager: SDDM e integração PAM Keyring
+│   ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd/Noctalia Greeter e integração PAM Keyring
 │   ├── 05_compositor.sh             # Roteador de Compositor (Padrão Strategy)
 │   │   └── compositors/
 │   │       ├── niri.sh              # Niri, xwayland-satellite e portais GNOME/GTK
@@ -110,6 +110,7 @@ O instalador conta com um menu interativo sem poluição visual:
 
 | Decisão Arquitetural / Defensiva | Justificativa Técnica e Prevenção de Falhas |
 | :--- | :--- |
+| **Autorização do Noctalia Greeter (`passwordless-sync`)** | O diretório `/var/lib/noctalia-greeter` com posse de `greetd:greetd` e a execução de `noctalia-greeter passwordless-sync enable` autorizam formalmente via Polkit a sincronização bidirecional do papel de parede e temas do desktop com a tela de login sem exigir senha administrativa. |
 | **Desativação preventiva de GDM / LightDM / Greetd** | Evita conflitos de display manager caso o script seja reexecutado ou utilizado sobre Fedora Workstation/Spins que contenham outros gerenciadores pré-instalados. Previne dois daemons disputando o mesmo dispositivo DRM/KMS. |
 | **Execução de `sudo -v` antecipado em `shells/inir.sh`** | Em etapas anteriores demoradas (como o download de aplicativos e codecs no Módulo 03), o timestamp padrão do `sudo` pode expirar. Atualizar o timestamp explicitamente antes de acionar `./setup install -y` impede que o instalador do iNiR trave esperando senha de administrador em background. |
 | **Isolamento do download do Deno na Home (`${REAL_HOME}`) em vez do `/tmp`** | Em sistemas Fedora modernos, `/tmp` é montado como `tmpfs` em memória RAM. Em máquinas virtuais com 2GB-4GB de memória, arquivos temporários podem esgotar inodes/espaço (`curl: (23) Failure writing output to destination`). Utilizar a Home garante armazenamento persistente em disco. |
