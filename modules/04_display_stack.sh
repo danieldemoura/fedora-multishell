@@ -20,6 +20,7 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 SELECTED_SHELL="${SELECTED_SHELL:-inir}"
 IS_VM="${IS_VM:-false}"
+REAL_USER="$(get_real_user)"
 
 if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD / NOCTALIA GREETER)"
