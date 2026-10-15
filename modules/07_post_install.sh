@@ -45,304 +45,118 @@ sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
 log_success "Ponteiro do chaveiro canônico 'login' configurado em ${KEYRINGS_DIR}/default."
 
 # 2. Configuração do Compositor Ativo (Niri ou Umbriel)
-if [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
-    NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
-    NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
-    SYSTEM_NIRI_CONF="/usr/share/doc/niri/config.kdl"
+if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
+    if [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
+        UMB_CONFIG_DIR="${REAL_HOME}/.config/umbriel"
+        UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
 
-    log_info "Configurando ambiente do Niri em ${NIRI_CONFIG_FILE}..."
-    sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
+        log_info "Configurando ambiente do Umbriel para Noctalia a partir dos templates declarativos..."
+        sudo -u "${REAL_USER}" mkdir -p "${UMB_CONFIG_DIR}"
 
-    # Backup do config se já existir
-    if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
-        backup_file "${NIRI_CONFIG_FILE}" false
-    fi
-
-    # Copia a configuração padrão do Niri se o arquivo do usuário ainda não existir
-    if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
-        if [[ -f "${SYSTEM_NIRI_CONF}" ]]; then
-            sudo -u "${REAL_USER}" cp "${SYSTEM_NIRI_CONF}" "${NIRI_CONFIG_FILE}"
-            log_info "Configuração padrão copiada de ${SYSTEM_NIRI_CONF}."
-        elif [[ -f "/usr/share/doc/niri-git/config.kdl" ]]; then
-            sudo -u "${REAL_USER}" cp "/usr/share/doc/niri-git/config.kdl" "${NIRI_CONFIG_FILE}"
-            log_info "Configuração padrão copiada de /usr/share/doc/niri-git/config.kdl."
-        elif [[ -f "/etc/niri/config.kdl" ]]; then
-            sudo -u "${REAL_USER}" cp "/etc/niri/config.kdl" "${NIRI_CONFIG_FILE}"
-            log_info "Configuração padrão copiada de /etc/niri/config.kdl."
-        else
-            log_info "Criando arquivo base inicial config.kdl para Niri..."
-            sudo -u "${REAL_USER}" tee "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
-// Niri Base Configuration
-input {
-    keyboard {
-        xkb {
-        }
-    }
-}
-EOF
+        # Backup de config anterior se existir
+        if [[ -f "${UMB_CONFIG_FILE}" ]]; then
+            backup_file "${UMB_CONFIG_FILE}" false
         fi
-    fi
 
-    # Injeta autostart da shell selecionada e flags de teclado/VM no config.kdl
-    log_info "Ajustando autostart de '${SELECTED_SHELL}' e parâmetros no config.kdl do Niri..."
+        # Copia todos os arquivos declarativos de templates/umbriel/* para ~/.config/umbriel/
+        sudo -u "${REAL_USER}" cp -r "${INSTALLER_ROOT}/templates/umbriel/"* "${UMB_CONFIG_DIR}/"
+        log_info "Templates de Umbriel copiados para ${UMB_CONFIG_DIR}/ com sucesso."
 
-    python3 - "$NIRI_CONFIG_FILE" "${IS_VM:-false}" "${KEYBOARD_ABNT2:-true}" "${SELECTED_SHELL}" <<'PYEOF'
-import os
-import re
-import sys
+        # Injeção Dinâmica para VM: apenas se IS_VM=true
+        if [[ "${IS_VM:-false}" == true ]]; then
+            log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Umbriel..."
+            sudo -u "${REAL_USER}" tee -a "${UMB_CONFIG_FILE}" >/dev/null <<'EOF'
 
-config_file = sys.argv[1]
-is_vm = (sys.argv[2].lower() == "true")
-is_abnt2 = (sys.argv[3].lower() == "true")
-shell_type = sys.argv[4].lower()
+# ==============================================================================
+# Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
+[environment]
+LIBGL_ALWAYS_SOFTWARE = "1"
+WLR_NO_HARDWARE_CURSORS = "1"
 
-content = ""
-if os.path.exists(config_file):
-    with open(config_file, "r", encoding="utf-8") as f:
-        content = f.read()
+[input.cursor]
+hardware_cursor = false
+EOF
+            log_success "Flags de VM anexadas dinamicamente ao final de ${UMB_CONFIG_FILE}."
+        fi
 
-# Define linha de autostart conforme a shell
-if shell_type == "inir":
-    spawn_cmd = 'spawn-at-startup "inir" "run"'
-else:
-    if is_vm:
-        spawn_cmd = 'spawn-at-startup "env" "LIBGL_ALWAYS_SOFTWARE=1" "noctalia"'
-    else:
-        spawn_cmd = 'spawn-at-startup "noctalia"'
+        # Validação do arquivo final
+        log_info "Executando validador oficial do Umbriel (umbriel config validate)..."
+        if command -v umbriel >/dev/null 2>&1; then
+            if UMB_VAL_OUTPUT="$(sudo -u "${REAL_USER}" umbriel config validate 2>&1)"; then
+                log_success "[Checklist] Validação oficial aprovada: 'umbriel config validate' confirmou o arquivo de configuração."
+            else
+                log_warn "[Checklist] Aviso na validação do Umbriel: ${UMB_VAL_OUTPUT}"
+            fi
+        elif [[ -x "/usr/bin/umbriel" ]]; then
+            if UMB_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/umbriel config validate 2>&1)"; then
+                log_success "[Checklist] Validação oficial aprovada: '/usr/bin/umbriel config validate' confirmou o arquivo."
+            else
+                log_warn "[Checklist] Aviso na validação do Umbriel: ${UMB_VAL_OUTPUT}"
+            fi
+        else
+            log_warn "[Checklist] Binário 'umbriel' não encontrado no PATH para executar a validação nativa imediata."
+        fi
 
-if spawn_cmd not in content:
-    content = f'{spawn_cmd}\n' + content
+    elif [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
+        NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
+        NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
 
-# Configura layout de teclado ABNT2 no bloco input/keyboard se solicitado
-if is_abnt2:
-    if 'layout "br"' not in content:
-        if re.search(r'xkb\s*\{', content):
-            content = re.sub(
-                r'(xkb\s*\{)',
-                r'\1\n        layout "br";',
-                content,
-                count=1
-            )
-        elif re.search(r'keyboard\s*\{', content):
-            content = re.sub(
-                r'(keyboard\s*\{)',
-                r'\1\n        xkb {\n            layout "br";\n        }',
-                content,
-                count=1
-            )
-        elif re.search(r'input\s*\{', content):
-            content = re.sub(
-                r'(input\s*\{)',
-                r'\1\n    keyboard {\n        xkb {\n            layout "br";\n        }\n    }',
-                content,
-                count=1
-            )
-        else:
-            content += '\ninput {\n    keyboard {\n        xkb {\n            layout "br";\n        }\n    }\n}\n'
+        log_info "Configurando ambiente do Niri para Noctalia a partir dos templates declarativos..."
+        sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
 
-# Flags para ambiente VM (software rendering / cursores)
-if is_vm:
-    vm_comment = "// Configurações para VM"
-    if vm_comment not in content:
-        content += """
-// Configurações para VM
+        # Backup de config anterior se existir
+        if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
+            backup_file "${NIRI_CONFIG_FILE}" false
+        fi
+
+        # Copia template declarativo templates/niri/config.kdl
+        sudo -u "${REAL_USER}" cp "${INSTALLER_ROOT}/templates/niri/config.kdl" "${NIRI_CONFIG_FILE}"
+        log_info "Template declarativo do Niri copiado para ${NIRI_CONFIG_FILE}."
+
+        # Injeção Dinâmica para VM: apenas se IS_VM=true
+        if [[ "${IS_VM:-false}" == true ]]; then
+            log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Niri..."
+            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+
+// =============================================================================
+// Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
 environment {
     LIBGL_ALWAYS_SOFTWARE "1"
     WLR_NO_HARDWARE_CURSORS "1"
 }
-"""
-
-with open(config_file, "w", encoding="utf-8") as f:
-    f.write(content)
-
-print("[OK] Arquivo config.kdl do Niri ajustado com sucesso.")
-PYEOF
-
-elif [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
-    UMB_CONFIG_DIR="${REAL_HOME}/.config/umbriel"
-    UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
-    SYSTEM_UMB_CONF="/usr/share/umbriel/config.toml"
-
-    log_info "Configurando ambiente do Umbriel em ${UMB_CONFIG_FILE}..."
-    sudo -u "${REAL_USER}" mkdir -p "${UMB_CONFIG_DIR}"
-
-    if [[ -f "${UMB_CONFIG_FILE}" ]]; then
-        backup_file "${UMB_CONFIG_FILE}" false
-    fi
-
-    # Copia modelo de configuração caso ausente
-    if [[ ! -f "${UMB_CONFIG_FILE}" ]]; then
-        if [[ -f "${SYSTEM_UMB_CONF}" ]]; then
-            sudo -u "${REAL_USER}" cp "${SYSTEM_UMB_CONF}" "${UMB_CONFIG_FILE}"
-            log_info "Configuração padrão copiada de ${SYSTEM_UMB_CONF}."
-        elif [[ -f "/etc/umbriel/config.toml" ]]; then
-            sudo -u "${REAL_USER}" cp "/etc/umbriel/config.toml" "${UMB_CONFIG_FILE}"
-            log_info "Configuração padrão copiada de /etc/umbriel/config.toml."
-        else
-            log_info "Criando modelo base inicial config.toml para Umbriel..."
-            sudo -u "${REAL_USER}" tee "${UMB_CONFIG_FILE}" >/dev/null <<'EOF'
-[general]
-autostart = ["noctalia"]
-show_cheatsheet = false
-
-[input.keyboard]
-
-[input.cursor]
-
-[keybinds]
-"Mod+Return" = "spawn:kitty"
-"Mod" = "spawn:noctalia msg panel-toggle launcher"
-"Mod+Q" = "window-close"
-"Mod+Escape" = "quit"
 EOF
+            log_success "Flags de VM anexadas dinamicamente ao final de ${NIRI_CONFIG_FILE}."
+        fi
+
+        # Validação do arquivo final
+        log_info "Executando validador oficial do Niri (niri validate)..."
+        if command -v niri >/dev/null 2>&1; then
+            if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
+                log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração."
+            else
+                log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração!"
+                while IFS= read -r val_line; do
+                    log_error "  [niri validate] ${val_line}"
+                done <<< "${NIRI_VAL_OUTPUT}"
+                exit 1
+            fi
+        elif [[ -x "/usr/bin/niri" ]]; then
+            if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
+                log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo."
+            else
+                log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração!"
+                while IFS= read -r val_line; do
+                    log_error "  [niri validate] ${val_line}"
+                done <<< "${NIRI_VAL_OUTPUT}"
+                exit 1
+            fi
+        else
+            log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
         fi
     fi
-
-    log_info "Ajustando autostart, layout ABNT2, environment e parâmetros no config.toml do Umbriel..."
-    python3 - "$UMB_CONFIG_FILE" "${IS_VM:-false}" "${KEYBOARD_ABNT2:-true}" <<'PYEOF'
-import os
-import re
-import sys
-
-config_file = sys.argv[1]
-is_vm = (sys.argv[2].lower() == "true")
-is_abnt2 = (sys.argv[3].lower() == "true")
-
-content = ""
-if os.path.exists(config_file):
-    with open(config_file, "r", encoding="utf-8") as f:
-        content = f.read()
-
-# 1. Garante cabeçalho [general] descomentado
-content = re.sub(r'^[ \t]*#[ \t]*\[general\][ \t]*$', '[general]', content, flags=re.MULTILINE)
-
-# Garante a existência de [general] se não existir
-if "[general]" not in content:
-    content = "[general]\n\n" + content
-
-# 2. Descomenta qualquer 'autostart = ...' sob [general] ou linha comentada
-content = re.sub(r'^[ \t]*#[ \t]*(autostart\s*=)', r'\1', content, flags=re.MULTILINE)
-
-# 3. Define autostart estritamente como ["noctalia"]
-if re.search(r'\[general\][^\[]*?autostart\s*=', content):
-    content = re.sub(
-        r'(\[general\][^\[]*?autostart\s*=\s*)(?:\[[^\]]*\]|"[^"]*"|[^\n]+)',
-        r'\1["noctalia"]',
-        content,
-        count=1
-    )
-else:
-    content = re.sub(
-        r'(\[general\])',
-        r'\1\nautostart = ["noctalia"]',
-        content,
-        count=1
-    )
-
-# 4. Desativa a modal de cheatsheet sob [general] para evitar bloqueio de foco no boot
-# Remove variantes comentadas ou ativas anteriores de show_cheatsheet
-content = re.sub(r'^[ \t]*#?[ \t]*show_cheatsheet\s*=.*$', '', content, flags=re.MULTILINE)
-# Adiciona show_cheatsheet = false logo sob [general]
-content = re.sub(
-    r'(\[general\])',
-    r'\1\nshow_cheatsheet = false',
-    content,
-    count=1
-)
-
-# 5. Configura layout de teclado ABNT2 sob [input.keyboard] se solicitado
-if is_abnt2:
-    if 'layout = "br"' not in content:
-        if "[input.keyboard]" in content:
-            content = re.sub(
-                r'(\[input\.keyboard\])',
-                r'\1\nlayout = "br"',
-                content,
-                count=1
-            )
-        elif "[input]" in content:
-            content = re.sub(
-                r'(\[input\])',
-                r'\1\n[input.keyboard]\nlayout = "br"',
-                content,
-                count=1
-            )
-        else:
-            content += '\n[input.keyboard]\nlayout = "br"\n'
-
-# 6. Configurações para Máquina Virtual (hardware_cursor e seção nativa [environment])
-if is_vm:
-    # Cursor por software sob [input.cursor]
-    if "hardware_cursor = false" not in content and "hardware_cursor=false" not in content:
-        if "[input.cursor]" in content:
-            content = re.sub(
-                r'(\[input\.cursor\])',
-                r'\1\nhardware_cursor = false',
-                content,
-                count=1
-            )
-        elif "[cursor]" in content:
-            content = re.sub(
-                r'(\[cursor\])',
-                r'\1\nhardware_cursor = false',
-                content,
-                count=1
-            )
-        elif "[input]" in content:
-            content = re.sub(
-                r'(\[input\])',
-                r'\1\n[input.cursor]\nhardware_cursor = false',
-                content,
-                count=1
-            )
-        else:
-            content += '\n[input.cursor]\nhardware_cursor = false\n'
-
-    # Seção nativa [environment] com flags de renderização de VM
-    if "[environment]" in content:
-        if "LIBGL_ALWAYS_SOFTWARE" not in content:
-            content = re.sub(
-                r'(\[environment\])',
-                r'\1\nLIBGL_ALWAYS_SOFTWARE = "1"',
-                content,
-                count=1
-            )
-        if "WLR_NO_HARDWARE_CURSORS" not in content:
-            content = re.sub(
-                r'(\[environment\])',
-                r'\1\nWLR_NO_HARDWARE_CURSORS = "1"',
-                content,
-                count=1
-            )
-    else:
-        content += '\n[environment]\nLIBGL_ALWAYS_SOFTWARE = "1"\nWLR_NO_HARDWARE_CURSORS = "1"\n'
-
-# 7. Preservação / Garantia de Atalhos Nativos ([keybinds])
-# Se por algum motivo o arquivo de configuração não possuir bloco [keybinds] ou faltar atalhos essenciais:
-if "[keybinds]" not in content:
-    content += '\n[keybinds]\n"Mod+Return" = "spawn:kitty"\n"Mod" = "spawn:noctalia msg panel-toggle launcher"\n'
-else:
-    if '"Mod+Return"' not in content:
-        content = re.sub(
-            r'(\[keybinds\])',
-            r'\1\n"Mod+Return" = "spawn:kitty"',
-            content,
-            count=1
-        )
-    if '"Mod"' not in content and "'Mod'" not in content:
-        content = re.sub(
-            r'(\[keybinds\])',
-            r'\1\n"Mod" = "spawn:noctalia msg panel-toggle launcher"',
-            content,
-            count=1
-        )
-
-with open(config_file, "w", encoding="utf-8") as f:
-    f.write(content)
-
-print("[OK] Arquivo config.toml do Umbriel ajustado com sucesso.")
-PYEOF
-
+elif [[ "${SELECTED_SHELL}" == "inir" ]]; then
+    log_info "Shell selecionada é o iNiR: preservando configuração nativa gerenciada pelo próprio iNiR."
+    log_info "Nenhum template de Noctalia copiado para ~/.config/niri ou ~/.config/umbriel."
 fi
 
 # Garante permissões estritas para o usuário real

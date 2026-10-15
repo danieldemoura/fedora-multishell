@@ -50,7 +50,16 @@ fedora-inir/
 │   │       └── noctalia.sh          # Pacote nativo 'noctalia' via DNF
 │   └── 07_post_install.sh           # Autostart da shell, ABNT2, VM flags, ativação SDDM e validações
 └── templates/
-    └── pam_sddm.template            # Configuração do Gnome Keyring no PAM para o SDDM
+    ├── greetd.toml.template         # Modelo de configuração do Greetd
+    ├── pam_greetd.template          # Modelo de autenticação PAM para o Greetd
+    ├── pam_sddm.template            # Modelo de autenticação PAM para o SDDM
+    │
+    ├── umbriel/                     # Templates declarativos do compositor Umbriel
+    │   ├── config.toml              # Configuração personalizada (atalhos, mouse, teclas Fn)
+    │   └── noctalia.toml            # Paleta de cores e regras de janela do Noctalia
+    │
+    └── niri/                        # Template declarativo do compositor Niri
+        └── config.kdl               # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
 ```
 
 ---
@@ -116,6 +125,9 @@ O instalador conta com um menu interativo sem poluição visual:
 | **Isolamento do download do Deno na Home (`${REAL_HOME}`) em vez do `/tmp`** | Em sistemas Fedora modernos, `/tmp` é montado como `tmpfs` em memória RAM. Em máquinas virtuais com 2GB-4GB de memória, arquivos temporários podem esgotar inodes/espaço (`curl: (23) Failure writing output to destination`). Utilizar a Home garante armazenamento persistente em disco. |
 | **Distinção entre layout ABNT2 e idioma nativo das interfaces** | A injeção de `layout "br"` no bloco `xkb` do Niri ou no `[input.keyboard]` do Umbriel mapeia unicamente a tabela de scancodes físicos (tecla `Ç`, acentos `~` e `^`), desacoplada do idioma da interface gráfica que permanece em inglês nativo. |
 | **Instalação antecipada de aplicativos no Módulo 03** | Instalar Kitty, fontes Google Noto e codecs antes da configuração do compositor e da shell garante que todas as dependências visuais e ferramentas de terminal já estejam no disco antes de a interface gráfica ser compilada, configurada ou validada. |
+| **Templates Declarativos vs `/usr/share/doc`** | A adoção de templates próprios na pasta do instalador elimina a dependência de arquivos de exemplo do sistema operacional (que sofrem com caminhos versionados no Fedora e causavam o erro de atalhos vazios `not bound`), garantindo que tanto o Niri quanto o Umbriel iniciem com mapeamento completo de atalhos, mouse e teclas Fn. |
+| **Injeção Dinâmica de Variáveis de VM vs Templates Limpos** | Os templates em `templates/` são mantidos intencionalmente limpos e otimizados para Máquinas Físicas (Bare Metal). A injeção das variáveis de ambiente (`LIBGL_ALWAYS_SOFTWARE=1`, `WLR_NO_HARDWARE_CURSORS=1` e `hardware_cursor = false`) ocorre em tempo de execução via `07_post_install.sh` somente se `IS_VM=true`. Isso previne que computadores reais com GPU dedicada tenham sua aceleração desativada, ao mesmo tempo em que blinda máquinas virtuais contra telas pretas e fechamentos inesperados (*crashes*) do QtQuick. |
+| **Isolamento de Templates por Shell** | A cópia dos templates do Umbriel e Niri ocorre estritamente quando `SELECTED_SHELL="noctalia"`, preservando a autonomia e configuração gerada pelo instalador nativo do iNiR quando este for o escolhido. |
 
 ---
 

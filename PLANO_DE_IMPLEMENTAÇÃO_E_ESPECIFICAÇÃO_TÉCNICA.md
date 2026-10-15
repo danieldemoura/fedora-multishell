@@ -53,7 +53,16 @@ fedora-inir/
 │   │       └── noctalia.sh          # Submódulo: Instalação do pacote nativo Fedora 'noctalia'
 │   └── 07_post_install.sh           # Configuração de autostart, ABNT2, VM flags, validação de configs e ativação do SDDM
 └── templates/
-    └── pam_sddm.template            # Configuração modelo de referência para o PAM do SDDM
+    ├── greetd.toml.template         # Modelo de configuração do Greetd
+    ├── pam_greetd.template          # Modelo de autenticação PAM para o Greetd
+    ├── pam_sddm.template            # Modelo de autenticação PAM para o SDDM
+    │
+    ├── umbriel/                     # Templates declarativos do compositor Umbriel
+    │   ├── config.toml              # Configuração personalizada (atalhos, mouse, teclas Fn)
+    │   └── noctalia.toml            # Paleta de cores e regras de janela do Noctalia
+    │
+    └── niri/                        # Template declarativo do compositor Niri
+        └── config.kdl               # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
 ```
 
 ### 1.2 Regras Estritas de Programação Shell
@@ -177,17 +186,14 @@ modules=(
 
 ### Módulo 07: Pós-Instalação e Validações (`07_post_install.sh`)
 - Inicialização do cofre de credenciais PAM em `~/.local/share/keyrings/default` com conteúdo `login` (permissão `600`).
-- Configuração do compositor ativo:
-  - **Se Niri:** Configura `~/.config/niri/config.kdl` com autostart da shell selecionada (`spawn-at-startup "inir" "run"` ou `spawn-at-startup "noctalia"`), layout ABNT2 (`layout "br"`) e flags de VM se aplicável. Valida com `sudo -u "${REAL_USER}" niri validate`.
-  - **Se Umbriel:** Configura `~/.config/umbriel/config.toml` com autostart de `noctalia`, layout ABNT2 (`layout = "br"`) e cursor de VM (`hardware_cursor = false`). Valida com `sudo -u "${REAL_USER}" umbriel config validate`.
-- Execução de `xdg-user-dirs-update` e `chown -R` recursivo em `.config` e `.local`.
-- Ativação defensiva do display manager:
-  ```bash
-  sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
-  sudo systemctl enable --force sddm.service
-  sudo systemctl set-default graphical.target
-  ```
-- Se `INSTALL_NVIDIA=true`, executa `sudo akmods --force`.
+- Configuração declarativa do compositor ativo:
+  - **Se Noctalia Shell (`SELECTED_SHELL="noctalia"`):**
+    - **Se Umbriel:** Cria `~/.config/umbriel`, copia os templates de `${INSTALLER_ROOT}/templates/umbriel/*` para `~/.config/umbriel/`. Se `IS_VM=true`, anexa dinamicamente o bloco de software rendering e desativação de cursor de hardware ao final de `config.toml`. Valida via `sudo -u "${REAL_USER}" umbriel config validate`.
+    - **Se Niri:** Cria `~/.config/niri`, copia `${INSTALLER_ROOT}/templates/niri/config.kdl` para `~/.config/niri/config.kdl`. Se `IS_VM=true`, anexa dinamicamente o bloco `environment` de renderização por software. Valida via `sudo -u "${REAL_USER}" niri validate`.
+  - **Se iNiR Shell (`SELECTED_SHELL="inir"`):** Não copia nem sobrescreve arquivos com os templates do Noctalia; preserva a configuração e inicialização do Niri gerenciadas nativamente pelo instalador do iNiR.
+- Execução de `xdg-user-dirs-update` e `ensure_user_ownership` recursivo em `.config` e `.local`.
+- Ativação defensiva do display manager (Greetd para Noctalia ou SDDM para iNiR) e target gráfico.
+- Se `INSTALL_NVIDIA=true` (e não for VM), executa `sudo akmods --force`.
 - Registro do checklist de integridade no log.
 
 ---
@@ -202,6 +208,9 @@ modules=(
 | **Isolamento do download do Deno na Home em vez do `/tmp`** | No Fedora moderno, `/tmp` é montado como `tmpfs` em memória RAM, com restrições severas de inodes/blocos e tamanho limitado. Em downloads paralelos ou em máquinas virtuais com 2GB-4GB de RAM, extrair arquivos no `/tmp` provoca erro de *No space left on device* (`curl: (23) Failure writing output to destination`). Baixar no `${REAL_HOME}` protege contra o esgotamento da partição temporária em memória. |
 | **Distinção entre layout ABNT2 e o idioma nativo das shells** | O parâmetro `layout "br"` injetado no bloco `xkb` do Niri ou no `[input.keyboard]` do Umbriel afeta exclusivamente a tabela física de mapeamento dos scancodes do hardware (viabilizando a tecla `Ç`, `~`, `^` e acentuações do padrão brasileiro), mantendo total independência do idioma das interfaces gráficas ou widgets (que permanecem em inglês nativo). |
 | **Instalação antecipada de aplicativos (fontes/Kitty/codecs) no Módulo 03** | Instalar Kitty, fontes Google Noto e codecs antes da configuração do compositor e da shell garante que todas as dependências visuais, ícones e o emulador de terminal padrão já estejam persistidos no disco antes de a interface gráfica ser compilada, configurada ou validada. |
+| **Templates Declarativos vs `/usr/share/doc`** | A adoção de templates próprios na pasta do instalador elimina a dependência de arquivos de exemplo do sistema operacional (que sofrem com caminhos versionados no Fedora e causavam o erro de atalhos vazios `not bound`), garantindo que tanto o Niri quanto o Umbriel iniciem com mapeamento completo de atalhos, mouse e teclas Fn. |
+| **Injeção Dinâmica de Variáveis de VM vs Templates Limpos** | Os templates em `templates/` são mantidos intencionalmente limpos e otimizados para Máquinas Físicas (Bare Metal). A injeção das variáveis de ambiente (`LIBGL_ALWAYS_SOFTWARE=1`, `WLR_NO_HARDWARE_CURSORS=1` e `hardware_cursor = false`) ocorre em tempo de execução via `07_post_install.sh` somente se `IS_VM=true`. Isso previne que computadores reais com GPU dedicada tenham sua aceleração desativada, ao mesmo tempo em que blinda máquinas virtuais contra telas pretas e fechamentos inesperados (*crashes*) do QtQuick. |
+| **Isolamento de Templates por Shell** | A cópia dos templates do Umbriel e Niri ocorre estritamente quando `SELECTED_SHELL="noctalia"`, preservando a autonomia e configuração gerada pelo instalador nativo do iNiR quando este for o escolhido. |
 
 ---
 
