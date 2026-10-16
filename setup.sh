@@ -70,16 +70,16 @@ fi
 
 # Menu Interativo - Pergunta 2: Seleção da Interface Gráfica (Desktop Shell / Interface)
 ui_section_header "SELEÇÃO DA INTERFACE GRÁFICA (DESKTOP SHELL)"
-echo "  [1] iNiR Shell (Material You / Quickshell - Compositor Niri)"
-echo "  [2] Noctalia Shell (C++/Qt Nativo - Compositor Niri ou Umbriel)"
-echo "  [3] DankMaterialShell / DMS (DankLinux - Compositor Niri + Kitty)"
+echo "  [1] iNiR Shell"
+echo "  [2] Noctalia Shell"
+echo "  [3] DankMaterialShell"
 echo ""
 read -r -p "  Escolha uma opção: " shell_choice
 shell_choice="${shell_choice:-1}"
 
 if [[ "$shell_choice" == "2" ]]; then
     SELECTED_INTERFACE="noctalia"
-    SHELL_DESC="Noctalia Shell (C++/Qt)"
+    SHELL_DESC="Noctalia Shell"
 
     # Sub-pergunta de Compositor (apenas se Noctalia)
     echo ""
@@ -99,9 +99,9 @@ if [[ "$shell_choice" == "2" ]]; then
     fi
 elif [[ "$shell_choice" == "3" ]]; then
     SELECTED_INTERFACE="danklinux"
-    SHELL_DESC="DankMaterialShell (DMS)"
+    SHELL_DESC="DankMaterialShell"
     SELECTED_COMPOSITOR="niri"
-    COMP_DESC="Niri (Scrollable Tiling + Kitty)"
+    COMP_DESC="Niri (Scrollable Tiling)"
 else
     SELECTED_INTERFACE="inir"
     SHELL_DESC="iNiR Shell (Material You)"
