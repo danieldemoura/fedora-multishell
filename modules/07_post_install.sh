@@ -26,6 +26,11 @@ REAL_HOME="$(get_real_user_home)"
 SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-niri}"
 SELECTED_SHELL="${SELECTED_SHELL:-inir}"
 
+NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
+NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
+UMB_CONFIG_DIR="${REAL_HOME}/.config/umbriel"
+UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
+
 log_info "Executando ajustes pós-instalação para o usuário: ${REAL_USER} (${REAL_HOME})"
 log_info "Configurações ativas -> Compositor: ${SELECTED_COMPOSITOR} | Shell: ${SELECTED_SHELL}"
 
