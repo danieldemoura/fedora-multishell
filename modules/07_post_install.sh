@@ -160,8 +160,104 @@ EOF
         fi
     fi
 elif [[ "${SELECTED_SHELL}" == "inir" ]]; then
-    log_info "Shell selecionada é o iNiR: preservando configuração nativa gerenciada pelo próprio iNiR."
-    log_info "Nenhum template de Noctalia copiado para ~/.config/niri ou ~/.config/umbriel."
+    NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
+    NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
+
+    log_info "Shell selecionada é o iNiR: configurando inicialização e integração no Niri..."
+    sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
+
+    # Garante a existência do config.kdl (se não existir, cria vazio com permissões do usuário)
+    if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
+        log_info "Arquivo ${NIRI_CONFIG_FILE} não encontrado. Criando arquivo base..."
+        sudo -u "${REAL_USER}" touch "${NIRI_CONFIG_FILE}"
+    fi
+
+    # 1. Assegura injeção do comando de autostart do iNiR
+    if ! grep -q 'spawn-at-startup "inir" "run"' "${NIRI_CONFIG_FILE}"; then
+        log_info "Adicionando spawn-at-startup 'inir' 'run' em ${NIRI_CONFIG_FILE}..."
+        sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+
+// Autostart da interface de usuário iNiR
+spawn-at-startup "inir" "run"
+EOF
+        log_success "Autostart do iNiR adicionado ao ${NIRI_CONFIG_FILE}."
+    else
+        log_info "Autostart do iNiR já presente em ${NIRI_CONFIG_FILE}."
+    fi
+
+    # 2. Injeção de variáveis de renderização segura para VM
+    if [[ "${IS_VM:-false}" == true ]]; then
+        if ! grep -q 'LIBGL_ALWAYS_SOFTWARE "1"' "${NIRI_CONFIG_FILE}"; then
+            log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Niri..."
+            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+
+// =============================================================================
+// Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
+environment {
+    LIBGL_ALWAYS_SOFTWARE "1"
+    WLR_NO_HARDWARE_CURSORS "1"
+}
+EOF
+            log_success "Flags de VM anexadas dinamicamente ao final de ${NIRI_CONFIG_FILE}."
+        else
+            log_info "Flags de VM já presentes em ${NIRI_CONFIG_FILE}."
+        fi
+    fi
+
+    # 3. Assegura layout de teclado ABNT2 (layout "br")
+    if [[ "${KEYBOARD_ABNT2:-true}" == true ]]; then
+        if ! grep -q 'layout "br"' "${NIRI_CONFIG_FILE}"; then
+            log_info "Configurando layout de teclado ABNT2 (br) no Niri..."
+            if grep -q 'xkb {' "${NIRI_CONFIG_FILE}"; then
+                # Se bloco xkb já existe sem layout br, injeta layout "br" dentro de xkb
+                sudo -u "${REAL_USER}" sed -i '/xkb {/a \        layout "br"' "${NIRI_CONFIG_FILE}"
+            elif grep -q 'keyboard {' "${NIRI_CONFIG_FILE}"; then
+                # Se bloco keyboard já existe sem xkb, injeta xkb com layout br dentro de keyboard
+                sudo -u "${REAL_USER}" sed -i '/keyboard {/a \        xkb {\n            layout "br"\n        }' "${NIRI_CONFIG_FILE}"
+            else
+                # Se não houver bloco de entrada/teclado, anexa bloco input completo
+                sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+
+input {
+    keyboard {
+        xkb {
+            layout "br"
+        }
+    }
+}
+EOF
+            fi
+            log_success "Layout ABNT2 (br) configurado em ${NIRI_CONFIG_FILE}."
+        else
+            log_info "Layout ABNT2 (br) já presente em ${NIRI_CONFIG_FILE}."
+        fi
+    fi
+
+    # 4. Validação oficial do Niri
+    log_info "Validando configuração do Niri para iNiR (niri validate)..."
+    if command -v niri >/dev/null 2>&1; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração do iNiR."
+        else
+            log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração do iNiR!"
+            while IFS= read -r val_line; do
+                log_error "  [niri validate] ${val_line}"
+            done <<< "${NIRI_VAL_OUTPUT}"
+            exit 1
+        fi
+    elif [[ -x "/usr/bin/niri" ]]; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo do iNiR."
+        else
+            log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração do iNiR!"
+            while IFS= read -r val_line; do
+                log_error "  [niri validate] ${val_line}"
+            done <<< "${NIRI_VAL_OUTPUT}"
+            exit 1
+        fi
+    else
+        log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
+    fi
 fi
 
 # Garante permissões estritas para o usuário real
