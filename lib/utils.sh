@@ -59,7 +59,7 @@ start_sudo_keepalive() {
     log_info "Sudo keepalive ativado (PID: ${SUDO_KEEPALIVE_PID})."
 }
 
-# Finaliza o processo de keepalive do sudo
+# Finaliza o processo de keepalive do sudo (se ativo)
 stop_sudo_keepalive() {
     if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]] && kill -0 "${SUDO_KEEPALIVE_PID}" 2>/dev/null; then
         kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
@@ -68,13 +68,15 @@ stop_sudo_keepalive() {
     fi
 }
 
-# Limpeza geral de encerramento do script
+# Limpeza geral de encerramento do script (remove regra temporária do sudoers e para keepalive residual)
 cleanup_installer() {
+    local exit_code=$?
     stop_sudo_keepalive
+    if [[ -f "${SUDOERS_TEMP:-}" ]]; then
+        sudo rm -f "${SUDOERS_TEMP}" 2>/dev/null || true
+    fi
+    exit "${exit_code}"
 }
-
-# Registra saída limpa ao receber sinais comuns de finalização
-trap cleanup_installer EXIT INT TERM
 
 # Valida conectividade com a Internet
 check_internet() {

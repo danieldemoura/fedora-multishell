@@ -27,9 +27,30 @@ enable_error_trap
 # 3. Banner Visual
 ui_banner
 
-# 4. Verificação de Conectividade e Elevação Sudo com Keepalive
+# 4. Verificação de Conectividade e Elevação de Privilégios Temporários (Sudoers)
 check_internet
-start_sudo_keepalive
+
+log_info "Verificando privilégios administrativos (sudo)..."
+if ! sudo -v; then
+    log_error "Falha ao obter privilégios de sudo. O usuário atual deve pertencer ao grupo wheel."
+    exit 1
+fi
+
+REAL_USER="$(get_real_user)"
+SUDOERS_TEMP="/etc/sudoers.d/99-fedora-installer-temp"
+
+cleanup_installer() {
+    local exit_code=$?
+    if [[ -f "${SUDOERS_TEMP:-}" ]]; then
+        sudo rm -f "${SUDOERS_TEMP}" 2>/dev/null || true
+    fi
+    exit "${exit_code}"
+}
+trap cleanup_installer EXIT INT TERM
+
+log_info "Habilitando privilégios temporários sem senha para a instalação..."
+echo "${REAL_USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee "${SUDOERS_TEMP}" >/dev/null
+sudo chmod 0440 "${SUDOERS_TEMP}"
 
 # 5. Menu Interativo - Pergunta 1: Seleção de Ambiente
 ui_section_header "SELEÇÃO DO AMBIENTE DE INSTALAÇÃO"
