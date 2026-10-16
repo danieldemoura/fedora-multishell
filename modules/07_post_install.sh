@@ -24,7 +24,8 @@ ui_section_header "MÓDULO 07: PÓS-INSTALAÇÃO E VALIDAÇÕES"
 REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"
 SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-niri}"
-SELECTED_SHELL="${SELECTED_SHELL:-inir}"
+SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
+SELECTED_SHELL="${SELECTED_INTERFACE}"
 
 NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
 NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
@@ -258,6 +259,90 @@ EOF
     else
         log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
     fi
+elif [[ "${SELECTED_INTERFACE}" == "danklinux" ]]; then
+    NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
+    NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
+
+    log_info "Interface selecionada é DankMaterialShell (DMS): ajustando configurações no Niri..."
+    sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
+
+    if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
+        log_warn "Arquivo ${NIRI_CONFIG_FILE} não encontrado após a instalação do DMS. Criando arquivo base..."
+        sudo -u "${REAL_USER}" touch "${NIRI_CONFIG_FILE}"
+    fi
+
+    # 1. Configuração de layout de teclado ABNT2 (br)
+    if [[ "${KEYBOARD_ABNT2:-true}" == true ]]; then
+        if ! grep -q 'layout "br"' "${NIRI_CONFIG_FILE}"; then
+            log_info "Configurando layout de teclado ABNT2 (br) no Niri (DMS)..."
+            if grep -q 'xkb {' "${NIRI_CONFIG_FILE}"; then
+                sudo -u "${REAL_USER}" sed -i '/xkb {/a \        layout "br"' "${NIRI_CONFIG_FILE}"
+            elif grep -q 'keyboard {' "${NIRI_CONFIG_FILE}"; then
+                sudo -u "${REAL_USER}" sed -i '/keyboard {/a \        xkb {\n            layout "br"\n        }' "${NIRI_CONFIG_FILE}"
+            else
+                sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+
+input {
+    keyboard {
+        xkb {
+            layout "br"
+        }
+    }
+}
+EOF
+            fi
+            log_success "Layout ABNT2 (br) configurado em ${NIRI_CONFIG_FILE}."
+        else
+            log_info "Layout ABNT2 (br) já presente em ${NIRI_CONFIG_FILE}."
+        fi
+    fi
+
+    # 2. Injeção de variáveis de renderização segura para VM
+    if [[ "${IS_VM:-false}" == true ]]; then
+        log_info "Detectado ambiente VM (IS_VM=true). Assegurando flags de renderização por software no Niri..."
+        if grep -q 'environment {' "${NIRI_CONFIG_FILE}"; then
+            if ! grep -q 'LIBGL_ALWAYS_SOFTWARE' "${NIRI_CONFIG_FILE}"; then
+                sudo -u "${REAL_USER}" sed -i '/environment {/a \    LIBGL_ALWAYS_SOFTWARE "1"\n    WLR_NO_HARDWARE_CURSORS "1"' "${NIRI_CONFIG_FILE}"
+            fi
+        else
+            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+
+// =============================================================================
+// Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
+environment {
+    LIBGL_ALWAYS_SOFTWARE "1"
+    WLR_NO_HARDWARE_CURSORS "1"
+}
+EOF
+        fi
+        log_success "Flags de VM asseguradas em ${NIRI_CONFIG_FILE}."
+    fi
+
+    # 3. Validação oficial do Niri
+    log_info "Validando configuração do Niri para DankMaterialShell (niri validate)..."
+    if command -v niri >/dev/null 2>&1; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração do DMS."
+        else
+            log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração do DMS!"
+            while IFS= read -r val_line; do
+                log_error "  [niri validate] ${val_line}"
+            done <<< "${NIRI_VAL_OUTPUT}"
+            exit 1
+        fi
+    elif [[ -x "/usr/bin/niri" ]]; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
+            log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo do DMS."
+        else
+            log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração do DMS!"
+            while IFS= read -r val_line; do
+                log_error "  [niri validate] ${val_line}"
+            done <<< "${NIRI_VAL_OUTPUT}"
+            exit 1
+        fi
+    else
+        log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
+    fi
 fi
 
 # Garante permissões estritas para o usuário real
@@ -278,8 +363,8 @@ if [[ "${IS_VM:-false}" == false ]] && [[ "${INSTALL_NVIDIA:-false}" == true ]];
 fi
 
 # 5. Definição do Alvo Gráfico e Ativação do Display Manager no Systemd
-if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
-    log_info "Configurando inicialização gráfica padrão (Greetd com Noctalia Greeter)..."
+if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_INTERFACE}" == "danklinux" ]]; then
+    log_info "Configurando inicialização gráfica padrão (Greetd)..."
     sudo systemctl disable gdm lightdm sddm 2>/dev/null || true
     sudo systemctl enable --force greetd.service
     sudo systemctl set-default graphical.target
@@ -297,7 +382,7 @@ echo ""
 log_info "Iniciando checagens internas de integridade do sistema..."
 
 # Teste 1: Serviço de Display Manager
-if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
+if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_INTERFACE}" == "danklinux" ]]; then
     if systemctl is-enabled greetd.service >/dev/null 2>&1; then
         log_success "[Checklist] greetd.service está devidamente habilitado no systemd."
     else

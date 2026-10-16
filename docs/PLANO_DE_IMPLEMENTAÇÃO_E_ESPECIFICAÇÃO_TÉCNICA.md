@@ -6,10 +6,11 @@
 - **Compositores Suportados:**
   - **Niri** (`yalter/niri` via COPR): Scrollable-tiling Wayland compositor com rolagem horizontal contínua de colunas e janelas.
   - **Umbriel** (`umbriel-nightly` via Repositório Terra do Fyra Labs): Compositor Wayland com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de exibição dinâmicos (Dwindle e Master).
-- **Desktop Shells Suportadas:**
+- **Desktop Shells / Interfaces Suportadas:**
   - **iNiR Shell** (`snowarch/inir` via `quickshell`): Shell moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You. Utiliza exclusivamente o compositor Niri.
   - **Noctalia Shell** (`noctalia` via pacote nativo Fedora): Interface gráfica desktop nativa em C++/Qt. Permite utilizar tanto o compositor Niri quanto o compositor Umbriel.
-- **Display Manager:** **SDDM** (`sddm` nativo com integração e desbloqueio do PAM GNOME Keyring).
+  - **DankMaterialShell / DMS** (`dankinstall` via COPR `avengemedia/danklinux`): Ambiente completo DankLinux sobre Niri com terminal Kitty, dms-greeter, danksearch e dankcalendar.
+- **Display Manager:** **SDDM** (`sddm` nativo com integração e desbloqueio do PAM GNOME Keyring) ou **Greetd** (`noctalia-greeter` / `dms-greeter`).
 
 **Público-Alvo:** Desenvolvedor / Modelo de IA Gerador de Código  
 **Versão Base Alvo:** Fedora 44 (x86_64)
@@ -27,6 +28,8 @@ A nova orquestração em camadas garante que toda a base do sistema e as ferrame
 ```text
 fedora-inir/
 ├── setup.sh                         # Ponto de entrada: validações, menu interativo pt-BR e orquestração
+├── docs/
+│   └── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 ├── config/
 │   ├── packages-base.conf           # Infraestrutura base do sistema (Firmware, Áudio PipeWire, open-vm-tools, XDG)
 │   ├── packages-apps.conf           # Aplicações essenciais de usuário (Kitty, fontes, codecs, visualizadores)
@@ -38,20 +41,21 @@ fedora-inir/
 │   ├── logger.sh                    # Registro centralizado (/tmp/fedora-inir-installer.log) e tratamento de erros
 │   └── utils.sh                     # Utilitários (checagem de não-root, sudo keepalive, permissões seguras)
 ├── modules/
-│   ├── 00_repos.sh                  # Repositórios universais (RPM Fusion, Brave, Flathub) e condicionais (COPRs, Terra)
+│   ├── 00_repos.sh                  # Repositórios universais (RPM Fusion, Brave, Flathub) e condicionais (COPRs, Terra, DankLinux)
 │   ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, rede e energia (Tuned)
 │   ├── 02_gpu_drivers.sh            # Drivers gráficos (Mesa aberto ou NVIDIA com akmods e RTD3)
 │   ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin, Flatpaks e Loja GNOME
-│   ├── 04_display_stack.sh          # Camada de Display Manager: SDDM, permissões de hardware e PAM Keyring
+│   ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS), hardware e PAM Keyring
 │   ├── 05_compositor.sh             # Roteador/Dispatcher de Compositor Wayland (Padrão Strategy)
 │   │   └── compositors/
 │   │       ├── niri.sh              # Submódulo: Niri, xwayland-satellite, portais GNOME/GTK e niri-portals.conf
 │   │       └── umbriel.sh           # Submódulo: Umbriel Nightly, xwayland-satellite e portais Umbriel/GTK
-│   ├── 06_desktop_shell.sh          # Roteador/Dispatcher de Desktop Shell (Padrão Strategy)
-│   │   └── shells/
+│   ├── 06_desktop_interface.sh       # Roteador/Dispatcher de Interface Gráfica (Padrão Strategy)
+│   │   └── interfaces/
 │   │       ├── inir.sh              # Submódulo: Deno (/usr/local/bin), sudo -v antecipado, clone, ./setup install -y
-│   │       └── noctalia.sh          # Submódulo: Instalação do pacote nativo Fedora 'noctalia'
-│   └── 07_post_install.sh           # Configuração de autostart, ABNT2, VM flags, validação de configs e ativação do SDDM
+│   │       ├── noctalia.sh          # Submódulo: Instalação do pacote nativo Fedora 'noctalia'
+│   │       └── danklinux.sh         # Submódulo: Instalador oficial headless do DankMaterialShell (DMS)
+│   └── 07_post_install.sh           # Autostart/config da interface, ABNT2, VM flags, validação de configs e ativação do DM
 └── templates/
     ├── greetd.toml.template         # Modelo de configuração do Greetd
     ├── pam_greetd.template          # Modelo de autenticação PAM para o Greetd
@@ -126,7 +130,7 @@ modules=(
     "03_desktop_apps.sh"
     "04_display_stack.sh"
     "05_compositor.sh"
-    "06_desktop_shell.sh"
+    "06_desktop_interface.sh"
     "07_post_install.sh"
 )
 ```
@@ -137,6 +141,7 @@ modules=(
   - Se `SELECTED_COMPOSITOR == "niri"`: ativa COPR `yalter/niri`.
   - Se `SELECTED_SHELL == "inir"`: ativa COPR `errornointernet/quickshell`.
   - Se `SELECTED_SHELL == "noctalia"`: ativa o repositório Terra do Fyra Labs (`terra-release` e `terra-gpg-keys`, necessário para `noctalia-greeter` e `umbriel-nightly`).
+  - Se `SELECTED_INTERFACE == "danklinux"`: ativa o repositório COPR `avengemedia/danklinux`.
 - Atualização e sincronização via `dnf upgrade --refresh -y`.
 
 ### Módulo 01: Infraestrutura de Hardware e Áudio (`01_system_hardware.sh`)
@@ -154,14 +159,18 @@ modules=(
 - Garante que a tipografia e o Kitty já existam no disco antes de a interface gráfica ser configurada.
 
 ### Módulo 04: Camada de Display Manager (`04_display_stack.sh`)
-- **Se `SELECTED_SHELL == "noctalia"` (Greetd + Noctalia Greeter):**
+- **Se `SELECTED_INTERFACE == "danklinux"` (Greetd + DMS Greeter):**
+  - Instalação de `greetd`, `greetd-selinux` e `gnome-keyring-pam`.
+  - Atribuição dos grupos de hardware `video,render,input` ao usuário `greetd`.
+  - Aplicação do template de PAM `templates/pam_greetd.template` em `/etc/pam.d/greetd` para desbloqueio do keyring.
+- **Se `SELECTED_INTERFACE == "noctalia"` (Greetd + Noctalia Greeter):**
   - Instalação de `greetd`, `greetd-selinux`, `noctalia-greeter` e `gnome-keyring-pam`.
   - Configuração do diretório de estado `/var/lib/noctalia-greeter` (posse `greetd:greetd`).
   - Execução de `noctalia-greeter passwordless-sync enable "${REAL_USER}"` para autorização nativa Polkit da sincronização de aparência sem senha.
   - Atribuição dos grupos de hardware `video,render,input` ao usuário `greetd`.
   - Configuração do `/etc/greetd/config.toml` (com flags defensivas de software rendering para VM se aplicável).
   - Configuração de integração PAM em `/etc/pam.d/greetd` com `pam_gnome_keyring.so` para desbloqueio silencioso do cofre de senhas no login.
-- **Se padrão (`sddm`):**
+- **Se padrão (`sddm` / `inir`):**
   - Instalação do `sddm` e `gnome-keyring-pam`.
   - Atribuição dos grupos de hardware `video,render,input` ao usuário `sddm`.
   - Configuração de integração PAM em `/etc/pam.d/sddm` com `pam_gnome_keyring.so` para desbloqueio silencioso do cofre de senhas no login.
@@ -172,27 +181,32 @@ modules=(
   - **`compositors/niri.sh`**: Instala `niri`, `xwayland-satellite`, `xdg-desktop-portal-gnome`, `xdg-desktop-portal-gtk` com `--exclude=alacritty` (preservando dependências normais e fracas), executa remoção defensiva caso o Alacritty já exista e configura `/etc/xdg/xdg-desktop-portal/niri-portals.conf`.
   - **`compositors/umbriel.sh`**: Instala `umbriel-nightly`, `xwayland-satellite`, `xdg-desktop-portal-umbriel-nightly`, `xdg-desktop-portal-gtk`.
 
-### Módulo 06: Roteador de Desktop Shell (`06_desktop_shell.sh`)
+### Módulo 06: Roteador de Interface Gráfica (`06_desktop_interface.sh`)
 - Despacha a execução para o submódulo correspondente:
-  - **`shells/inir.sh`**:
+  - **`interfaces/inir.sh`**:
     - Instala `quickshell`.
     - Provisiona defensivamente o binário oficial do Deno em `/usr/local/bin/deno` baixado em `${REAL_HOME}`.
     - Executa `sudo -v` imediatamente antes do instalador para renovar o timestamp administrativo.
     - Clona `https://github.com/snowarch/inir.git` para `${REAL_HOME}/.config/inir`.
     - Executa de forma não-interativa sob o usuário real: `sudo -u "${REAL_USER}" bash -c "cd '${REAL_HOME}/.config/inir' && ./setup install -y"`.
     - Garante permissões recursivas: `chown -R "${REAL_USER}:${REAL_USER}" "${REAL_HOME}/.config/inir"`.
-  - **`shells/noctalia.sh`**:
+  - **`interfaces/noctalia.sh`**:
     - Instala o pacote nativo `noctalia` via DNF.
+  - **`interfaces/danklinux.sh`**:
+    - Garante utilitários essenciais (`curl`, `git`, `kitty`) e renova sudo.
+    - Executa o instalador headless oficial sob usuário real: `sudo -u "${REAL_USER}" bash -c "curl -fsSL https://install.danklinux.com | sh -s -- -c niri -t kitty -y --all-features"`.
+    - Assegura permissões do usuário em `.config` e `.local`.
 
 ### Módulo 07: Pós-Instalação e Validações (`07_post_install.sh`)
 - Inicialização do cofre de credenciais PAM em `~/.local/share/keyrings/default` com conteúdo `login` (permissão `600`).
 - Configuração declarativa do compositor ativo:
-  - **Se Noctalia Shell (`SELECTED_SHELL="noctalia"`):**
+  - **Se Noctalia Shell (`SELECTED_INTERFACE="noctalia"`):**
     - **Se Umbriel:** Cria `~/.config/umbriel`, copia os templates de `${INSTALLER_ROOT}/templates/umbriel/*` para `~/.config/umbriel/`. Se `IS_VM=true`, anexa dinamicamente o bloco de software rendering e desativação de cursor de hardware ao final de `config.toml`. Valida via `sudo -u "${REAL_USER}" umbriel config validate`.
     - **Se Niri:** Cria `~/.config/niri`, copia `${INSTALLER_ROOT}/templates/niri/config.kdl` para `~/.config/niri/config.kdl`. Se `IS_VM=true`, anexa dinamicamente o bloco `environment` de renderização por software. Valida via `sudo -u "${REAL_USER}" niri validate`.
-  - **Se iNiR Shell (`SELECTED_SHELL="inir"`):** Não copia nem sobrescreve arquivos com os templates do Noctalia; assegura que `~/.config/niri/config.kdl` exista e injeta explicitamente o autostart `spawn-at-startup "inir" "run"`, layout ABNT2 (`layout "br"`) e, se `IS_VM=true`, o bloco `environment` de renderização por software, validando a sintaxe ao final com `niri validate`. Previne tela cinza vazia no Niri após o login.
+  - **Se iNiR Shell (`SELECTED_INTERFACE="inir"`):** Não copia nem sobrescreve arquivos com os templates do Noctalia; assegura que `~/.config/niri/config.kdl` exista e injeta explicitamente o autostart `spawn-at-startup "inir" "run"`, layout ABNT2 (`layout "br"`) e, se `IS_VM=true`, o bloco `environment` de renderização por software, validando a sintaxe ao final com `niri validate`. Previne tela cinza vazia no Niri após o login.
+  - **Se DankMaterialShell (`SELECTED_INTERFACE="danklinux"`):** Configura layout ABNT2 (`layout "br"`) no bloco `xkb` do teclado em `~/.config/niri/config.kdl`, assegura variáveis de software rendering se `IS_VM=true`, e valida via `sudo -u "${REAL_USER}" niri validate`.
 - Execução de `xdg-user-dirs-update` e `ensure_user_ownership` recursivo em `.config` e `.local`.
-- Ativação defensiva do display manager (Greetd para Noctalia ou SDDM para iNiR) e target gráfico.
+- Ativação defensiva do display manager (Greetd para Noctalia/DMS ou SDDM para iNiR) e target gráfico.
 - Se `INSTALL_NVIDIA=true` (e não for VM), executa `sudo akmods --force`.
 - Registro do checklist de integridade no log.
 

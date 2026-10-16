@@ -20,19 +20,29 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 ui_section_header "MÓDULO 06: INTERFACE GRÁFICA (DESKTOP SHELL)"
 
-SELECTED_SHELL="${SELECTED_SHELL:-inir}"
+SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
+SELECTED_SHELL="${SELECTED_INTERFACE}"
 
-if [ "${SELECTED_SHELL}" = "inir" ]; then
-    log_info "Ativando submódulo da shell: iNiR"
-    # shellcheck source=shells/inir.sh
-    source "${SCRIPT_DIR}/shells/inir.sh"
-elif [ "${SELECTED_SHELL}" = "noctalia" ]; then
-    log_info "Ativando submódulo da shell: Noctalia"
-    # shellcheck source=shells/noctalia.sh
-    source "${SCRIPT_DIR}/shells/noctalia.sh"
-else
-    log_error "Desktop Shell desconhecida: ${SELECTED_SHELL}"
-    exit 1
-fi
+case "${SELECTED_INTERFACE}" in
+    inir)
+        log_info "Ativando submódulo da interface: iNiR"
+        # shellcheck source=interfaces/inir.sh
+        source "${SCRIPT_DIR}/interfaces/inir.sh"
+        ;;
+    noctalia)
+        log_info "Ativando submódulo da interface: Noctalia"
+        # shellcheck source=interfaces/noctalia.sh
+        source "${SCRIPT_DIR}/interfaces/noctalia.sh"
+        ;;
+    danklinux)
+        log_info "Ativando submódulo da interface: DankMaterialShell (DankLinux)"
+        # shellcheck source=interfaces/danklinux.sh
+        source "${SCRIPT_DIR}/interfaces/danklinux.sh"
+        ;;
+    *)
+        log_error "Interface gráfica desconhecida: ${SELECTED_INTERFACE}"
+        exit 1
+        ;;
+esac
 
 log_success "Módulo 06 (Interface Gráfica) concluído com sucesso."

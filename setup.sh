@@ -68,16 +68,17 @@ else
     ENV_DESC="Máquina Física (Bare Metal)"
 fi
 
-# Menu Interativo - Pergunta 2: Seleção da Interface Gráfica (Desktop Shell)
+# Menu Interativo - Pergunta 2: Seleção da Interface Gráfica (Desktop Shell / Interface)
 ui_section_header "SELEÇÃO DA INTERFACE GRÁFICA (DESKTOP SHELL)"
-echo "  [1] iNiR Shell (Interface moderna com cores dinâmicas)"
-echo "  [2] Noctalia Shell (Interface gráfica nativa em C++/Qt)"
+echo "  [1] iNiR Shell (Material You / Quickshell - Compositor Niri)"
+echo "  [2] Noctalia Shell (C++/Qt Nativo - Compositor Niri ou Umbriel)"
+echo "  [3] DankMaterialShell / DMS (DankLinux - Compositor Niri + Kitty)"
 echo ""
 read -r -p "  Escolha uma opção: " shell_choice
 shell_choice="${shell_choice:-1}"
 
 if [[ "$shell_choice" == "2" ]]; then
-    SELECTED_SHELL="noctalia"
+    SELECTED_INTERFACE="noctalia"
     SHELL_DESC="Noctalia Shell (C++/Qt)"
 
     # Sub-pergunta de Compositor (apenas se Noctalia)
@@ -96,12 +97,20 @@ if [[ "$shell_choice" == "2" ]]; then
         SELECTED_COMPOSITOR="niri"
         COMP_DESC="Niri (Scrollable Tiling)"
     fi
+elif [[ "$shell_choice" == "3" ]]; then
+    SELECTED_INTERFACE="danklinux"
+    SHELL_DESC="DankMaterialShell (DMS)"
+    SELECTED_COMPOSITOR="niri"
+    COMP_DESC="Niri (Scrollable Tiling + Kitty)"
 else
-    SELECTED_SHELL="inir"
+    SELECTED_INTERFACE="inir"
     SHELL_DESC="iNiR Shell (Material You)"
     SELECTED_COMPOSITOR="niri"
     COMP_DESC="Niri (Scrollable Tiling)"
 fi
+
+# Compatibilidade retroativa com módulos legados
+SELECTED_SHELL="${SELECTED_INTERFACE}"
 
 # Menu Interativo - Pergunta 3: Driver de Vídeo Dedicado (NVIDIA)
 if [[ "$IS_VM" == true ]]; then
@@ -138,6 +147,7 @@ fi
 
 # Exporta variáveis para os módulos
 export IS_VM
+export SELECTED_INTERFACE
 export SELECTED_SHELL
 export SELECTED_COMPOSITOR
 export INSTALL_NVIDIA
@@ -168,7 +178,7 @@ modules=(
     "03_desktop_apps.sh"
     "04_display_stack.sh"
     "05_compositor.sh"
-    "06_desktop_shell.sh"
+    "06_desktop_interface.sh"
     "07_post_install.sh"
 )
 

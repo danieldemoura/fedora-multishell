@@ -60,7 +60,7 @@ if [[ "${SELECTED_SHELL:-inir}" == "inir" ]]; then
 fi
 
 # Se a shell escolhida for Noctalia: ativa o repositório Terra do Fyra Labs (necessário para o noctalia-greeter e umbriel)
-if [[ "${SELECTED_SHELL:-}" == "noctalia" ]]; then
+if [[ "${SELECTED_SHELL:-}" == "noctalia" || "${SELECTED_INTERFACE:-}" == "noctalia" ]]; then
     log_info "Verificando repositório Terra do Fyra Labs para Noctalia Shell e dependências (noctalia-greeter / umbriel)..."
     if rpm -q terra-release >/dev/null 2>&1 || ls /etc/yum.repos.d/*terra*.repo >/dev/null 2>&1; then
         log_info "Repositório Terra do Fyra Labs já está configurado. Pulando..."
@@ -75,6 +75,11 @@ if [[ "${SELECTED_SHELL:-}" == "noctalia" ]]; then
         }
         log_success "Repositório Terra do Fyra Labs configurado com sucesso."
     fi
+fi
+
+# Se a interface escolhida for DankLinux: ativa o COPR avengemedia/danklinux
+if [[ "${SELECTED_INTERFACE:-}" == "danklinux" || "${SELECTED_SHELL:-}" == "danklinux" ]]; then
+    enable_copr_repo "avengemedia/danklinux" "avengemedia:danklinux"
 fi
 
 # 4. Instalação do Repositório Brave Software

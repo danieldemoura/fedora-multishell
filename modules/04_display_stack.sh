@@ -18,11 +18,59 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=../lib/utils.sh
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
 
-SELECTED_SHELL="${SELECTED_SHELL:-inir}"
+SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
+SELECTED_SHELL="${SELECTED_INTERFACE}"
 IS_VM="${IS_VM:-false}"
 REAL_USER="$(get_real_user)"
 
-if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
+if [[ "${SELECTED_INTERFACE}" == "danklinux" ]]; then
+    ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD / DMS-GREETER)"
+
+    # 1. Instalação do Greetd, Greetd SELinux e GNOME Keyring PAM
+    log_info "Instalando greetd, greetd-selinux e gnome-keyring-pam via DNF para DankLinux..."
+    sudo dnf install -y greetd greetd-selinux gnome-keyring-pam
+
+    # 2. Permissões de hardware para o usuário greetd
+    log_info "Configurando permissões de hardware (video, render, input) para o usuário greetd..."
+    sudo usermod -aG video,render,input greetd 2>/dev/null || true
+
+    # 3. Configuração do PAM (/etc/pam.d/greetd) a partir de templates/pam_greetd.template
+    log_info "Configurando integração PAM no Greetd para desbloqueio do cofre de senhas..."
+    PAM_GREETD="/etc/pam.d/greetd"
+    PAM_GREETD_TEMPLATE="${INSTALLER_ROOT}/templates/pam_greetd.template"
+
+    if [[ -f "$PAM_GREETD" ]]; then
+        backup_file "$PAM_GREETD" true
+    fi
+
+    if [[ -f "$PAM_GREETD_TEMPLATE" ]]; then
+        sudo cp "$PAM_GREETD_TEMPLATE" "$PAM_GREETD"
+    else
+        sudo tee "$PAM_GREETD" >/dev/null <<'EOF'
+#%PAM-1.0
+auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
+auth     substack     password-auth
+auth     optional     pam_gnome_keyring.so
+-auth    optional     pam_kwallet5.so
+
+account  include      password-auth
+
+password include      password-auth
+
+session  required     pam_selinux.so close
+session  required     pam_loginuid.so
+session  required     pam_selinux.so open
+session  optional     pam_keyinit.so force revoke
+session  include      password-auth
+session  optional     pam_gnome_keyring.so auto_start
+-session optional     pam_kwallet5.so auto_start
+EOF
+    fi
+    log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_gnome_keyring."
+
+    log_success "Módulo 04 (Display Stack - Greetd / DankLinux) concluído com sucesso."
+
+elif [[ "${SELECTED_INTERFACE}" == "noctalia" ]]; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD / NOCTALIA GREETER)"
 
     # 1. Instalação do Greetd, Greetd SELinux e Noctalia Greeter
