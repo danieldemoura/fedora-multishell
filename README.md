@@ -1,10 +1,21 @@
 # 🌌 Fedora Multi-Shell: Ambientes Wayland Modernos
 
-### Transforme o Fedora Minimal em uma interface gráfica moderna e fluida.
+<div align="center">
 
-> Escolha exclusiva entre **iNiR**, **Noctalia** e **DankMaterialShell** em compositores Wayland puros.
+![Google Antigravity](https://img.shields.io/badge/IDE-Google%20Antigravity-4285F4?style=flat-square&logo=google&logoColor=white)
+![Gemini 3.8 Flash](https://img.shields.io/badge/Model-Gemini%203.8%20Flash-8E75C2?style=flat-square&logo=googlegemini&logoColor=white)
+![Google Free Tier](https://img.shields.io/badge/Tier-Google%20Free%20Plan-0F9D58?style=flat-square)
+![Agentic Workflow](https://img.shields.io/badge/Workflow-Agentic%20AI-orange?style=flat-square)
 
-Instalador modular, em camadas e automatizado para transformar uma instalação mínima do **Fedora (Netinstall / Everything)** em uma workstation gráfica moderna com suporte à seleção exclusiva de **Interface Gráfica (Desktop Shell)** e **Compositor Wayland**:
+</div>
+
+### Transforme o Fedora Everything em uma instalação completa e com interface gráfica moderna.
+
+> 💡 **Transparência Técnica & Engenharia:** Este projeto foi concebido e homologado pelo autor utilizando o **Antigravity IDE** e o modelo **Gemini 3.8 Flash** (plano gratuito da Google) em fluxo agêntico autônomo.
+
+> 📋 **Documento de Arquitetura Base:** Todo o projeto foi planejado e executado com base no [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md). Esse arquivo contém todas as diretrizes de arquitetura em camadas, tratamento defensivo do PAM/Keyring, suporte a máquinas virtuais e decisões de projeto utilizadas pela IA para construir o instalador.
+
+Instalador modular, em camadas e automatizado para transformar uma instalação mínima do **Fedora Everything Netinstall** em uma workstation gráfica moderna com suporte à seleção exclusiva de **Interface Gráfica (Desktop Shell)** e **Compositor Wayland**:
 
 - **Interfaces Gráficas (Desktop Interfaces):**
   - **iNiR Shell:** Interface moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You via COPR `errornointernet/quickshell` (utiliza exclusivamente o compositor Niri).
@@ -86,27 +97,27 @@ fedora-inir/
 
 ## 🚀 Guia de Instalação Passo a Passo
 
-### 1. Preparação da Mídia (Fedora Netinstall)
+### 1. Preparação da Mídia (Fedora Everything Netinstall)
 
-1. Baixe a imagem ISO do **Fedora Everything (Netinstall)** no site oficial.
+1. Baixe a imagem ISO do **Fedora Everything** no site oficial do Fedora.
 2. Na tela de **Seleção de Programas (Software Selection)** do instalador Anaconda:
    - Selecione **Minimal Install** (Instalação Mínima).
-3. Crie o seu usuário comum e marque a opção para **torná-lo administrador (`wheel`)**.
+3. Crie o seu usuário comum e marque a opção para **torná-lo administrador**.
 
 ### 2. Executando o Instalador
 
-Após reiniciar no console tty com seu usuário comum:
+Após reiniciar no console TTY com seu usuário comum:
 
 ```bash
 # 1. Instale o git para clonar o repositório
 sudo dnf install -y git
 
 # 2. Clone o instalador
-git clone https://github.com/seu-usuario/fedora-inir.git
-cd fedora-inir
+git clone https://github.com/danieldemoura/fedora-multishell.git
+cd fedora-multishell
 
 # 3. Dê permissão de execução
-chmod +x setup.sh modules/*.sh modules/compositors/*.sh modules/interfaces/*.sh
+chmod -R +x setup.sh modules/
 
 # 4. Inicie o instalador como USUÁRIO COMUM (NÃO execute com sudo!)
 ./setup.sh
