@@ -22,92 +22,49 @@ SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
 SELECTED_SHELL="${SELECTED_INTERFACE}"
 IS_VM="${IS_VM:-false}"
 REAL_USER="$(get_real_user)"
+TEMPLATES_DIR="${TEMPLATES_DIR:-${INSTALLER_ROOT}/templates}"
 
-if [[ "${SELECTED_INTERFACE}" == "danklinux" ]]; then
-    ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD / DMS-GREETER)"
+if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =~ ^(danklinux|noctalia)$ ]]; then
+    ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
 
-    # 1. Instalação do Greetd, Greetd SELinux e GNOME Keyring PAM
-    log_info "Instalando greetd, greetd-selinux e gnome-keyring-pam via DNF para DankLinux..."
+    # 1. Instalação dos pacotes base do Greetd e GNOME Keyring PAM
+    log_info "Instalando greetd, greetd-selinux e gnome-keyring-pam via DNF..."
     sudo dnf install -y greetd greetd-selinux gnome-keyring-pam
 
     # 2. Permissões de hardware para o usuário greetd
     log_info "Configurando permissões de hardware (video, render, input) para o usuário greetd..."
     sudo usermod -aG video,render,input greetd 2>/dev/null || true
 
-    # 3. Configuração do PAM (/etc/pam.d/greetd) a partir de templates/pam_greetd.template
-    log_info "Configurando integração PAM no Greetd para desbloqueio do cofre de senhas..."
-    PAM_GREETD="/etc/pam.d/greetd"
-    PAM_GREETD_TEMPLATE="${INSTALLER_ROOT}/templates/pam_greetd.template"
+    # 3. Provisionamento específico do Noctalia Greeter (se interface for noctalia)
+    if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia" ]]; then
+        log_info "Instalando pacote noctalia-greeter via DNF..."
+        sudo dnf install -y noctalia-greeter
 
-    if [[ -f "$PAM_GREETD" ]]; then
-        backup_file "$PAM_GREETD" true
-    fi
+        log_info "Configurando diretório de estado e autorização do Noctalia Greeter..."
+        sudo mkdir -p /var/lib/noctalia-greeter
+        sudo chown -R greetd:greetd /var/lib/noctalia-greeter
+        sudo noctalia-greeter passwordless-sync enable "${REAL_USER}"
+        log_success "Sincronização de aparência (passwordless-sync) ativada para '${REAL_USER}'."
 
-    if [[ -f "$PAM_GREETD_TEMPLATE" ]]; then
-        sudo cp "$PAM_GREETD_TEMPLATE" "$PAM_GREETD"
-    else
-        sudo tee "$PAM_GREETD" >/dev/null <<'EOF'
-#%PAM-1.0
-auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
-auth     substack     password-auth
-auth     optional     pam_gnome_keyring.so
--auth    optional     pam_kwallet5.so
+        log_info "Configurando /etc/greetd/config.toml..."
+        sudo mkdir -p /etc/greetd
+        GREETD_CONFIG="/etc/greetd/config.toml"
+        GREETD_TEMPLATE="${TEMPLATES_DIR}/greetd.toml.template"
 
-account  include      password-auth
+        if [[ -f "$GREETD_CONFIG" ]]; then
+            backup_file "$GREETD_CONFIG" true
+        fi
 
-password include      password-auth
+        if [[ "${IS_VM}" == true ]]; then
+            GREETER_CMD="env LIBGL_ALWAYS_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 /usr/bin/noctalia-greeter-session"
+        else
+            GREETER_CMD="/usr/bin/noctalia-greeter-session"
+        fi
 
-session  required     pam_selinux.so close
-session  required     pam_loginuid.so
-session  required     pam_selinux.so open
-session  optional     pam_keyinit.so force revoke
-session  include      password-auth
-session  optional     pam_gnome_keyring.so auto_start
--session optional     pam_kwallet5.so auto_start
-EOF
-    fi
-    log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_gnome_keyring."
-
-    log_success "Módulo 04 (Display Stack - Greetd / DankLinux) concluído com sucesso."
-
-elif [[ "${SELECTED_INTERFACE}" == "noctalia" ]]; then
-    ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD / NOCTALIA GREETER)"
-
-    # 1. Instalação do Greetd, Greetd SELinux e Noctalia Greeter
-    log_info "Instalando greetd, greetd-selinux e noctalia-greeter via DNF..."
-    sudo dnf install -y greetd greetd-selinux noctalia-greeter gnome-keyring-pam
-
-    # Prepara o diretório de estado do greeter e ativa a sincronização sem senha para o usuário
-    log_info "Configurando diretório de estado e autorização do Noctalia Greeter..."
-    sudo mkdir -p /var/lib/noctalia-greeter
-    sudo chown -R greetd:greetd /var/lib/noctalia-greeter
-    sudo noctalia-greeter passwordless-sync enable "${REAL_USER}"
-    log_success "Sincronização de aparência (passwordless-sync) ativada para '${REAL_USER}'."
-
-    # 2. Permissões de hardware para o usuário greetd
-    log_info "Configurando permissões de hardware (video, render, input) para o usuário greetd..."
-    sudo usermod -aG video,render,input greetd 2>/dev/null || true
-
-    # 3. Configuração do /etc/greetd/config.toml a partir do template
-    log_info "Configurando /etc/greetd/config.toml..."
-    sudo mkdir -p /etc/greetd
-    GREETD_CONFIG="/etc/greetd/config.toml"
-    GREETD_TEMPLATE="${INSTALLER_ROOT}/templates/greetd.toml.template"
-
-    if [[ -f "$GREETD_CONFIG" ]]; then
-        backup_file "$GREETD_CONFIG" true
-    fi
-
-    if [[ "${IS_VM}" == true ]]; then
-        GREETER_CMD="env LIBGL_ALWAYS_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 /usr/bin/noctalia-greeter-session"
-    else
-        GREETER_CMD="/usr/bin/noctalia-greeter-session"
-    fi
-
-    if [[ -f "$GREETD_TEMPLATE" ]]; then
-        sed "s|__GREETD_COMMAND__|${GREETER_CMD}|g" "$GREETD_TEMPLATE" | sudo tee "$GREETD_CONFIG" >/dev/null
-    else
-        sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
+        if [[ -f "$GREETD_TEMPLATE" ]]; then
+            sed "s|__GREETD_COMMAND__|${GREETER_CMD}|g" "$GREETD_TEMPLATE" | sudo tee "$GREETD_CONFIG" >/dev/null
+        else
+            sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
 [terminal]
 vt = 1
 
@@ -115,13 +72,14 @@ vt = 1
 command = "${GREETER_CMD}"
 user = "greetd"
 EOF
+        fi
+        log_success "Arquivo ${GREETD_CONFIG} gerado com sucesso."
     fi
-    log_success "Arquivo ${GREETD_CONFIG} gerado com sucesso."
 
-    # 4. Configuração do PAM (/etc/pam.d/greetd) a partir de templates/pam_greetd.template
+    # 4. Configuração defensiva do PAM (/etc/pam.d/greetd)
     log_info "Configurando integração PAM no Greetd para desbloqueio do cofre de senhas..."
     PAM_GREETD="/etc/pam.d/greetd"
-    PAM_GREETD_TEMPLATE="${INSTALLER_ROOT}/templates/pam_greetd.template"
+    PAM_GREETD_TEMPLATE="${TEMPLATES_DIR}/pam_greetd.template"
 
     if [[ -f "$PAM_GREETD" ]]; then
         backup_file "$PAM_GREETD" true
@@ -150,7 +108,9 @@ session  optional     pam_gnome_keyring.so auto_start
 -session optional     pam_kwallet5.so auto_start
 EOF
     fi
-    log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_gnome_keyring."
+    sudo chmod 644 "$PAM_GREETD"
+    sudo chown root:root "$PAM_GREETD"
+    log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_gnome_keyring (permissão 644)."
 
     log_success "Módulo 04 (Display Stack - Greetd) concluído com sucesso."
 
@@ -168,6 +128,7 @@ else
     # 3. Configuração do PAM (/etc/pam.d/sddm) para Desbloqueio do Gnome Keyring
     log_info "Configurando integração PAM no SDDM para desbloqueio automático do cofre de senhas..."
     PAM_SDDM="/etc/pam.d/sddm"
+    PAM_SDDM_TEMPLATE="${TEMPLATES_DIR}/pam_sddm.template"
 
     if [[ -f "$PAM_SDDM" ]]; then
         backup_file "$PAM_SDDM" true
@@ -196,8 +157,8 @@ else
         fi
     else
         # Se o arquivo não existir, cria o arquivo com configuração padrão completa
-        if [[ -f "${INSTALLER_ROOT}/templates/pam_sddm.template" ]] && grep -q "auth" "${INSTALLER_ROOT}/templates/pam_sddm.template"; then
-            sudo cp "${INSTALLER_ROOT}/templates/pam_sddm.template" "$PAM_SDDM"
+        if [[ -f "$PAM_SDDM_TEMPLATE" ]] && grep -q "auth" "$PAM_SDDM_TEMPLATE"; then
+            sudo cp "$PAM_SDDM_TEMPLATE" "$PAM_SDDM"
         else
             sudo tee "$PAM_SDDM" >/dev/null <<'EOF'
 #%PAM-1.0
@@ -221,6 +182,8 @@ EOF
         fi
         log_success "Arquivo ${PAM_SDDM} criado com suporte ao pam_gnome_keyring."
     fi
+    sudo chmod 644 "$PAM_SDDM"
+    sudo chown root:root "$PAM_SDDM"
 
     log_success "Módulo 04 (Display Stack - SDDM) concluído com sucesso."
 fi

@@ -5,6 +5,10 @@
 # ==============================================================================
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+TEMPLATES_DIR="${TEMPLATES_DIR:-${INSTALLER_ROOT}/templates}"
+
 REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"
 
@@ -32,7 +36,15 @@ fi
 log_info "Executando o instalador oficial do DankLinux (dankinstall) para o usuário ${REAL_USER}..."
 sudo -u "${REAL_USER}" bash -c "curl -fsSL https://install.danklinux.com | sh -s -- -c niri -t kitty -y --all-features"
 
-# 4. Assegurar posse e permissões estritas para o usuário real
+# 4. Auto-reparo de encapsulamento: assegurar PAM GNOME Keyring no Greetd pós-dankinstall
+log_info "Assegurando integração do PAM GNOME Keyring no Greetd pós-dankinstall..."
+if [[ -f "${TEMPLATES_DIR}/pam_greetd.template" ]]; then
+    sudo cp "${TEMPLATES_DIR}/pam_greetd.template" /etc/pam.d/greetd
+    sudo chmod 644 /etc/pam.d/greetd
+    sudo chown root:root /etc/pam.d/greetd
+fi
+
+# 5. Assegurar posse e permissões estritas para o usuário real
 log_info "Garantindo propriedade das pastas de configuração e dados para ${REAL_USER}..."
 ensure_user_ownership "${REAL_HOME}/.config"
 ensure_user_ownership "${REAL_HOME}/.local"

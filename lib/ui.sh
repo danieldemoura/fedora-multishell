@@ -58,6 +58,10 @@ log_success() {
     fi
 }
 
+log_ok() {
+    log_success "$@"
+}
+
 log_warn() {
     local msg="$1"
     echo -e "${CLR_YELLOW}[AVISO]${CLR_RESET} ${msg}"

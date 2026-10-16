@@ -26,6 +26,7 @@ REAL_HOME="$(get_real_user_home)"
 SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-niri}"
 SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
 SELECTED_SHELL="${SELECTED_INTERFACE}"
+TEMPLATES_DIR="${TEMPLATES_DIR:-${INSTALLER_ROOT}/templates}"
 
 NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
 NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
@@ -363,18 +364,34 @@ if [[ "${IS_VM:-false}" == false ]] && [[ "${INSTALL_NVIDIA:-false}" == true ]];
 fi
 
 # 5. Definição do Alvo Gráfico e Ativação do Display Manager no Systemd
-if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_INTERFACE}" == "danklinux" ]]; then
+if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(danklinux|noctalia)$ ]]; then
     log_info "Configurando inicialização gráfica padrão (Greetd)..."
     sudo systemctl disable gdm lightdm sddm 2>/dev/null || true
     sudo systemctl enable --force greetd.service
     sudo systemctl set-default graphical.target
     log_success "Target gráfico e greetd.service definidos como padrão."
+
+    log_info "Assegurando integridade do PAM GNOME Keyring em /etc/pam.d/greetd..."
+    if [[ -f "${TEMPLATES_DIR}/pam_greetd.template" ]]; then
+        sudo cp "${TEMPLATES_DIR}/pam_greetd.template" /etc/pam.d/greetd
+        sudo chmod 644 /etc/pam.d/greetd
+        sudo chown root:root /etc/pam.d/greetd
+    fi
 else
     log_info "Configurando inicialização gráfica padrão (SDDM)..."
     sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
     sudo systemctl enable --force sddm.service
     sudo systemctl set-default graphical.target
     log_success "Target gráfico e sddm.service definidos como padrão."
+
+    log_info "Assegurando integridade do PAM GNOME Keyring em /etc/pam.d/sddm..."
+    if [[ -f "${TEMPLATES_DIR}/pam_sddm.template" ]]; then
+        if ! grep -qF "pam_gnome_keyring.so" /etc/pam.d/sddm 2>/dev/null; then
+            sudo cp "${TEMPLATES_DIR}/pam_sddm.template" /etc/pam.d/sddm
+            sudo chmod 644 /etc/pam.d/sddm
+            sudo chown root:root /etc/pam.d/sddm
+        fi
+    fi
 fi
 
 # 6. Checklist Interno de Testes e Validação
@@ -382,30 +399,31 @@ echo ""
 log_info "Iniciando checagens internas de integridade do sistema..."
 
 # Teste 1: Serviço de Display Manager
-if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_INTERFACE}" == "danklinux" ]]; then
+if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(danklinux|noctalia)$ ]]; then
     if systemctl is-enabled greetd.service >/dev/null 2>&1; then
         log_success "[Checklist] greetd.service está devidamente habilitado no systemd."
     else
         log_warn "[Checklist] greetd.service não reportou status enabled via systemctl is-enabled."
     fi
-
-    # Teste 2: PAM do Greetd
-    if [[ -f "/etc/pam.d/greetd" ]] && grep -q "pam_gnome_keyring.so" /etc/pam.d/greetd; then
-        log_success "[Checklist] /etc/pam.d/greetd contém integração ativa com pam_gnome_keyring.so."
-    else
-        log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/greetd!"
-        exit 1
-    fi
-else
+elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]]; then
     if systemctl is-enabled sddm.service >/dev/null 2>&1; then
         log_success "[Checklist] sddm.service está devidamente habilitado no systemd."
     else
         log_warn "[Checklist] sddm.service não reportou status enabled via systemctl is-enabled."
     fi
+fi
 
-    # Teste 2: PAM do SDDM
-    if [[ -f "/etc/pam.d/sddm" ]] && grep -q "pam_gnome_keyring.so" /etc/pam.d/sddm; then
-        log_success "[Checklist] /etc/pam.d/sddm contém integração ativa com pam_gnome_keyring.so."
+# Teste 2: PAM do Display Manager (Checklist Final Rigoroso)
+if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-}" == "noctalia" ]]; then
+    if grep -qF "pam_gnome_keyring.so" /etc/pam.d/greetd; then
+        log_ok "[Checklist] Integração com pam_gnome_keyring.so confirmada em /etc/pam.d/greetd."
+    else
+        log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/greetd!"
+        exit 1
+    fi
+elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]]; then
+    if grep -qF "pam_gnome_keyring.so" /etc/pam.d/sddm; then
+        log_ok "[Checklist] Integração com pam_gnome_keyring.so confirmada em /etc/pam.d/sddm."
     else
         log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/sddm!"
         exit 1
