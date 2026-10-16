@@ -38,7 +38,7 @@ fedora-inir/
 │   └── settings.conf                # Variáveis globais (repositórios, versões, flags de ambiente)
 ├── lib/
 │   ├── ui.sh                        # Renderização visual ANSI (banners limpos, caixas temáticas, prompts enxutos)
-│   ├── logger.sh                    # Registro centralizado (/tmp/fedora-inir-installer.log) e tratamento de erros
+│   ├── logger.sh                    # Registro centralizado (/tmp/fedora-multi-shell.log) e tratamento de erros
 │   └── utils.sh                     # Utilitários (checagem de não-root, sudo keepalive, permissões seguras)
 ├── modules/
 │   ├── 00_repos.sh                  # Repositórios universais (RPM Fusion, Brave, Flathub) e condicionais (COPRs, Terra, DankLinux)

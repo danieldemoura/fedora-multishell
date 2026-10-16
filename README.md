@@ -14,6 +14,7 @@
 > 💡 **Transparência Técnica & Engenharia:** Este projeto foi concebido e homologado pelo autor utilizando o **Antigravity IDE** e o modelo **Gemini 3.8 Flash** (plano gratuito da Google) em fluxo agêntico autônomo.
 
 > 📋 **Documento de Arquitetura Base:** Todo o projeto foi planejado e executado com base no [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md). Esse arquivo contém todas as diretrizes de arquitetura em camadas, tratamento defensivo do PAM/Keyring, suporte a máquinas virtuais e decisões de projeto utilizadas pela IA para construir o instalador.
+> Consulte o [Catálogo de Pacotes e Dependências](docs/CATALOGO_DE_PACOTES.md) para ver a listagem completa e detalhada de tudo o que é provisionado pelo sistema.
 
 Instalador modular, em camadas e automatizado para transformar uma instalação mínima do **Fedora Everything Netinstall** em uma workstation gráfica moderna com suporte à seleção exclusiva de **Interface Gráfica (Desktop Shell)** e **Compositor Wayland**:
 
@@ -51,7 +52,7 @@ fedora-inir/
 │   └── settings.conf                # Variáveis globais, repositórios e flags padrão
 ├── lib/
 │   ├── ui.sh                        # Renderização ANSI: banner sem subtítulo fixo, caixas temáticas e prompts limpos
-│   ├── logger.sh                    # Registro em /tmp/fedora-inir-installer.log e traps de erro
+│   ├── logger.sh                    # Registro em /tmp/fedora-multi-shell.log e traps de erro
 │   └── utils.sh                     # Sudo keepalive, validação de não-root e permissões
 ├── modules/
 │   ├── 00_repos.sh                  # Repositórios (RPM Fusion, Brave, Flathub, COPRs condicionais, Terra e DankLinux)

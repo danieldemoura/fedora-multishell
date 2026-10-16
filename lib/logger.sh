@@ -4,7 +4,7 @@
 # Funções de logging com timestamp e captura de erros
 # ==============================================================================
 
-LOG_FILE="${LOG_FILE:-/tmp/fedora-inir-installer.log}"
+LOG_FILE="${LOG_FILE:-/tmp/fedora-multi-shell.log}"
 
 # Inicializa o arquivo de log com cabeçalho de sistema
 log_init() {
@@ -13,7 +13,7 @@ log_init() {
     
     {
         echo "=============================================================================="
-        echo "fedora-inir: Log de Instalação iniciado em $(date '+%Y-%m-%d %H:%M:%S %Z')"
+        echo "fedora-multi-shell: Log de Instalação iniciado em $(date '+%Y-%m-%d %H:%M:%S %Z')"
         echo "Host: $(hostname 2>/dev/null || echo 'desconhecido')"
         echo "Kernel: $(uname -r 2>/dev/null || echo 'desconhecido')"
         echo "Fedora Release: $(rpm -E %fedora 2>/dev/null || echo 'desconhecido')"
