@@ -272,7 +272,17 @@ elif [[ "${SELECTED_INTERFACE}" == "danklinux" ]]; then
         sudo -u "${REAL_USER}" touch "${NIRI_CONFIG_FILE}"
     fi
 
-    # 1. Configuração de layout de teclado ABNT2 (br)
+    # 1. Injeção de Autostart do DankMaterialShell (DMS)
+    if ! grep -q 'spawn-at-startup "dms"' "${NIRI_CONFIG_FILE}"; then
+        log_info "Configurando autostart do DankMaterialShell (dms run) no Niri..."
+        # Injeta spawn-at-startup "dms" "run" no topo do arquivo de configuração
+        sudo -u "${REAL_USER}" sed -i '1i spawn-at-startup "dms" "run"' "${NIRI_CONFIG_FILE}"
+        log_success "Autostart do DankMaterialShell configurado com sucesso em ${NIRI_CONFIG_FILE}."
+    else
+        log_info "Autostart do DankMaterialShell já presente em ${NIRI_CONFIG_FILE}."
+    fi
+
+    # 2. Configuração de layout de teclado ABNT2 (br)
     if [[ "${KEYBOARD_ABNT2:-true}" == true ]]; then
         if ! grep -q 'layout "br"' "${NIRI_CONFIG_FILE}"; then
             log_info "Configurando layout de teclado ABNT2 (br) no Niri (DMS)..."
@@ -319,7 +329,10 @@ EOF
         log_success "Flags de VM asseguradas em ${NIRI_CONFIG_FILE}."
     fi
 
-    # 3. Validação oficial do Niri
+    # 3. Garantir permissões de posse antes da validação
+    ensure_user_ownership "${REAL_HOME}/.config"
+
+    # 4. Validação oficial do Niri
     log_info "Validando configuração do Niri para DankMaterialShell (niri validate)..."
     if command -v niri >/dev/null 2>&1; then
         if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then

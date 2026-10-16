@@ -157,3 +157,14 @@ O instalador conta com um menu interativo sem poluição visual:
 | <kbd>Super</kbd> + <kbd>Return</kbd> | Abre o Terminal GPU (`kitty`) |
 | <kbd>Super</kbd> + <kbd>Q</kbd> | Fecha a janela em foco |
 | <kbd>Super</kbd> + Navegação de Janelas | Rolagem contínua bidirecional e comutação de layouts (Dwindle e Master) |
+
+### DankLinux (DankMaterialShell / DMS)
+| Atalho | Ação |
+| :--- | :--- |
+| <kbd>Super</kbd> + <kbd>T</kbd> | Abre o Terminal GPU (`kitty`) |
+| <kbd>Super</kbd> + <kbd>Q</kbd> | Fecha a janela em foco |
+| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd> | Lança o menu de aplicativos / busca (`danksearch`) |
+| <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima no compositor Niri |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd> | Move a coluna atual para a esquerda / direita |
+| Controles DMS / Niri | Gestão de painéis, notificações e widgets integrados do DankMaterialShell |
+
