@@ -1,21 +1,25 @@
-# 🌌 Fedora Wayland Workstation: iNiR, Noctalia & DankLinux Installer
+# 🌌 Fedora Multi-Shell: Ambientes Wayland Modernos
+
+### Transforme o Fedora Minimal em uma interface gráfica moderna e fluida.
+
+> Escolha exclusiva entre **iNiR**, **Noctalia** e **DankMaterialShell** em compositores Wayland puros.
 
 Instalador modular, em camadas e automatizado para transformar uma instalação mínima do **Fedora (Netinstall / Everything)** em uma workstation gráfica moderna com suporte à seleção exclusiva de **Interface Gráfica (Desktop Shell)** e **Compositor Wayland**:
 
-* **Interfaces Gráficas (Desktop Interfaces):**
-  * **iNiR Shell:** Interface moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You via COPR `errornointernet/quickshell` (utiliza exclusivamente o compositor Niri).
-  * **Noctalia Shell:** Interface gráfica desktop nativa em C++/Qt via pacote nativo Fedora (permite escolher entre o compositor Niri ou Umbriel).
-  * **DankMaterialShell / DMS (DankLinux):** Interface gráfica e ambiente completo DankLinux via COPR `avengemedia/danklinux` e instalador oficial headless `dankinstall` (utiliza Niri, terminal Kitty, `dms-greeter`, `danksearch` e `dankcalendar`).
-* **Compositores Wayland de Alta Performance:**
-  * **Niri:** Scrollable tiling Wayland compositor com rolagem horizontal contínua de colunas via COPR `yalter/niri`.
-  * **Umbriel:** Compositor Wayland dinâmico via Repositório Terra do Fyra Labs, com suporte à rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de exibição dinâmicos (Dwindle e Master).
-* **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dms-greeter`) com integração e desbloqueio silencioso do PAM GNOME Keyring.
-* **Emulador de Terminal & CLI:** [Kitty](https://sw.kovidgoyal.net/kitty/) (acelerado por GPU) + `fastfetch` (resumo de hardware).
-* **Compatibilidade X11:** `xwayland-satellite` (rootless isolado).
-* **Navegador Web:** Brave Origin (sem telemetria, IA ou criptomoedas).
-* **Loja de Apps:** GNOME Software (Loja gráfica nativa com integração ao Flathub e atualizações de sistema).
-* **Reprodutor de Vídeo:** Cine (`io.github.diegopvlk.Cine` via Flatpak).
-* **Documentação Técnica:** Consulte o [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md).
+- **Interfaces Gráficas (Desktop Interfaces):**
+  - **iNiR Shell:** Interface moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You via COPR `errornointernet/quickshell` (utiliza exclusivamente o compositor Niri).
+  - **Noctalia Shell:** Interface gráfica desktop nativa em C++/Qt via pacote nativo Fedora (permite escolher entre o compositor Niri ou Umbriel).
+  - **DankMaterialShell / DMS (DankLinux):** Interface gráfica e ambiente completo DankLinux via COPR `avengemedia/danklinux` e instalador oficial headless `dankinstall` (utiliza Niri, terminal Kitty, `dms-greeter`, `danksearch` e `dankcalendar`).
+- **Compositores Wayland de Alta Performance:**
+  - **Niri:** Scrollable tiling Wayland compositor com rolagem horizontal contínua de colunas via COPR `yalter/niri`.
+  - **Umbriel:** Compositor Wayland dinâmico via Repositório Terra do Fyra Labs, com suporte à rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de exibição dinâmicos (Dwindle e Master).
+- **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dms-greeter`) com integração e desbloqueio silencioso do PAM GNOME Keyring.
+- **Emulador de Terminal & CLI:** [Kitty](https://sw.kovidgoyal.net/kitty/) (acelerado por GPU) + `fastfetch` (resumo de hardware).
+- **Compatibilidade X11:** `xwayland-satellite` (rootless isolado).
+- **Navegador Web:** Brave Origin (sem telemetria, IA ou criptomoedas).
+- **Loja de Apps:** GNOME Software (Loja gráfica nativa com integração ao Flathub e atualizações de sistema).
+- **Reprodutor de Vídeo:** Cine (`io.github.diegopvlk.Cine` via Flatpak).
+- **Documentação Técnica:** Consulte o [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md).
 
 ---
 
@@ -71,18 +75,19 @@ fedora-inir/
 
 ## 🎯 Matriz de Combinações Suportadas
 
-| Opção de Interface Gráfica | Compositor Wayland | Características Principais |
-| :--- | :--- | :--- |
-| **iNiR Shell** | **Niri** (Fixo) | Estética moderna com cores dinâmicas Material You, widgets e rolagem horizontal de janelas contínua. |
-| **Noctalia Shell** | **Niri** | Shell nativa em C++/Qt com painel clássico/moderno sobre o motor de rolagem horizontal contínua do Niri. |
-| **Noctalia Shell** | **Umbriel** | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de janelas (Dwindle e Master). |
-| **DankMaterialShell (DMS)** | **Niri** (Fixo) | Ambiente DankLinux com painéis Material You, dms-greeter (Greetd), danksearch, dankcalendar e terminal Kitty fixado. |
+| Opção de Interface Gráfica  | Compositor Wayland | Características Principais                                                                                                                                                        |
+| :-------------------------- | :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **iNiR Shell**              | **Niri** (Fixo)    | Estética moderna com cores dinâmicas Material You, widgets e rolagem horizontal de janelas contínua.                                                                              |
+| **Noctalia Shell**          | **Niri**           | Shell nativa em C++/Qt com painel clássico/moderno sobre o motor de rolagem horizontal contínua do Niri.                                                                          |
+| **Noctalia Shell**          | **Umbriel**        | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de janelas (Dwindle e Master). |
+| **DankMaterialShell (DMS)** | **Niri** (Fixo)    | Ambiente DankLinux com painéis Material You, dms-greeter (Greetd), danksearch, dankcalendar e terminal Kitty fixado.                                                              |
 
 ---
 
 ## 🚀 Guia de Instalação Passo a Passo
 
 ### 1. Preparação da Mídia (Fedora Netinstall)
+
 1. Baixe a imagem ISO do **Fedora Everything (Netinstall)** no site oficial.
 2. Na tela de **Seleção de Programas (Software Selection)** do instalador Anaconda:
    - Selecione **Minimal Install** (Instalação Mínima).
@@ -112,59 +117,62 @@ chmod +x setup.sh modules/*.sh modules/compositors/*.sh modules/interfaces/*.sh
 ## 📋 Interface CLI Padronizada (pt-BR)
 
 O instalador conta com um menu interativo sem poluição visual:
-* Prompts numéricos utilizam a sintaxe direta: `Escolha uma opção: ` (pressionar Enter assume `1`).
-* Prompts booleanos adotam a convenção Unix de letra maiúscula para a opção padrão:
-  * `Deseja instalar os drivers proprietários da NVIDIA? [s/N]: ` (Enter assume `N`).
-  * `Deseja configurar o padrão Brasileiro ABNT2 (com tecla ç)? [S/n]: ` (Enter assume `S`).
-  * `Deseja iniciar a instalação com estas definições? [S/n]: ` (Enter assume `S`).
-  * `Deseja reiniciar o sistema agora? [S/n]: ` (Enter assume `S` e executa reinicialização imediata com `sudo reboot`).
+
+- Prompts numéricos utilizam a sintaxe direta: `Escolha uma opção: ` (pressionar Enter assume `1`).
+- Prompts booleanos adotam a convenção Unix de letra maiúscula para a opção padrão:
+  - `Deseja instalar os drivers proprietários da NVIDIA? [s/N]: ` (Enter assume `N`).
+  - `Deseja configurar o padrão Brasileiro ABNT2 (com tecla ç)? [S/n]: ` (Enter assume `S`).
+  - `Deseja iniciar a instalação com estas definições? [S/n]: ` (Enter assume `S`).
+  - `Deseja reiniciar o sistema agora? [S/n]: ` (Enter assume `S` e executa reinicialização imediata com `sudo reboot`).
 
 ---
 
 ## 🛡️ Tabela Formal de Decisões de Engenharia Defensiva
 
-| Decisão Arquitetural / Defensiva | Justificativa Técnica e Prevenção de Falhas |
-| :--- | :--- |
-| **Autorização do Noctalia Greeter (`passwordless-sync`)** | O diretório `/var/lib/noctalia-greeter` com posse de `greetd:greetd` e a execução de `noctalia-greeter passwordless-sync enable` autorizam formalmente via Polkit a sincronização bidirecional do papel de parede e temas do desktop com a tela de login sem exigir senha administrativa. |
-| **Desativação preventiva de GDM / LightDM / Greetd** | Evita conflitos de display manager caso o script seja reexecutado ou utilizado sobre Fedora Workstation/Spins que contenham outros gerenciadores pré-instalados. Previne dois daemons disputando o mesmo dispositivo DRM/KMS. |
-| **Execução de `sudo -v` antecipado em `shells/inir.sh`** | Em etapas anteriores demoradas (como o download de aplicativos e codecs no Módulo 03), o timestamp padrão do `sudo` pode expirar. Atualizar o timestamp explicitamente antes de acionar `./setup install -y` impede que o instalador do iNiR trave esperando senha de administrador em background. |
-| **Isolamento do download do Deno na Home (`${REAL_HOME}`) em vez do `/tmp`** | Em sistemas Fedora modernos, `/tmp` é montado como `tmpfs` em memória RAM. Em máquinas virtuais com 2GB-4GB de memória, arquivos temporários podem esgotar inodes/espaço (`curl: (23) Failure writing output to destination`). Utilizar a Home garante armazenamento persistente em disco. |
-| **Distinção entre layout ABNT2 e idioma nativo das interfaces** | A injeção de `layout "br"` no bloco `xkb` do Niri ou no `[input.keyboard]` do Umbriel mapeia unicamente a tabela de scancodes físicos (tecla `Ç`, acentos `~` e `^`), desacoplada do idioma da interface gráfica que permanece em inglês nativo. |
-| **Instalação antecipada de aplicativos no Módulo 03** | Instalar Kitty, fontes Google Noto e codecs antes da configuração do compositor e da shell garante que todas as dependências visuais e ferramentas de terminal já estejam no disco antes de a interface gráfica ser compilada, configurada ou validada. |
-| **Templates Declarativos vs `/usr/share/doc`** | A adoção de templates próprios na pasta do instalador elimina a dependência de arquivos de exemplo do sistema operacional (que sofrem com caminhos versionados no Fedora e causavam o erro de atalhos vazios `not bound`), garantindo que tanto o Niri quanto o Umbriel iniciem com mapeamento completo de atalhos, mouse e teclas Fn. |
-| **Injeção Dinâmica de Variáveis de VM vs Templates Limpos** | Os templates em `templates/` são mantidos intencionalmente limpos e otimizados para Máquinas Físicas (Bare Metal). A injeção das variáveis de ambiente (`LIBGL_ALWAYS_SOFTWARE=1`, `WLR_NO_HARDWARE_CURSORS=1` e `hardware_cursor = false`) ocorre em tempo de execução via `07_post_install.sh` somente se `IS_VM=true`. Isso previne que computadores reais com GPU dedicada tenham sua aceleração desativada, ao mesmo tempo em que blinda máquinas virtuais contra telas pretas e fechamentos inesperados (*crashes*) do QtQuick. |
-| **Isolamento de Templates por Shell** | A cópia dos templates do Umbriel e Niri ocorre estritamente quando `SELECTED_SHELL="noctalia"`, preservando a autonomia e configuração gerada pelo instalador nativo do iNiR quando este for o escolhido. |
-| **Autostart e VM Flags do iNiR no Niri** | O instalador nativo do iNiR copia seus arquivos para `~/.config/quickshell/inir`, mas não adiciona a chamada de inicialização nem as variáveis de renderização de VM no Niri. Embora os templates específicos do Noctalia não sejam aplicados ao iNiR, o Módulo 07 injeta explicitamente o `spawn-at-startup "inir" "run"`, o layout ABNT2 e o bloco `environment` de software rendering para VM no `config.kdl`, prevenindo a falha de tela cinza vazia após o login no SDDM. |
-| **Exclusão e Remoção Defensiva do Alacritty (`compositors/niri.sh`)** | O pacote upstream do Niri pode trazer o Alacritty como dependência recomendada ou fraca. A flag `--exclude=alacritty` aliada à remoção defensiva subsequente garante que apenas o Kitty permaneça como emulador de terminal oficial do sistema, sem quebrar as outras dependências normais e fracas do Niri. |
-| **Autorização Administrativa Temporária no Sudoers** | A criação do drop-in `/etc/sudoers.d/99-fedora-installer-temp` com `trap` de autodestruição elimina o problema de timeout de credenciais do sudo (5 minutos) durante etapas demoradas de compilação em modo não-interativo, sem precisar poluir a base do sistema com pacotes exclusivos de um único shell. |
+| Decisão Arquitetural / Defensiva                                             | Justificativa Técnica e Prevenção de Falhas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| :--------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Autorização do Noctalia Greeter (`passwordless-sync`)**                    | O diretório `/var/lib/noctalia-greeter` com posse de `greetd:greetd` e a execução de `noctalia-greeter passwordless-sync enable` autorizam formalmente via Polkit a sincronização bidirecional do papel de parede e temas do desktop com a tela de login sem exigir senha administrativa.                                                                                                                                                                                                                                             |
+| **Desativação preventiva de GDM / LightDM / Greetd**                         | Evita conflitos de display manager caso o script seja reexecutado ou utilizado sobre Fedora Workstation/Spins que contenham outros gerenciadores pré-instalados. Previne dois daemons disputando o mesmo dispositivo DRM/KMS.                                                                                                                                                                                                                                                                                                         |
+| **Execução de `sudo -v` antecipado em `shells/inir.sh`**                     | Em etapas anteriores demoradas (como o download de aplicativos e codecs no Módulo 03), o timestamp padrão do `sudo` pode expirar. Atualizar o timestamp explicitamente antes de acionar `./setup install -y` impede que o instalador do iNiR trave esperando senha de administrador em background.                                                                                                                                                                                                                                    |
+| **Isolamento do download do Deno na Home (`${REAL_HOME}`) em vez do `/tmp`** | Em sistemas Fedora modernos, `/tmp` é montado como `tmpfs` em memória RAM. Em máquinas virtuais com 2GB-4GB de memória, arquivos temporários podem esgotar inodes/espaço (`curl: (23) Failure writing output to destination`). Utilizar a Home garante armazenamento persistente em disco.                                                                                                                                                                                                                                            |
+| **Distinção entre layout ABNT2 e idioma nativo das interfaces**              | A injeção de `layout "br"` no bloco `xkb` do Niri ou no `[input.keyboard]` do Umbriel mapeia unicamente a tabela de scancodes físicos (tecla `Ç`, acentos `~` e `^`), desacoplada do idioma da interface gráfica que permanece em inglês nativo.                                                                                                                                                                                                                                                                                      |
+| **Instalação antecipada de aplicativos no Módulo 03**                        | Instalar Kitty, fontes Google Noto e codecs antes da configuração do compositor e da shell garante que todas as dependências visuais e ferramentas de terminal já estejam no disco antes de a interface gráfica ser compilada, configurada ou validada.                                                                                                                                                                                                                                                                               |
+| **Templates Declarativos vs `/usr/share/doc`**                               | A adoção de templates próprios na pasta do instalador elimina a dependência de arquivos de exemplo do sistema operacional (que sofrem com caminhos versionados no Fedora e causavam o erro de atalhos vazios `not bound`), garantindo que tanto o Niri quanto o Umbriel iniciem com mapeamento completo de atalhos, mouse e teclas Fn.                                                                                                                                                                                                |
+| **Injeção Dinâmica de Variáveis de VM vs Templates Limpos**                  | Os templates em `templates/` são mantidos intencionalmente limpos e otimizados para Máquinas Físicas (Bare Metal). A injeção das variáveis de ambiente (`LIBGL_ALWAYS_SOFTWARE=1`, `WLR_NO_HARDWARE_CURSORS=1` e `hardware_cursor = false`) ocorre em tempo de execução via `07_post_install.sh` somente se `IS_VM=true`. Isso previne que computadores reais com GPU dedicada tenham sua aceleração desativada, ao mesmo tempo em que blinda máquinas virtuais contra telas pretas e fechamentos inesperados (_crashes_) do QtQuick. |
+| **Isolamento de Templates por Shell**                                        | A cópia dos templates do Umbriel e Niri ocorre estritamente quando `SELECTED_SHELL="noctalia"`, preservando a autonomia e configuração gerada pelo instalador nativo do iNiR quando este for o escolhido.                                                                                                                                                                                                                                                                                                                             |
+| **Autostart e VM Flags do iNiR no Niri**                                     | O instalador nativo do iNiR copia seus arquivos para `~/.config/quickshell/inir`, mas não adiciona a chamada de inicialização nem as variáveis de renderização de VM no Niri. Embora os templates específicos do Noctalia não sejam aplicados ao iNiR, o Módulo 07 injeta explicitamente o `spawn-at-startup "inir" "run"`, o layout ABNT2 e o bloco `environment` de software rendering para VM no `config.kdl`, prevenindo a falha de tela cinza vazia após o login no SDDM.                                                        |
+| **Exclusão e Remoção Defensiva do Alacritty (`compositors/niri.sh`)**        | O pacote upstream do Niri pode trazer o Alacritty como dependência recomendada ou fraca. A flag `--exclude=alacritty` aliada à remoção defensiva subsequente garante que apenas o Kitty permaneça como emulador de terminal oficial do sistema, sem quebrar as outras dependências normais e fracas do Niri.                                                                                                                                                                                                                          |
+| **Autorização Administrativa Temporária no Sudoers**                         | A criação do drop-in `/etc/sudoers.d/99-fedora-installer-temp` com `trap` de autodestruição elimina o problema de timeout de credenciais do sudo (5 minutos) durante etapas demoradas de compilação em modo não-interativo, sem precisar poluir a base do sistema com pacotes exclusivos de um único shell.                                                                                                                                                                                                                           |
 
 ---
 
 ## ⌨️ Atalhos de Teclado Nativos e Controle
 
 ### Niri
-| Atalho | Ação |
-| :--- | :--- |
-| <kbd>Super</kbd> + <kbd>Return</kbd> | Abre o Terminal GPU (`kitty`) |
-| <kbd>Super</kbd> + <kbd>Q</kbd> | Fecha a janela em foco |
+
+| Atalho                                                                        | Ação                                                  |
+| :---------------------------------------------------------------------------- | :---------------------------------------------------- |
+| <kbd>Super</kbd> + <kbd>Return</kbd>                                          | Abre o Terminal GPU (`kitty`)                         |
+| <kbd>Super</kbd> + <kbd>Q</kbd>                                               | Fecha a janela em foco                                |
 | <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima (rolagem horizontal) |
-| <kbd>Super</kbd> + <kbd>J</kbd> / <kbd>K</kbd> ou <kbd>↓</kbd> / <kbd>↑</kbd> | Foca a janela inferior / superior dentro da coluna |
-| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd> | Move a coluna atual para a esquerda / direita |
+| <kbd>Super</kbd> + <kbd>J</kbd> / <kbd>K</kbd> ou <kbd>↓</kbd> / <kbd>↑</kbd> | Foca a janela inferior / superior dentro da coluna    |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd>             | Move a coluna atual para a esquerda / direita         |
 
 ### Umbriel
-| Atalho | Ação |
-| :--- | :--- |
-| <kbd>Super</kbd> + <kbd>Return</kbd> | Abre o Terminal GPU (`kitty`) |
-| <kbd>Super</kbd> + <kbd>Q</kbd> | Fecha a janela em foco |
+
+| Atalho                                  | Ação                                                                    |
+| :-------------------------------------- | :---------------------------------------------------------------------- |
+| <kbd>Super</kbd> + <kbd>Return</kbd>    | Abre o Terminal GPU (`kitty`)                                           |
+| <kbd>Super</kbd> + <kbd>Q</kbd>         | Fecha a janela em foco                                                  |
 | <kbd>Super</kbd> + Navegação de Janelas | Rolagem contínua bidirecional e comutação de layouts (Dwindle e Master) |
 
 ### DankLinux (DankMaterialShell / DMS)
-| Atalho | Ação |
-| :--- | :--- |
-| <kbd>Super</kbd> + <kbd>T</kbd> | Abre o Terminal GPU (`kitty`) |
-| <kbd>Super</kbd> + <kbd>Q</kbd> | Fecha a janela em foco |
-| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd> | Lança o menu de aplicativos / busca (`danksearch`) |
-| <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima no compositor Niri |
-| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd> | Move a coluna atual para a esquerda / direita |
-| Controles DMS / Niri | Gestão de painéis, notificações e widgets integrados do DankMaterialShell |
 
+| Atalho                                                                        | Ação                                                                      |
+| :---------------------------------------------------------------------------- | :------------------------------------------------------------------------ |
+| <kbd>Super</kbd> + <kbd>T</kbd>                                               | Abre o Terminal GPU (`kitty`)                                             |
+| <kbd>Super</kbd> + <kbd>Q</kbd>                                               | Fecha a janela em foco                                                    |
+| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd>                            | Lança o menu de aplicativos / busca (`danksearch`)                        |
+| <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima no compositor Niri                       |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd>             | Move a coluna atual para a esquerda / direita                             |
+| Controles DMS / Niri                                                          | Gestão de painéis, notificações e widgets integrados do DankMaterialShell |
