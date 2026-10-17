@@ -42,7 +42,7 @@ O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Ide
 
 ```text
 fedora-multishell/
-├── setup.sh                         # Ponto de entrada: checagens, menu interativo pt-BR e orquestrador
+├── install.sh                       # Ponto de entrada: validações, menu interativo pt-BR e orquestrador
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
@@ -128,10 +128,10 @@ git clone https://github.com/danieldemoura/fedora-multishell.git
 cd fedora-multishell
 
 # 3. Dê permissão de execução
-chmod -R +x setup.sh modules/
+chmod -R +x install.sh modules/
 
 # 4. Inicie o instalador como USUÁRIO COMUM (NÃO execute com sudo!)
-./setup.sh
+./install.sh
 ```
 
 ---

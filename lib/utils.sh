@@ -10,7 +10,7 @@ SUDO_KEEPALIVE_PID=""
 check_not_root() {
     if [[ "${EUID}" -eq 0 ]]; then
         echo -e "\e[1;31m[ERRO] Não execute este script diretamente com sudo ou como usuário root!\e[0m" >&2
-        echo -e "Execute como seu usuário comum: \e[1;36m./setup.sh\e[0m" >&2
+        echo -e "Execute como seu usuário comum: \e[1;36m./install.sh\e[0m" >&2
         echo -e "O script solicitará privilégios administrativos (sudo) internamente quando necessário." >&2
         exit 1
     fi

@@ -27,7 +27,7 @@ A nova orquestração em camadas garante que toda a base do sistema e as ferrame
 
 ```text
 fedora-multishell/
-├── setup.sh                         # Ponto de entrada: validações, menu interativo pt-BR e orquestração
+├── install.sh                       # Ponto de entrada: validações, menu interativo pt-BR e orquestração
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
@@ -81,7 +81,7 @@ fedora-multishell/
 ### 1.2 Regras Estritas de Programação Shell
 
 1. **Defensividade:** Todos os scripts rodam com `set -euo pipefail`.
-2. **Execução sem Root Direto:** O script deve recusar ser executado diretamente com `sudo ./setup.sh`. Ele é iniciado pelo usuário comum (`./setup.sh`) e invoca `sudo` apenas onde necessário.
+2. **Execução sem Root Direto:** O script deve recusar ser executado diretamente com `sudo ./install.sh`. Ele é iniciado pelo usuário comum (`./install.sh`) e invoca `sudo` apenas onde necessário.
 3. **Idempotência:** A reexecução do script (ou de módulos individuais) não deve duplicar linhas em arquivos de configuração (`grep -qF` antes de inserir).
 4. **Isolamento Declarativo e IaC:** Listas em `config/` contêm um pacote ou identificador por linha, ignorando comentários e linhas em branco. Scripts procedurais não contêm comandos `dnf install` com pacotes fixos; todas as instalações são processadas via `install_packages_from_conf`.
 

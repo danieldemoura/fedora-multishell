@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: setup.sh
+# fedora-multi-shell: install.sh
 # Ponto de entrada: checagens iniciais, menu interativo e orquestrador de módulos
 # ==============================================================================
 set -euo pipefail

@@ -95,7 +95,7 @@ set -euo pipefail
 
 ### 2.2 Execução sem Root Direto (Menor Privilégio)
 
-- O instalador **nunca** deve ser executado como `sudo ./setup.sh`.
+- O instalador **nunca** deve ser executado como `sudo ./install.sh`.
 - As variáveis `${REAL_USER}` e `${REAL_HOME}` devem ser sempre preservadas.
 - Comandos que modificam configurações de usuário devem ser disparados via:
   ```bash
@@ -137,7 +137,7 @@ set -euo pipefail
 Para estender o projeto com uma nova interface:
 
 1. Crie o arquivo declarativo de dependências em `config/packages-<nome>.conf`.
-2. Adicione a opção no menu interativo em `setup.sh`.
+2. Adicione a opção no menu interativo em `install.sh`.
 3. Adicione os repositórios necessários em `modules/00_repos.sh`.
 4. Crie o submódulo de instalação em `modules/interfaces/<nome>.sh` consumindo o arquivo `.conf` via `install_packages_from_conf`.
 5. Adicione o caso correspondente no roteador `modules/06_desktop_interface.sh`.
