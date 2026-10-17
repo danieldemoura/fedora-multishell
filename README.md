@@ -48,49 +48,49 @@ fedora-multishell/
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
 │   └── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
 ├── config/
-│   ├── packages-base.conf           # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
-│   ├── packages-apps.conf           # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
-│   ├── packages-flatpak.conf        # Lista declarativa de aplicativos Flatpak do Flathub
-│   ├── packages-nvidia.conf         # Pilha proprietária de drivers e módulos NVIDIA (akmods)
-│   ├── packages-inir.conf           # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
-│   ├── packages-noctalia.conf       # Pacotes nativos da interface Noctalia e Greeter
-│   ├── packages-niri.conf           # Pacotes do compositor Niri, xwayland-satellite e portais
-│   ├── packages-umbriel.conf        # Pacotes do compositor Umbriel Nightly e portais
-│   ├── packages-greetd.conf         # Daemons base do Display Manager Greetd
-│   ├── packages-sddm.conf           # Pacotes base do Display Manager SDDM
-│   ├── packages-brave.conf          # Manifesto de instalação do navegador Brave Browser
-│   └── settings.conf                # Variáveis globais, repositórios e flags padrão
+│   ├── settings.conf                # Variáveis globais, repositórios e flags padrão
+│   ├── packages/                    # Manifestos declarativos de pacotes (DNF / Flatpak)
+│   │   ├── apps.conf                # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
+│   │   ├── base.conf                # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
+│   │   ├── brave.conf               # Manifesto de instalação do navegador Brave Browser
+│   │   ├── flatpak.conf             # Lista declarativa de aplicativos Flatpak do Flathub
+│   │   ├── greetd.conf              # Daemons base do Display Manager Greetd
+│   │   ├── inir.conf                # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
+│   │   ├── niri.conf                # Pacotes do compositor Niri, xwayland-satellite e portais
+│   │   ├── noctalia.conf            # Pacotes nativos da interface Noctalia e Greeter
+│   │   ├── nvidia.conf              # Pilha proprietária de drivers e módulos NVIDIA (akmods)
+│   │   ├── sddm.conf                # Pacotes base do Display Manager SDDM
+│   │   └── umbriel.conf             # Pacotes do compositor Umbriel Nightly e portais
+│   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
+│   │   ├── niri/
+│   │   │   └── config.kdl           # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
+│   │   └── umbriel/
+│   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
+│   │       └── noctalia.toml        # Paleta de cores e regras de janela do Noctalia
+│   └── system/                      # Modelos declarativos do sistema operacional (/etc)
+│       ├── greetd.toml.template     # Modelo de configuração do Greetd
+│       ├── pam_greetd.template      # Modelo de autenticação PAM para o Greetd
+│       └── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
 ├── lib/
 │   ├── ui.sh                        # Renderização ANSI: banner sem subtítulo fixo, caixas temáticas e prompts limpos
 │   ├── logger.sh                    # Registro em /tmp/fedora-multi-shell.log e traps de erro
 │   └── utils.sh                     # Sudo keepalive, validação de não-root e permissões
-├── modules/
-│   ├── 00_repos.sh                  # Repositórios (RPM Fusion, Brave, Flathub, COPRs condicionais, Terra e DankLinux)
-│   ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, som e energia (Tuned)
-│   ├── 02_gpu_drivers.sh            # Drivers Mesa abertos ou NVIDIA com akmods
-│   ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin e Flatpaks
-│   ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS) e integração PAM Keyring
-│   ├── 05_compositor.sh             # Roteador de Compositor (Padrão Strategy)
-│   │   └── compositors/
-│   │       ├── niri.sh              # Niri (--exclude=alacritty), remoção defensiva, xwayland-satellite e portais
-│   │       └── umbriel.sh           # Umbriel Nightly, xwayland-satellite e portais Umbriel/GTK
-│   ├── 06_desktop_interface.sh       # Roteador de Interface Gráfica (Padrão Strategy)
-│   │   └── interfaces/
-│   │       ├── inir.sh              # Deno (/usr/local/bin), sudo -v antecipado, clone, ./setup install -y
-│   │       ├── noctalia.sh          # Pacote nativo 'noctalia' e 'noctalia-greeter' via DNF
-│   │       └── danklinux.sh         # Instalador oficial headless do DankMaterialShell (DMS)
-│   └── 07_post_install.sh           # Autostart/config da interface, ABNT2, VM flags, ativação DM e validações
-└── templates/
-    ├── greetd.toml.template         # Modelo de configuração do Greetd
-    ├── pam_greetd.template          # Modelo de autenticação PAM para o Greetd
-    ├── pam_sddm.template            # Modelo de autenticação PAM para o SDDM
-    │
-    ├── umbriel/                     # Templates declarativos do compositor Umbriel
-    │   ├── config.toml              # Configuração personalizada (atalhos, mouse, teclas Fn)
-    │   └── noctalia.toml            # Paleta de cores e regras de janela do Noctalia
-    │
-    └── niri/                        # Template declarativo do compositor Niri
-        └── config.kdl               # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
+└── modules/
+    ├── 00_repos.sh                  # Repositórios (RPM Fusion, Brave, Flathub, COPRs condicionais, Terra e DankLinux)
+    ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, som e energia (Tuned)
+    ├── 02_gpu_drivers.sh            # Drivers Mesa abertos ou NVIDIA com akmods
+    ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin e Flatpaks
+    ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS) e integração PAM Keyring
+    ├── 05_compositor.sh             # Roteador de Compositor (Padrão Strategy)
+    │   └── compositors/
+    │       ├── niri.sh              # Niri (--exclude=alacritty), remoção defensiva, xwayland-satellite e portais
+    │       └── umbriel.sh           # Umbriel Nightly, xwayland-satellite e portais Umbriel/GTK
+    ├── 06_desktop_interface.sh       # Roteador de Interface Gráfica (Padrão Strategy)
+    │   └── interfaces/
+    │       ├── inir.sh              # Deno (/usr/local/bin), sudo -v antecipado, clone, ./setup install -y
+    │       ├── noctalia.sh          # Pacote nativo 'noctalia' e 'noctalia-greeter' via DNF
+    │       └── danklinux.sh         # Instalador oficial headless do DankMaterialShell (DMS)
+    └── 07_post_install.sh           # Autostart/config da interface, ABNT2, VM flags, ativação DM e validações
 ```
 
 ---

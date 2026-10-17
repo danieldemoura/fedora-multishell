@@ -25,11 +25,11 @@ log_info "Sincronizando ffmpeg com repositório RPM Fusion (swap ffmpeg-free -> 
 sudo dnf swap -y --allowerasing ffmpeg-free ffmpeg || true
 
 log_info "Instalando aplicações desktop e utilitários multimídia..."
-install_packages_from_conf "${CONFIG_DIR}/packages-apps.conf" "--allowerasing"
+install_packages_from_conf "${PACKAGES_DIR}/apps.conf" "--allowerasing"
 
 # 2. Instalação do Navegador Brave Origin (com contingência oficial)
 log_info "Instalando navegador web Brave Origin (sem IA/crypto)..."
-if ! install_packages_from_conf "${CONFIG_DIR}/packages-brave.conf" "--allowerasing"; then
+if ! install_packages_from_conf "${PACKAGES_DIR}/brave.conf" "--allowerasing"; then
     log_warn "brave-origin não encontrado diretamente nos repositórios DNF. Disparando instalador oficial via curl..."
     if curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh; then
         log_success "Brave Origin instalado com sucesso via instalador oficial."
@@ -52,7 +52,7 @@ fi
 # 4. Loja Gráfica de Aplicativos Nativa (GNOME Software e repositório Flathub)
 log_info "Configurando integração Flathub na Loja Gráfica GNOME Software..."
 if ! rpm -q gnome-software >/dev/null 2>&1; then
-    install_packages_from_conf "${CONFIG_DIR}/packages-apps.conf" "--allowerasing"
+    install_packages_from_conf "${PACKAGES_DIR}/apps.conf" "--allowerasing"
 fi
 
 if command -v flatpak >/dev/null 2>&1; then
@@ -62,7 +62,7 @@ fi
 log_success "Loja Gráfica GNOME Software e integração Flathub configuradas."
 
 # 5. Instalação Declarativa de Aplicativos Flatpak
-FLATPAK_CONF="${INSTALLER_ROOT}/config/packages-flatpak.conf"
+FLATPAK_CONF="${PACKAGES_DIR}/flatpak.conf"
 if [[ -f "$FLATPAK_CONF" ]] && command -v flatpak >/dev/null 2>&1; then
     log_info "Instalando aplicativos declarativos via Flatpak (Flathub)..."
     while IFS= read -r app_id || [[ -n "$app_id" ]]; do

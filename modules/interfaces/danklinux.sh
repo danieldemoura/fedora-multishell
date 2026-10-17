@@ -38,8 +38,8 @@ sudo -u "${REAL_USER}" bash -c "curl -fsSL https://install.danklinux.com | sh -s
 
 # 4. Auto-reparo de encapsulamento: assegurar PAM GNOME Keyring no Greetd pós-dankinstall
 log_info "Assegurando integração do PAM GNOME Keyring no Greetd pós-dankinstall..."
-if [[ -f "${TEMPLATES_DIR}/pam_greetd.template" ]]; then
-    sudo cp "${TEMPLATES_DIR}/pam_greetd.template" /etc/pam.d/greetd
+if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
+    sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
     sudo chmod 644 /etc/pam.d/greetd
     sudo chown root:root /etc/pam.d/greetd
 fi

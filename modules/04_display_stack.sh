@@ -28,7 +28,7 @@ if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
 
     # 1. Instalação declarativa dos pacotes base do Greetd e GNOME Keyring PAM
-    install_packages_from_conf "${CONFIG_DIR}/packages-greetd.conf"
+    install_packages_from_conf "${PACKAGES_DIR}/greetd.conf"
 
     # 2. Permissões de hardware para o usuário greetd
     log_info "Configurando permissões de hardware (video, render, input) para o usuário greetd..."
@@ -36,7 +36,7 @@ if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =
 
     # 3. Provisionamento específico do Noctalia Greeter (se interface for noctalia)
     if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia" ]]; then
-        install_packages_from_conf "${CONFIG_DIR}/packages-noctalia.conf"
+        install_packages_from_conf "${PACKAGES_DIR}/noctalia.conf"
 
         log_info "Configurando diretório de estado e autorização do Noctalia Greeter..."
         sudo mkdir -p /var/lib/noctalia-greeter
@@ -47,7 +47,7 @@ if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =
         log_info "Configurando /etc/greetd/config.toml..."
         sudo mkdir -p /etc/greetd
         GREETD_CONFIG="/etc/greetd/config.toml"
-        GREETD_TEMPLATE="${TEMPLATES_DIR}/greetd.toml.template"
+        GREETD_TEMPLATE="${SYSTEM_DIR}/greetd.toml.template"
 
         if [[ -f "$GREETD_CONFIG" ]]; then
             backup_file "$GREETD_CONFIG" true
@@ -65,7 +65,7 @@ if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =
             sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
 [terminal]
 vt = 1
-
+ 
 [default_session]
 command = "${GREETER_CMD}"
 user = "greetd"
@@ -77,7 +77,7 @@ EOF
     # 4. Configuração defensiva do PAM (/etc/pam.d/greetd)
     log_info "Configurando integração PAM no Greetd para desbloqueio do cofre de senhas..."
     PAM_GREETD="/etc/pam.d/greetd"
-    PAM_GREETD_TEMPLATE="${TEMPLATES_DIR}/pam_greetd.template"
+    PAM_GREETD_TEMPLATE="${SYSTEM_DIR}/pam_greetd.template"
 
     if [[ -f "$PAM_GREETD" ]]; then
         backup_file "$PAM_GREETD" true
@@ -116,7 +116,7 @@ else
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (SDDM)"
 
     # 1. Instalação declarativa do SDDM e Módulo PAM GNOME Keyring
-    install_packages_from_conf "${CONFIG_DIR}/packages-sddm.conf"
+    install_packages_from_conf "${PACKAGES_DIR}/sddm.conf"
 
     # 2. Permissões de hardware para o usuário do sddm
     log_info "Configurando permissões de hardware (video, render, input) para o usuário sddm..."
@@ -125,7 +125,7 @@ else
     # 3. Configuração do PAM (/etc/pam.d/sddm) para Desbloqueio do Gnome Keyring
     log_info "Configurando integração PAM no SDDM para desbloqueio automático do cofre de senhas..."
     PAM_SDDM="/etc/pam.d/sddm"
-    PAM_SDDM_TEMPLATE="${TEMPLATES_DIR}/pam_sddm.template"
+    PAM_SDDM_TEMPLATE="${SYSTEM_DIR}/pam_sddm.template"
 
     if [[ -f "$PAM_SDDM" ]]; then
         backup_file "$PAM_SDDM" true

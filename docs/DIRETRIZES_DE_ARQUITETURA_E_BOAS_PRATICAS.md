@@ -21,16 +21,20 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
   - `07_post_install.sh`: Validação final, autostart, layout de teclado ABNT2 e habilitação de serviços.
 - É terminantemente proibido instalar aplicativos de usuário (como navegadores ou players) dentro de módulos de hardware ou repositórios.
 
-### 1.2 Infraestrutura como Código (IaC) e Configuração Declarativa Isolada
+### 1.2 Infraestrutura como Código (IaC) e Organização Semântica de `config/`
 
-- **Regra de Ouro Arquitetural:** *Código procedural em scripts `.sh` gerencia exclusivamente fluxo, controle e lógica; dados, pacotes e dependências pertencem estritamente a manifestos declarativos `.conf` dentro do diretório `config/`.*
-- **Prevenção de Inchaço do Sistema (Anti-Bloatware):** A segregação por arquivo `.conf` especializado impede que dependências pesadas de uma shell ou compositor específico (como o runtime Quickshell do iNiR ou o repositório Terra do Noctalia) poluam a base do sistema de usuários que escolheram outros ambientes.
+- **Regra de Ouro Arquitetural:** *Código procedural em scripts `.sh` gerencia exclusivamente fluxo, controle e lógica; dados, pacotes, dotfiles e modelos de configuração pertencem estritamente à pasta `config/`.*
+- **Divisão Tripla da Pasta `config/`:**
+  1. `config/packages/`: Manifestos declarativos `.conf` para gerenciar dependências do sistema e aplicações (DNF e Flatpak).
+  2. `config/desktop/`: Configurações declarativas de interface e dotfiles do usuário aplicadas sob `~/.config/` (ex: `niri/config.kdl`, `umbriel/config.toml`).
+  3. `config/system/`: Modelos e arquivos de configuração administrativa aplicados sob `/etc/` (ex: `greetd.toml.template`, `pam_greetd.template`, `pam_sddm.template`).
+- **Prevenção de Inchaço do Sistema (Anti-Bloatware):** A segregação por arquivo `.conf` especializado dentro de `config/packages/` impede que dependências pesadas de uma shell ou compositor específico (como o runtime Quickshell do iNiR ou o repositório Terra do Noctalia) poluam a base do sistema de usuários que escolheram outros ambientes.
 - **Racional Técnico e Benefícios de IaC:**
   1. *Auditabilidade e Transparência Total:* Administradores, usuários e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.
-  2. *Manutenibilidade e Desacoplamento:* Atualizar, adicionar ou remover um pacote não altera o código executável, reduzindo a zero o risco de efeitos colaterais ou regressões em tempo de execução.
+  2. *Manutenibilidade e Desacoplamento:* Atualizar, adicionar ou remover um pacote ou dotfile não altera o código executável, reduzindo a zero o risco de efeitos colaterais ou regressões em tempo de execução.
   3. *Reutilização e Idempotência:* A instalação é orquestrada pela função utilitária padronizada `install_packages_from_conf`, garantindo que comentários, linhas em branco e parâmetros de contenção (ex: `--exclude=alacritty` ou `--allowerasing`) sejam tratados de forma consistente e segura em qualquer etapa do provisionamento.
 - **Formato dos Arquivos Declarativos `.conf`:** Um pacote por linha, com suporte nativo a comentários prefixados com `#` e linhas em branco.
-- **Uso de Templates:** Arquivos de configuração complexos (PAM, Greetd, Niri, Umbriel) devem ser mantidos como modelos limpos na pasta `templates/`, e não gerados dinamicamente via blocos extensos de `cat <<EOF` dentro do código.
+- **Eliminação de `templates/` da Raiz:** Toda e qualquer configuração declarativa de dotfiles e de sistema reside exclusivamente em `config/desktop/` e `config/system/`, eliminando pastas de templates dispersas na raiz do projeto.
 
 ### 1.3 A Função Central `install_packages_from_conf`
 

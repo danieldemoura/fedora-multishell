@@ -46,11 +46,11 @@ if [[ "${IS_VM:-false}" == true ]]; then
     log_info "Ambiente de Máquina Virtual detectado. Pulando instalação de drivers proprietários NVIDIA."
 elif [[ "${INSTALL_NVIDIA:-false}" == true ]]; then
     log_warn "Iniciando instalação da pilha proprietária NVIDIA (akmod-nvidia)..."
-    NVIDIA_CONF="${CONFIG_DIR}/packages-nvidia.conf"
+    NVIDIA_CONF="${PACKAGES_DIR}/nvidia.conf"
     if [[ -f "$NVIDIA_CONF" ]]; then
         install_packages_from_conf "$NVIDIA_CONF"
     else
-        log_error "Lista config/packages-nvidia.conf não encontrada."
+        log_error "Lista config/packages/nvidia.conf não encontrada."
         exit 1
     fi
 

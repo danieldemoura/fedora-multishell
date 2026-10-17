@@ -65,9 +65,9 @@ if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
             backup_file "${UMB_CONFIG_FILE}" false
         fi
 
-        # Copia todos os arquivos declarativos de templates/umbriel/* para ~/.config/umbriel/
-        sudo -u "${REAL_USER}" cp -r "${INSTALLER_ROOT}/templates/umbriel/"* "${UMB_CONFIG_DIR}/"
-        log_info "Templates de Umbriel copiados para ${UMB_CONFIG_DIR}/ com sucesso."
+        # Copia todos os arquivos declarativos de config/desktop/umbriel/* para ~/.config/umbriel/
+        sudo -u "${REAL_USER}" cp -r "${DESKTOP_DIR}/umbriel/"* "${UMB_CONFIG_DIR}/"
+        log_info "Configurações declarativas de Umbriel copiadas para ${UMB_CONFIG_DIR}/ com sucesso."
 
         # Injeção Dinâmica para VM: apenas se IS_VM=true
         if [[ "${IS_VM:-false}" == true ]]; then
@@ -116,9 +116,9 @@ EOF
             backup_file "${NIRI_CONFIG_FILE}" false
         fi
 
-        # Copia template declarativo templates/niri/config.kdl
-        sudo -u "${REAL_USER}" cp "${INSTALLER_ROOT}/templates/niri/config.kdl" "${NIRI_CONFIG_FILE}"
-        log_info "Template declarativo do Niri copiado para ${NIRI_CONFIG_FILE}."
+        # Copia configuração declarativa config/desktop/niri/config.kdl
+        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/niri/config.kdl" "${NIRI_CONFIG_FILE}"
+        log_info "Configuração declarativa do Niri copiada para ${NIRI_CONFIG_FILE}."
 
         # Injeção Dinâmica para VM: apenas se IS_VM=true
         if [[ "${IS_VM:-false}" == true ]]; then
@@ -385,8 +385,8 @@ if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-
     log_success "Target gráfico e greetd.service definidos como padrão."
 
     log_info "Assegurando integridade do PAM GNOME Keyring em /etc/pam.d/greetd..."
-    if [[ -f "${TEMPLATES_DIR}/pam_greetd.template" ]]; then
-        sudo cp "${TEMPLATES_DIR}/pam_greetd.template" /etc/pam.d/greetd
+    if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
+        sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
         sudo chmod 644 /etc/pam.d/greetd
         sudo chown root:root /etc/pam.d/greetd
     fi
@@ -398,9 +398,9 @@ else
     log_success "Target gráfico e sddm.service definidos como padrão."
 
     log_info "Assegurando integridade do PAM GNOME Keyring em /etc/pam.d/sddm..."
-    if [[ -f "${TEMPLATES_DIR}/pam_sddm.template" ]]; then
+    if [[ -f "${SYSTEM_DIR}/pam_sddm.template" ]]; then
         if ! grep -qF "pam_gnome_keyring.so" /etc/pam.d/sddm 2>/dev/null; then
-            sudo cp "${TEMPLATES_DIR}/pam_sddm.template" /etc/pam.d/sddm
+            sudo cp "${SYSTEM_DIR}/pam_sddm.template" /etc/pam.d/sddm
             sudo chmod 644 /etc/pam.d/sddm
             sudo chown root:root /etc/pam.d/sddm
         fi

@@ -14,18 +14,18 @@ A arquitetura do instalador opera sob rigorosa transparência técnica, modulari
 ## 📑 Sumário
 
 1. [Diretrizes de Rastreabilidade e Proveniência](#-diretrizes-de-rastreabilidade-e-proveniência)
-2. [Categoria A: Pacotes Declarativos Fixos (`config/`)](#-categoria-a-pacotes-declarativos-fixos-config)
-   - [Pacotes Base do Sistema (`config/packages-base.conf`)](#1-pacotes-base-do-sistema-configpackages-baseconf)
-   - [Aplicações de Usuário e Multimídia (`config/packages-apps.conf`)](#2-aplicações-de-usuário-e-multimídia-configpackages-appsconf)
-   - [Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)](#3-drivers-proprietários-nvidia-configpackages-nvidiaconf)
-   - [Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)](#4-aplicações-flatpak-do-flathub-configpackages-flatpakconf)
-   - [Desktop Shell iNiR (`config/packages-inir.conf`)](#5-desktop-shell-inir-configpackages-inirconf)
-   - [Desktop Shell Noctalia (`config/packages-noctalia.conf`)](#6-desktop-shell-noctalia-configpackages-noctaliaconf)
-   - [Compositor Niri (`config/packages-niri.conf`)](#7-compositor-niri-configpackages-niriconf)
-   - [Compositor Umbriel (`config/packages-umbriel.conf`)](#8-compositor-umbriel-configpackages-umbrielconf)
-   - [Display Manager Greetd (`config/packages-greetd.conf`)](#9-display-manager-greetd-configpackages-greetdconf)
-   - [Display Manager SDDM (`config/packages-sddm.conf`)](#10-display-manager-sddm-configpackages-sddmconf)
-   - [Navegador Brave Browser (`config/packages-brave.conf`)](#11-navegador-brave-browser-configpackages-braveconf)
+2. [Categoria A: Pacotes Declarativos Fixos (`config/packages/`)](#-categoria-a-pacotes-declarativos-fixos-configpackages)
+   - [Pacotes Base do Sistema (`config/packages/base.conf`)](#1-pacotes-base-do-sistema-configpackagesbaseconf)
+   - [Aplicações de Usuário e Multimídia (`config/packages/apps.conf`)](#2-aplicações-de-usuário-e-multimídia-configpackagesappsconf)
+   - [Drivers Proprietários NVIDIA (`config/packages/nvidia.conf`)](#3-drivers-proprietários-nvidia-configpackagesnvidiaconf)
+   - [Aplicações Flatpak do Flathub (`config/packages/flatpak.conf`)](#4-aplicações-flatpak-do-flathub-configpackagesflatpakconf)
+   - [Desktop Shell iNiR (`config/packages/inir.conf`)](#5-desktop-shell-inir-configpackagesinirconf)
+   - [Desktop Shell Noctalia (`config/packages/noctalia.conf`)](#6-desktop-shell-noctalia-configpackagesnoctaliaconf)
+   - [Compositor Niri (`config/packages/niri.conf`)](#7-compositor-niri-configpackagesniriconf)
+   - [Compositor Umbriel (`config/packages/umbriel.conf`)](#8-compositor-umbriel-configpackagesumbrielconf)
+   - [Display Manager Greetd (`config/packages/greetd.conf`)](#9-display-manager-greetd-configpackagesgreetdconf)
+   - [Display Manager SDDM (`config/packages/sddm.conf`)](#10-display-manager-sddm-configpackagessddmconf)
+   - [Navegador Brave Browser (`config/packages/brave.conf`)](#11-navegador-brave-browser-configpackagesbraveconf)
 3. [Categoria B: Serviços e Portais Dinâmicos](#-categoria-b-serviços-e-portais-dinâmicos)
 4. [Categoria C: Ecossistemas e Componentes de Scripts de Terceiros](#-categoria-c-ecossistemas-e-componentes-de-scripts-de-terceiros)
 5. [Guia de Contribuição: Como Sugerir Novos Pacotes](#-guia-de-contribuição-como-sugerir-novos-pacotes)
@@ -42,19 +42,19 @@ Para assegurar fidelidade absoluta entre a documentação e os arquivos reais do
 ├───────────────────────────┬───────────────────────────┬────────────────┤
 │       CATEGORIA A         │        CATEGORIA B        │  CATEGORIA C   │
 │   Declarativos Fixos      │   Serviços e Portais      │ Scripts Upstream │
-│   (Pasta config/*.conf)   │   Dinâmicos de Módulos    │  de Terceiros  │
+│ (config/packages/*.conf)  │   Dinâmicos de Módulos    │  de Terceiros  │
 └───────────────────────────┴───────────────────────────┴────────────────┘
 ```
 
-1. **Categoria A (Declarativos Fixos):** Mapeamento estrito (1 para 1) dos arquivos em `config/`. Nenhum pacote extra é listado nestas tabelas.
+1. **Categoria A (Declarativos Fixos):** Mapeamento estrito (1 para 1) dos arquivos em `config/packages/`. Nenhum pacote extra é listado nestas tabelas.
 2. **Categoria B (Serviços e Portais Dinâmicos):** Serviços do systemd, permissões Polkit, integrações PAM e portais acionados pelos módulos com base no hardware ou na escolha do usuário.
 3. **Categoria C (Scripts de Terceiros):** Componentes provisionados via pipelines upstream oficiais de seus criadores (ex: Deno, DankLinux/DMS, setup do iNiR).
 
 ---
 
-## 📋 Categoria A: Pacotes Declarativos Fixos (`config/`)
+## 📋 Categoria A: Pacotes Declarativos Fixos (`config/packages/`)
 
-### 1. Pacotes Base do Sistema (`config/packages-base.conf`)
+### 1. Pacotes Base do Sistema (`config/packages/base.conf`)
 
 Responsáveis pela sustentação de hardware, barramentos de sistema, subsistemas de áudio e rede, portais universais, impressão e segurança:
 
@@ -113,7 +113,7 @@ Responsáveis pela sustentação de hardware, barramentos de sistema, subsistema
 
 ---
 
-### 2. Aplicações de Usuário e Multimídia (`config/packages-apps.conf`)
+### 2. Aplicações de Usuário e Multimídia (`config/packages/apps.conf`)
 
 Conjunto essencial de ferramentas gráficas, terminal, fontes e codecs provisionados para o usuário:
 
@@ -159,7 +159,7 @@ Conjunto essencial de ferramentas gráficas, terminal, fontes e codecs provision
 
 ---
 
-### 3. Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)
+### 3. Drivers Proprietários NVIDIA (`config/packages/nvidia.conf`)
 
 Pacotes provisionados exclusivamente em instalações físicas com GPU dedicada NVIDIA selecionadas pelo usuário:
 
@@ -175,7 +175,7 @@ Pacotes provisionados exclusivamente em instalações físicas com GPU dedicada 
 
 ---
 
-### 4. Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)
+### 4. Aplicações Flatpak do Flathub (`config/packages/flatpak.conf`)
 
 Aplicações isoladas em contêiner gerenciadas via Flathub:
 
@@ -185,7 +185,7 @@ Aplicações isoladas em contêiner gerenciadas via Flathub:
 
 ---
 
-### 5. Desktop Shell iNiR (`config/packages-inir.conf`)
+### 5. Desktop Shell iNiR (`config/packages/inir.conf`)
 
 Dependências declarativas, runtimes QML e módulos de efeitos da interface iNiR:
 
@@ -201,7 +201,7 @@ Dependências declarativas, runtimes QML e módulos de efeitos da interface iNiR
 
 ---
 
-### 6. Desktop Shell Noctalia (`config/packages-noctalia.conf`)
+### 6. Desktop Shell Noctalia (`config/packages/noctalia.conf`)
 
 Pacotes nativos da interface desktop Noctalia e sua tela de login:
 
@@ -212,7 +212,7 @@ Pacotes nativos da interface desktop Noctalia e sua tela de login:
 
 ---
 
-### 7. Compositor Niri (`config/packages-niri.conf`)
+### 7. Compositor Niri (`config/packages/niri.conf`)
 
 Componentes declarativos do compositor Wayland Niri:
 
@@ -225,7 +225,7 @@ Componentes declarativos do compositor Wayland Niri:
 
 ---
 
-### 8. Compositor Umbriel (`config/packages-umbriel.conf`)
+### 8. Compositor Umbriel (`config/packages/umbriel.conf`)
 
 Dependências exclusivas para o provisionamento do compositor Wayland dinâmico Umbriel:
 
@@ -238,7 +238,7 @@ Dependências exclusivas para o provisionamento do compositor Wayland dinâmico 
 
 ---
 
-### 9. Display Manager Greetd (`config/packages-greetd.conf`)
+### 9. Display Manager Greetd (`config/packages/greetd.conf`)
 
 Componentes declarativos da pilha de login leve Greetd:
 
@@ -250,7 +250,7 @@ Componentes declarativos da pilha de login leve Greetd:
 
 ---
 
-### 10. Display Manager SDDM (`config/packages-sddm.conf`)
+### 10. Display Manager SDDM (`config/packages/sddm.conf`)
 
 Componentes declarativos da pilha de login SDDM:
 
@@ -261,7 +261,7 @@ Componentes declarativos da pilha de login SDDM:
 
 ---
 
-### 11. Navegador Brave Browser (`config/packages-brave.conf`)
+### 11. Navegador Brave Browser (`config/packages/brave.conf`)
 
 Manifesto de instalação declarativa do navegador web principal:
 
@@ -316,17 +316,17 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
 Para manter o sistema limpo, previsível e fácil de auditar, siga estas etapas para submeter melhorias:
 
 1. **Escolha o arquivo correto em `config/`:**
-   - `config/packages-base.conf`: Para serviços de sistema, drivers abertos, portais ou daemons de hardware que devem estar presentes em **todas** as instalações.
-   - `config/packages-apps.conf`: Para utilitários de usuário, fontes, ferramentas multimídia ou de terminal.
-   - `config/packages-niri.conf`: Para pacotes específicos do compositor Niri.
-   - `config/packages-umbriel.conf`: Para pacotes específicos do compositor Umbriel.
-   - `config/packages-inir.conf`: Para pacotes RPM específicos da interface iNiR.
-   - `config/packages-noctalia.conf`: Para pacotes RPM específicos da interface Noctalia.
-   - `config/packages-greetd.conf`: Para componentes base do Display Manager Greetd.
-   - `config/packages-sddm.conf`: Para componentes base do Display Manager SDDM.
-   - `config/packages-brave.conf`: Para manifesto do navegador Brave Browser.
-   - `config/packages-nvidia.conf`: Para componentes exclusivos do ecossistema NVIDIA proprietário.
-   - `config/packages-flatpak.conf`: Para aplicações gráficas de usuário disponíveis no Flathub.
+   - `config/packages/base.conf`: Para serviços de sistema, drivers abertos, portais ou daemons de hardware que devem estar presentes em **todas** as instalações.
+   - `config/packages/apps.conf`: Para utilitários de usuário, fontes, ferramentas multimídia ou de terminal.
+   - `config/packages/niri.conf`: Para pacotes específicos do compositor Niri.
+   - `config/packages/umbriel.conf`: Para pacotes específicos do compositor Umbriel.
+   - `config/packages/inir.conf`: Para pacotes RPM específicos da interface iNiR.
+   - `config/packages/noctalia.conf`: Para pacotes RPM específicos da interface Noctalia.
+   - `config/packages/greetd.conf`: Para componentes base do Display Manager Greetd.
+   - `config/packages/sddm.conf`: Para componentes base do Display Manager SDDM.
+   - `config/packages/brave.conf`: Para manifesto do navegador Brave Browser.
+   - `config/packages/nvidia.conf`: Para componentes exclusivos do ecossistema NVIDIA proprietário.
+   - `config/packages/flatpak.conf`: Para aplicações gráficas de usuário disponíveis no Flathub.
 
 2. **Diretrizes de Compatibilidade:**
    - O pacote deve ser compatível com arquitetura **100% Wayland**.

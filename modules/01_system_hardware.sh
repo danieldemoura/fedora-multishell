@@ -39,7 +39,7 @@ fi
 
 # 2. Instalação Declarativa dos Pacotes da Base do Sistema
 log_info "Instalando pacotes da infraestrutura base (Áudio, Rede, Energia, Impressão, Autenticação)..."
-install_packages_from_conf "${CONFIG_DIR}/packages-base.conf"
+install_packages_from_conf "${PACKAGES_DIR}/base.conf"
 
 # 3. Ativação dos Serviços Essenciais de Sistema
 log_info "Habilitando e iniciando serviços de hardware e conectividade..."

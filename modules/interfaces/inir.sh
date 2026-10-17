@@ -9,7 +9,7 @@ REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"
 
 # 1. Instalação declarativa das dependências e do Quickshell via DNF
-install_packages_from_conf "${CONFIG_DIR}/packages-inir.conf"
+install_packages_from_conf "${PACKAGES_DIR}/inir.conf"
 
 # 2. Provisionamento defensivo do runtime Deno em /usr/local/bin/deno
 # Baixado diretamente no $REAL_HOME para não esgotar blocos/inodes na tmpfs do /tmp
