@@ -31,10 +31,14 @@ fedora-inir/
 ├── docs/
 │   └── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 ├── config/
-│   ├── packages-base.conf           # Infraestrutura base do sistema (Firmware, Áudio PipeWire, open-vm-tools, XDG)
 │   ├── packages-apps.conf           # Aplicações essenciais de usuário (Kitty, fontes, codecs, visualizadores)
+│   ├── packages-base.conf           # Infraestrutura base do sistema (Firmware, Áudio PipeWire, open-vm-tools, XDG)
 │   ├── packages-flatpak.conf        # Lista declarativa de aplicativos Flatpak do Flathub
+│   ├── packages-inir.conf           # Pacotes declarativos exclusivos da interface iNiR (Quickshell)
+│   ├── packages-niri.conf           # Pacotes declarativos exclusivos do compositor Niri
+│   ├── packages-noctalia.conf       # Pacotes declarativos exclusivos da interface Noctalia
 │   ├── packages-nvidia.conf         # Pilha proprietária de drivers e módulos do kernel NVIDIA (akmods)
+│   ├── packages-umbriel.conf        # Pacotes declarativos exclusivos do compositor Umbriel
 │   └── settings.conf                # Variáveis globais (repositórios, versões, flags de ambiente)
 ├── lib/
 │   ├── ui.sh                        # Renderização visual ANSI (banners limpos, caixas temáticas, prompts enxutos)

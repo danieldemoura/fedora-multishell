@@ -9,8 +9,8 @@ REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"
 
 # 1. Instalação do Quickshell via DNF (COPR errornointernet/quickshell)
-log_info "Garantindo Quickshell para o iNiR Shell..."
-sudo dnf install -y quickshell
+CONF_FILE="${INSTALLER_ROOT}/config/packages-inir.conf"
+install_packages_from_conf "${CONF_FILE}"
 
 # 2. Provisionamento defensivo do runtime Deno em /usr/local/bin/deno
 # Baixado diretamente no $REAL_HOME para não esgotar blocos/inodes na tmpfs do /tmp

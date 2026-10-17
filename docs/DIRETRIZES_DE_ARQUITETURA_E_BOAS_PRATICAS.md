@@ -21,9 +21,14 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
   - `07_post_install.sh`: Validação final, autostart e habilitação de serviços.
 - É terminantemente proibido instalar aplicativos de usuário (como navegadores ou players) dentro de módulos de hardware ou repositórios.
 
-### 1.2 Configuração Declarativa vs. Imperativa
+### 1.2 Infraestrutura como Código (IaC) e Configuração Declarativa Isolada
 
-- **Não embutir listas de pacotes dentro dos scripts `.sh`:** Todos os pacotes devem ser listados em arquivos `.conf` dentro da pasta `config/` (um pacote por linha, com suporte a comentários `#`).
+- **Separação Rigorosa entre Código Procedural e Dados Declarativos:** Listas de pacotes nunca devem ser chumbadas (*hardcoded*) dentro dos scripts procedurais `.sh`. Toda e qualquer dependência do sistema operacional, drivers, compositores e interfaces desktop deve residir exclusivamente em arquivos de manifesto declarativo `.conf` dentro do diretório `config/`.
+- **Racional Técnico e Benefícios de IaC:**
+  1. *Auditabilidade e Transparência:* Administradores e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.
+  2. *Manutenibilidade e Desacoplamento:* Atualizar, adicionar ou remover um pacote não altera o código executável, reduzindo drasticamente o risco de efeitos colaterais ou regressões em tempo de execução.
+  3. *Reutilização e Idempotência:* A instalação é orquestrada por funções utilitárias padronizadas (como `install_packages_from_conf`), garantindo que comentários, linhas em branco e parâmetros de contenção (ex: `--exclude=alacritty`) sejam tratados de forma consistente e segura em qualquer etapa do provisionamento.
+- **Formato dos Arquivos Declarativos `.conf`:** Um pacote por linha, com suporte nativo a comentários prefixados com `#` e linhas em branco.
 - **Uso de Templates:** Arquivos de configuração complexos (PAM, Greetd, Niri, Umbriel) devem ser mantidos como modelos limpos na pasta `templates/`, e não gerados dinamicamente via blocos extensos de `cat <<EOF` dentro do código.
 
 ### 1.3 Padrão Estratégia (Strategy Pattern)

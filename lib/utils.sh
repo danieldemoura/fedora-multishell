@@ -146,3 +146,28 @@ backup_file() {
         log_info "Backup criado: ${file}.bak"
     fi
 }
+
+# Instala pacotes declarados em arquivo .conf (ignora linhas vazias e comentários #)
+install_packages_from_conf() {
+    local conf_file="$1"
+    local extra_args="${2:-}"
+    
+    if [[ ! -f "$conf_file" ]]; then
+        return 0
+    fi
+
+    local pkgs=()
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%%#*}"
+        line="$(echo -e "${line}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        [[ -z "$line" ]] && continue
+        pkgs+=("$line")
+    done < "$conf_file"
+
+    if [[ ${#pkgs[@]} -gt 0 ]]; then
+        log_info "Instalando pacotes declarados em $(basename "$conf_file")..."
+        # shellcheck disable=SC2086
+        sudo dnf install -y ${extra_args} "${pkgs[@]}"
+    fi
+}
+

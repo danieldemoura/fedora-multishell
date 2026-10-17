@@ -5,12 +5,8 @@
 # ==============================================================================
 set -euo pipefail
 
-log_info "Instalando Niri, Xwayland-satellite e portais de desktop via DNF (excluindo Alacritty)..."
-sudo dnf install -y --exclude=alacritty \
-    niri \
-    xwayland-satellite \
-    xdg-desktop-portal-gnome \
-    xdg-desktop-portal-gtk
+CONF_FILE="${INSTALLER_ROOT}/config/packages-niri.conf"
+install_packages_from_conf "${CONF_FILE}" "--exclude=alacritty"
 
 # Remoção defensiva caso o Alacritty já esteja presente no sistema
 sudo dnf remove -y alacritty 2>/dev/null || true

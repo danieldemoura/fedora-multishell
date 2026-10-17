@@ -5,7 +5,7 @@
 # ==============================================================================
 set -euo pipefail
 
-log_info "Instalando pacote nativo noctalia via DNF..."
-sudo dnf install -y noctalia
+CONF_FILE="${INSTALLER_ROOT}/config/packages-noctalia.conf"
+install_packages_from_conf "${CONF_FILE}"
 
 log_success "Submódulo Noctalia Shell configurado com sucesso."

@@ -5,11 +5,7 @@
 # ==============================================================================
 set -euo pipefail
 
-log_info "Instalando Umbriel Nightly, Xwayland-satellite e portais de desktop..."
-sudo dnf install -y \
-    umbriel-nightly \
-    xwayland-satellite \
-    xdg-desktop-portal-umbriel-nightly \
-    xdg-desktop-portal-gtk
+CONF_FILE="${INSTALLER_ROOT}/config/packages-umbriel.conf"
+install_packages_from_conf "${CONF_FILE}"
 
 log_success "Submódulo Umbriel configurado com sucesso."

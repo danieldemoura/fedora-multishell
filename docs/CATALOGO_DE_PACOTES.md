@@ -17,9 +17,13 @@ A arquitetura do instalador opera sob rigorosa transparência técnica e modular
 2. [Categoria A: Pacotes Declarativos Fixos (`config/`)](#-categoria-a-pacotes-declarativos-fixos-config)
    - [Pacotes Base do Sistema (`config/packages-base.conf`)](#1-pacotes-base-do-sistema-configpackages-baseconf)
    - [Aplicações de Usuário e Multimídia (`config/packages-apps.conf`)](#2-aplicações-de-usuário-e-multimídia-configpackages-appsconf)
-   - [Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)](#3-drivers-proprietários-nvidia-configpackages-nvidiaconf)
-   - [Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)](#4-aplicações-flatpak-do-flathub-configpackages-flatpakconf)
-3. [Categoria B: Pacotes Oficiais Instalados por Módulos (`modules/*.sh`)](#-categoria-b-pacotes-oficiais-instalados-por-módulos-modules)
+   - [Compositor Niri (`config/packages-niri.conf`)](#3-compositor-niri-configpackages-niriconf)
+   - [Compositor Umbriel (`config/packages-umbriel.conf`)](#4-compositor-umbriel-configpackages-umbrielconf)
+   - [Desktop Shell iNiR (`config/packages-inir.conf`)](#5-desktop-shell-inir-configpackages-inirconf)
+   - [Desktop Shell Noctalia (`config/packages-noctalia.conf`)](#6-desktop-shell-noctalia-configpackages-noctaliaconf)
+   - [Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)](#7-drivers-proprietários-nvidia-configpackages-nvidiaconf)
+   - [Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)](#8-aplicações-flatpak-do-flathub-configpackages-flatpakconf)
+3. [Categoria B: Pacotes Oficiais Instalados Dinamicamente por Módulos (`modules/*.sh`)](#-categoria-b-pacotes-oficiais-instalados-dinamicamente-por-módulos-modules)
 4. [Categoria C: Ecossistemas e Componentes de Scripts de Terceiros](#-categoria-c-ecossistemas-e-componentes-de-scripts-de-terceiros)
 5. [Guia de Contribuição: Como Sugerir Novos Pacotes](#-guia-de-contribuição-como-sugerir-novos-pacotes)
 
@@ -40,8 +44,8 @@ Para assegurar fidelidade absoluta entre a documentação e os arquivos reais do
 ```
 
 1. **Categoria A (Declarativos Fixos):** Mapeamento estrito (1 para 1) dos arquivos em `config/`. Nenhum pacote extra é listado nestas tabelas.
-2. **Categoria B (Pacotes de Módulos):** Pacotes RPM instalados diretamente pelo orquestrador com base na escolha de hardware, compositor ou interface gráfica.
-3. **Categoria C (Scripts de Terceiros):** Componentes provisionados via pipelines upstream dos próprios criadores de ecossistemas (ex: Deno, DankLinux/DMS, iNiR).
+2. **Categoria B (Pacotes Dinâmicos de Módulos):** Pacotes RPM instalados diretamente pelo orquestrador com base na detecção em tempo de execução (ex: microcódigo de CPU) ou componentes de contingência/display managers dinâmicos.
+3. **Categoria C (Scripts de Terceiros):** Componentes provisionados via pipelines upstream dos próprios criadores de ecossistemas (ex: Deno, DankLinux/DMS, setup do iNiR).
 
 ---
 
@@ -152,7 +156,53 @@ Aplicações essenciais, utilitários visuais, suíte tipográfica e codecs com 
 
 ---
 
-### 3. Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)
+### 3. Compositor Niri (`config/packages-niri.conf`)
+
+Dependências exclusivas para o provisionamento do compositor scrollable-tiling Niri:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `niri` | Compositor Wayland moderno com rolagem horizontal infinita de colunas e janelas (via COPR `yalter/niri`). |
+| `xwayland-satellite` | Gerenciador X11 rootless e isolado em espaço de usuário, executado sob demanda para aplicações legadas sem poluir o Wayland nativo. |
+| `xdg-desktop-portal-gnome` | Implementação do portal GNOME para captura de tela e ScreenCast via PipeWire integrada ao Niri. |
+| `xdg-desktop-portal-gtk` | Implementação do portal GTK para diálogos de arquivos e integração de temas do desktop. |
+
+---
+
+### 4. Compositor Umbriel (`config/packages-umbriel.conf`)
+
+Dependências exclusivas para o provisionamento do compositor Wayland dinâmico Umbriel:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `umbriel-nightly` | Compositor Wayland dinâmico com suporte a rolagem contínua e múltiplos modos de mosaico (Dwindle e Master) via Repositório Terra do Fyra Labs. |
+| `xwayland-satellite` | Gerenciador X11 rootless e isolado sob demanda para suporte a janelas legadas. |
+| `xdg-desktop-portal-umbriel-nightly` | Implementação oficial de portais XDG específica do compositor Umbriel. |
+| `xdg-desktop-portal-gtk` | Implementação do portal GTK para compatibilidade universal de janelas de diálogo e temas. |
+
+---
+
+### 5. Desktop Shell iNiR (`config/packages-inir.conf`)
+
+Dependências nativas para o runtime visual da interface iNiR:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `quickshell` | Framework e motor declarativo em C++/Qt 6 para construção de interfaces Wayland personalizadas (via COPR `errornointernet/quickshell`). |
+
+---
+
+### 6. Desktop Shell Noctalia (`config/packages-noctalia.conf`)
+
+Pacote da interface desktop nativa Noctalia:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `noctalia` | Desktop shell nativo completo em C++/Qt com painel, barra de status e lançadores. |
+
+---
+
+### 7. Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)
 
 Pacotes provisionados exclusivamente em instalações físicas com GPU dedicada NVIDIA selecionadas pelo usuário:
 
@@ -168,7 +218,7 @@ Pacotes provisionados exclusivamente em instalações físicas com GPU dedicada 
 
 ---
 
-### 4. Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)
+### 8. Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)
 
 Aplicações isoladas em contêiner gerenciadas via Flathub:
 
@@ -178,22 +228,17 @@ Aplicações isoladas em contêiner gerenciadas via Flathub:
 
 ---
 
-## ⚙️ Categoria B: Pacotes Oficiais Instalados por Módulos (`modules/*.sh`)
+## ⚙️ Categoria B: Pacotes Oficiais Instalados Dinamicamente por Módulos (`modules/*.sh`)
 
-Diferente dos pacotes estáticos listados em `config/`, os pacotes desta seção são provisionados **dinamicamente** via comandos diretos `sudo dnf install` nos módulos bash conforme o fluxo e escolhas do usuário no menu interativo:
+Diferente dos pacotes estáticos listados em `config/`, os pacotes desta seção são provisionados **dinamicamente** via lógica condicional em tempo de execução nos módulos bash:
 
 | Pacote DNF | Script Responsável | Condição de Instalação | Finalidade Técnica |
 | :--- | :--- | :--- | :--- |
-| `brave-browser` | `modules/03_desktop_apps.sh` | Sempre executado no Módulo 03 | Navegador focado em privacidade; instalado via repositório DNF oficial da Brave Software ou por script de contingência. |
-| `greetd` | `modules/04_display_stack.sh` | Quando a interface for **Noctalia** ou **DankLinux** | Daemon minimalista e modular de login gráfico em Wayland/Console. |
-| `greetd-selinux` | `modules/04_display_stack.sh` | Quando a interface for **Noctalia** ou **DankLinux** | Políticas de segurança e contextos SELinux para o daemon `greetd`. |
-| `niri` | `modules/compositors/niri.sh` | Quando o compositor selecionado for **Niri** | Compositor Wayland scrollable-tiling em Rust (via COPR oficial `yalter/niri`). |
-| `xwayland-satellite` | `modules/compositors/niri.sh`, `modules/compositors/umbriel.sh` | Ao instalar **Niri** ou **Umbriel** | Gerenciador de janelas X11 isolado e rootless sob demanda para rodar jogos/aplicações legadas sem poluir o Wayland nativo. |
-| `umbriel-nightly` | `modules/compositors/umbriel.sh` | Quando o compositor selecionado for **Umbriel** | Compositor Wayland dinâmico com modos Dwindle, Master e rolagem contínua (via Repositório Terra do Fyra Labs). |
-| `xdg-desktop-portal-umbriel-nightly` | `modules/compositors/umbriel.sh` | Quando o compositor for **Umbriel** | Implementação de portais XDG específica do compositor Umbriel. |
-| `noctalia` | `modules/interfaces/noctalia.sh` | Quando a interface selecionada for **Noctalia** | Desktop shell nativo completo em C++/Qt com painel, barra de status e lançadores. |
-| `noctalia-greeter` | `modules/04_display_stack.sh` | Quando a interface selecionada for **Noctalia** | Tela de login gráfica em Wayland do ecossistema Noctalia acoplada ao `greetd`. |
-| `quickshell` | `modules/interfaces/inir.sh` | Quando a interface selecionada for **iNiR** | Motor declarativo em C++/Qt 6 para interfaces Wayland (via COPR `errornointernet/quickshell`). |
+| `intel-microcode` / `amd-ucode-firmware` | `modules/01_system_hardware.sh` | Conforme detecção de CPU em `/proc/cpuinfo` | Atualização de microcódigo de segurança e estabilidade da CPU. |
+| `brave-browser` | `modules/03_desktop_apps.sh` | Contingência caso `brave-origin` falhe | Navegador alternativo via repositório DNF oficial da Brave Software. |
+| `greetd` | `modules/04_display_stack.sh` | Quando a interface for Noctalia ou DankLinux | Daemon minimalista e modular de login gráfico em Wayland/Console. |
+| `greetd-selinux` | `modules/04_display_stack.sh` | Quando a interface for Noctalia ou DankLinux | Políticas de segurança e contextos SELinux para o daemon `greetd`. |
+| `noctalia-greeter` | `modules/04_display_stack.sh` | Quando a interface selecionada for Noctalia | Tela de login gráfica em Wayland do ecossistema Noctalia acoplada ao `greetd`. |
 
 ---
 
@@ -209,13 +254,13 @@ Diferente dos pacotes estáticos listados em `config/`, os pacotes desta seção
   ```
 - **Script do Instalador:** `modules/interfaces/danklinux.sh`
 - **Componentes Provisionados pelo `dankinstall`:**
-  - `dms`: Núcleo da interface DankMaterialShell e barra _Dank Island_.
+  - `dms`: Núcleo da interface DankMaterialShell e barra *Dank Island*.
   - `dms-greeter`: Tela de login e autenticação gráfica sobre o `greetd`.
   - `danksearch`: Daemon de indexação de arquivos ultrarrápido integrado ao lançador de aplicações.
   - `dankcalendar`: Módulo de sincronização e exibição de calendário de eventos.
 
 ### 2. iNiR Desktop Shell
-- **Origem:** Repositório oficial Git [snowarch/inir](https://github.com/snowarch/inir) clonado em `~/.config/inir`.
+- **Origem:** Repositório oficial Git snowarch/inir clonado em `~/.config/inir`.
 - **Script do Instalador:** `modules/interfaces/inir.sh`
 - **Componentes e Runtimes Provisionados:**
   - **Runtime Deno Oficial:** O executável nativo do `deno` é obtido via release oficial do GitHub (`denoland/deno`) e instalado em `/usr/local/bin/deno` com permissões de execução para sustentar os daemons JavaScript/TypeScript do shell.
@@ -228,10 +273,14 @@ Diferente dos pacotes estáticos listados em `config/`, os pacotes desta seção
 Para manter o sistema limpo, previsível e fácil de auditar, siga estas etapas para submeter melhorias:
 
 1. **Escolha o arquivo correto em `config/`:**
-   - **`config/packages-base.conf`**: Para serviços de sistema, drivers abertos, portais ou daemons de hardware que devem estar presentes em **todas** as instalações.
-   - **`config/packages-apps.conf`**: Para utilitários de usuário, fontes, ferramentas multimídia ou de terminal.
-   - **`config/packages-nvidia.conf`**: Para componentes exclusivos do ecossistema NVIDIA proprietário.
-   - **`config/packages-flatpak.conf`**: Para aplicações gráficas de usuário disponíveis no Flathub.
+   - `config/packages-base.conf`: Para serviços de sistema, drivers abertos, portais ou daemons de hardware que devem estar presentes em **todas** as instalações.
+   - `config/packages-apps.conf`: Para utilitários de usuário, fontes, ferramentas multimídia ou de terminal.
+   - `config/packages-niri.conf`: Para pacotes específicos do compositor Niri.
+   - `config/packages-umbriel.conf`: Para pacotes específicos do compositor Umbriel.
+   - `config/packages-inir.conf`: Para pacotes RPM específicos da interface iNiR.
+   - `config/packages-noctalia.conf`: Para pacotes RPM específicos da interface Noctalia.
+   - `config/packages-nvidia.conf`: Para componentes exclusivos do ecossistema NVIDIA proprietário.
+   - `config/packages-flatpak.conf`: Para aplicações gráficas de usuário disponíveis no Flathub.
 
 2. **Diretrizes de Compatibilidade:**
    - O pacote deve ser compatível com arquitetura **100% Wayland**.
@@ -240,3 +289,4 @@ Para manter o sistema limpo, previsível e fácil de auditar, siga estas etapas 
 
 3. **Submissão via Pull Request:**
    - Abra um Pull Request detalhando a motivação do pacote e os testes executados em máquina real ou virtual.
+
