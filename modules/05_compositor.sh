@@ -20,13 +20,7 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 ui_section_header "MÓDULO 05: COMPOSITOR WAYLAND"
 
-# Instala utilitários e pontes de sistema comuns aos compositores
-log_info "Instalando utilitários essenciais de sessão e segurança..."
-sudo dnf install -y \
-    git \
-    polkit \
-    gnome-keyring \
-    swaylock
+
 
 # Despachante modular (Padrão Strategy)
 SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-niri}"

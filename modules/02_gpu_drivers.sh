@@ -46,13 +46,11 @@ if [[ "${IS_VM:-false}" == true ]]; then
     log_info "Ambiente de Máquina Virtual detectado. Pulando instalação de drivers proprietários NVIDIA."
 elif [[ "${INSTALL_NVIDIA:-false}" == true ]]; then
     log_warn "Iniciando instalação da pilha proprietária NVIDIA (akmod-nvidia)..."
-    NVIDIA_PACKAGES="$(read_package_list "${INSTALLER_ROOT}/config/packages-nvidia.conf")"
-    
-    if [[ -n "$NVIDIA_PACKAGES" ]]; then
-        # shellcheck disable=SC2086
-        sudo dnf install -y $NVIDIA_PACKAGES
+    NVIDIA_CONF="${CONFIG_DIR}/packages-nvidia.conf"
+    if [[ -f "$NVIDIA_CONF" ]]; then
+        install_packages_from_conf "$NVIDIA_CONF"
     else
-        log_error "Lista config/packages-nvidia.conf está vazia ou inacessível."
+        log_error "Lista config/packages-nvidia.conf não encontrada."
         exit 1
     fi
 

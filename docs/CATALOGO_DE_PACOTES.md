@@ -2,12 +2,12 @@
 
 Este documento apresenta a especificação técnica completa de todos os pacotes, bibliotecas, drivers e componentes provisionados pelo projeto **Fedora Multi-Shell**.
 
-A arquitetura do instalador opera sob rigorosa transparência técnica e modularidade em camadas:
-- **Camadas Declarativas Fixas:** Pacotes mantidos e auditáveis nos arquivos de configuração do diretório `config/`.
-- **Provisionamento Dinâmico de Módulos:** Pacotes instalados condicionalmente via DNF pelos submódulos em `modules/` de acordo com a seleção de compositores, interfaces gráficas e navegadores.
+A arquitetura do instalador opera sob rigorosa transparência técnica, modularidade em camadas e princípios estritos de **Infraestrutura como Código (IaC)**:
+- **Camadas Declarativas Fixas:** Pacotes mantidos e auditáveis nos arquivos de manifesto `.conf` do diretório `config/`.
+- **Serviços e Portais Dinâmicos:** Ativações de serviços de sistema, autorizações Polkit e integrações de portais acionadas defensivamente pelos módulos em `modules/` de acordo com a seleção de compositores e interfaces gráficas.
 - **Ecossistemas e Componentes de Terceiros:** Runtimes, scripts upstream e suites desktop configurados por instaladores oficiais de seus respectivos mantenedores.
 
-> 🤝 **Convite à Comunidade e Desenvolvedores:** Este catálogo foi concebido para ser auditável. Sugestões de novos pacotes, atualizações de dependências e melhorias de compatibilidade Wayland puro são sempre bem-vindas via _Pull Request_.
+> 🤝 **Convite à Comunidade e Desenvolvedores:** Este catálogo foi concebido para ser 100% auditável. Sugestões de novos pacotes, atualizações de dependências e melhorias de compatibilidade Wayland puro são sempre bem-vindas via _Pull Request_.
 
 ---
 
@@ -17,13 +17,16 @@ A arquitetura do instalador opera sob rigorosa transparência técnica e modular
 2. [Categoria A: Pacotes Declarativos Fixos (`config/`)](#-categoria-a-pacotes-declarativos-fixos-config)
    - [Pacotes Base do Sistema (`config/packages-base.conf`)](#1-pacotes-base-do-sistema-configpackages-baseconf)
    - [Aplicações de Usuário e Multimídia (`config/packages-apps.conf`)](#2-aplicações-de-usuário-e-multimídia-configpackages-appsconf)
-   - [Compositor Niri (`config/packages-niri.conf`)](#3-compositor-niri-configpackages-niriconf)
-   - [Compositor Umbriel (`config/packages-umbriel.conf`)](#4-compositor-umbriel-configpackages-umbrielconf)
+   - [Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)](#3-drivers-proprietários-nvidia-configpackages-nvidiaconf)
+   - [Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)](#4-aplicações-flatpak-do-flathub-configpackages-flatpakconf)
    - [Desktop Shell iNiR (`config/packages-inir.conf`)](#5-desktop-shell-inir-configpackages-inirconf)
    - [Desktop Shell Noctalia (`config/packages-noctalia.conf`)](#6-desktop-shell-noctalia-configpackages-noctaliaconf)
-   - [Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)](#7-drivers-proprietários-nvidia-configpackages-nvidiaconf)
-   - [Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)](#8-aplicações-flatpak-do-flathub-configpackages-flatpakconf)
-3. [Categoria B: Pacotes Oficiais Instalados Dinamicamente por Módulos (`modules/*.sh`)](#-categoria-b-pacotes-oficiais-instalados-dinamicamente-por-módulos-modules)
+   - [Compositor Niri (`config/packages-niri.conf`)](#7-compositor-niri-configpackages-niriconf)
+   - [Compositor Umbriel (`config/packages-umbriel.conf`)](#8-compositor-umbriel-configpackages-umbrielconf)
+   - [Display Manager Greetd (`config/packages-greetd.conf`)](#9-display-manager-greetd-configpackages-greetdconf)
+   - [Display Manager SDDM (`config/packages-sddm.conf`)](#10-display-manager-sddm-configpackages-sddmconf)
+   - [Navegador Brave Browser (`config/packages-brave.conf`)](#11-navegador-brave-browser-configpackages-braveconf)
+3. [Categoria B: Serviços e Portais Dinâmicos](#-categoria-b-serviços-e-portais-dinâmicos)
 4. [Categoria C: Ecossistemas e Componentes de Scripts de Terceiros](#-categoria-c-ecossistemas-e-componentes-de-scripts-de-terceiros)
 5. [Guia de Contribuição: Como Sugerir Novos Pacotes](#-guia-de-contribuição-como-sugerir-novos-pacotes)
 
@@ -33,19 +36,19 @@ A arquitetura do instalador opera sob rigorosa transparência técnica e modular
 
 Para assegurar fidelidade absoluta entre a documentação e os arquivos reais do repositório, cada item instalado pelo **Fedora Multi-Shell** pertence a uma de três categorias de proveniência:
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        FEDORA MULTI-SHELL                              │
 ├───────────────────────────┬───────────────────────────┬────────────────┤
 │       CATEGORIA A         │        CATEGORIA B        │  CATEGORIA C   │
-│   Declarativos Fixos      │   Dinâmicos por Módulos   │ Scripts Oficiais │
-│   (Pasta config/*.conf)   │   (modules/**/*.sh)       │   de Terceiros │
+│   Declarativos Fixos      │   Serviços e Portais      │ Scripts Upstream │
+│   (Pasta config/*.conf)   │   Dinâmicos de Módulos    │  de Terceiros  │
 └───────────────────────────┴───────────────────────────┴────────────────┘
 ```
 
 1. **Categoria A (Declarativos Fixos):** Mapeamento estrito (1 para 1) dos arquivos em `config/`. Nenhum pacote extra é listado nestas tabelas.
-2. **Categoria B (Pacotes Dinâmicos de Módulos):** Pacotes RPM instalados diretamente pelo orquestrador com base na detecção em tempo de execução (ex: microcódigo de CPU) ou componentes de contingência/display managers dinâmicos.
-3. **Categoria C (Scripts de Terceiros):** Componentes provisionados via pipelines upstream dos próprios criadores de ecossistemas (ex: Deno, DankLinux/DMS, setup do iNiR).
+2. **Categoria B (Serviços e Portais Dinâmicos):** Serviços do systemd, permissões Polkit, integrações PAM e portais acionados pelos módulos com base no hardware ou na escolha do usuário.
+3. **Categoria C (Scripts de Terceiros):** Componentes provisionados via pipelines upstream oficiais de seus criadores (ex: Deno, DankLinux/DMS, setup do iNiR).
 
 ---
 
@@ -83,7 +86,7 @@ Responsáveis pela sustentação de hardware, barramentos de sistema, subsistema
 | `bluez-tools` | Utilitários de linha de comando para configuração, pareamento e diagnóstico de adaptadores e dispositivos Bluetooth. |
 | `dbus-broker` | Implementação moderna, paralela e de alta performance do barramento de mensagens D-Bus. |
 | `seatd` | Daemon leve para gerenciamento de permissões de assento gráfico (_seat management_) para sessões Wayland puras. |
-| `sddm` | Display Manager e tela de login gráfico moderna baseada em Qt/QML (utilizada como opção padrão na interface iNiR). |
+| `sddm` | Display Manager e tela de login gráfica baseada em Qt/QML. |
 | `udisks2` | Serviço D-Bus para gerenciamento de operações de armazenamento em bloco, partições e montagem automática de mídias removíveis. |
 | `ntfs-3g` | Driver de sistema de arquivos em espaço de usuário (FUSE) para leitura e escrita estável em partições NTFS (Windows). |
 | `polkit` | Framework de autorização e controle de privilégios de granularidade fina para processos não privilegiados. |
@@ -98,111 +101,65 @@ Responsáveis pela sustentação de hardware, barramentos de sistema, subsistema
 | `switcheroo-control` | Serviço D-Bus para acoplamento dinâmico e alternância de renderização em arquiteturas com placas gráficas híbridas (PRIME). |
 | `@printing` | Grupo de pacotes de infraestrutura de impressão do Fedora, instalando o servidor CUPS e filtros base. |
 | `cups-browsed` | Daemon para descoberta automática de impressoras compartilhadas via rede local. |
-| `ipp-usb` | Daemon de comunicação IPP-over-USB que permite impressão e digitalização sem instalação de drivers manuais (_Driverless_). |
-| `hplip` | Drivers e ferramentas de suporte oficial para impressoras e multifuncionais da HP. |
-| `printer-driver-brlaser` | Driver de código aberto otimizado para impressoras monocromáticas a laser da marca Brother. |
-| `system-config-printer-udev` | Regras udev e acionadores de configuração automática ao plugar impressoras via conexão USB física. |
-| `avahi` | Implementação do padrão mDNS/DNS-SD (ZeroConf/Bonjour) para descoberta instantânea de impressoras e nós de rede local. |
-| `sane-backends` | Backends e bibliotecas centrais de comunicação com scanners e multifuncionais. |
-| `sane-airscan` | Driver SANE universal para digitalização em rede sem driver via protocolos eSCL (Apple AirScan) e WSD (Microsoft). |
-| `flatpak` | Sistema universal de empacotamento, distribuição e sandbox de aplicações para Linux. |
-| `dnf-plugins-core` | Conjunto de plugins essenciais do gerenciador DNF para manuseio avançado de repositórios, compilações e COPRs. |
+| `ipp-usb` | Daemon que expõe dispositivos IPP-over-USB locais como servidores HTTP na rede loopback, dispensando drivers proprietários. |
+| `hplip` | Conjunto oficial de drivers e utilitários de impressão/digitalização da HP. |
+| `printer-driver-brlaser` | Driver aberto e otimizado para impressoras laser monocromáticas da marca Brother. |
+| `system-config-printer-udev` | Módulos e regras Udev para detecção plug-and-play automática e configuração de impressoras USB. |
+| `avahi` | Implementação do protocolo mDNS/DNS-SD (Bonjour/ZeroConf) para descoberta de impressoras e scanners em rede. |
+| `sane-backends` | Infraestrutura central e drivers de digitalização de imagens do Linux (SANE). |
+| `sane-airscan` | Backend universal e estável de digitalização sem driver via protocolos eSCL e WSD (rede e USB). |
+| `flatpak` | Sistema universal de gerenciamento de pacotes isolados (sandboxed) para desktop. |
+| `dnf-plugins-core` | Conjunto de plugins fundamentais para expansão do gerenciador de pacotes DNF (`copr`, `config-manager`, etc.). |
 
 ---
 
 ### 2. Aplicações de Usuário e Multimídia (`config/packages-apps.conf`)
 
-Aplicações essenciais, utilitários visuais, suíte tipográfica e codecs com decodificação por hardware:
+Conjunto essencial de ferramentas gráficas, terminal, fontes e codecs provisionados para o usuário:
 
 | Pacote | Função e Justificativa Técnica |
 | :--- | :--- |
-| `kitty` | Emulador de terminal acelerado por GPU via OpenGL, altamente configurável, com suporte nativo a protocolos gráficos de imagens e baixíssima latência. |
-| `fastfetch` | Utilitário CLI moderno e de execução ultrarrápida escrito em C para visualização dos dados da máquina e distribuição. |
-| `nautilus` | Gerenciador de arquivos gráfico oficial do GNOME, baseado em GTK4 e libadwaita. |
-| `gvfs-mtp` | Módulo GVFS para acesso a pastas e arquivos de smartphones e dispositivos portáteis via protocolo MTP. |
-| `gvfs-smb` | Backend do GVFS para montagem e acesso a compartilhamentos de rede SMB/CIFS (Windows e servidores Samba). |
-| `gvfs-archive` | Módulo para navegação transparente dentro de arquivos compactados (`.zip`, `.tar`, etc.) como pastas no Nautilus. |
-| `gvfs-fuse` | Ponte FUSE que exporta os pontos de montagem virtuais do GVFS para utilitários comuns de linha de comando. |
-| `gnome-software` | Central gráfica de aplicativos com suporte ao catálogo Flatpak/Flathub e atualizações seguras de sistema. |
-| `loupe` | Visualizador de imagens moderno do ecossistema GNOME construído em GTK4 e Rust, com suporte a gestos multitouch. |
-| `papers` | Leitor e visualizador de documentos e PDFs moderno do GNOME (sucessor otimizado do Evince em GTK4). |
-| `gnome-text-editor` | Editor de texto gráfico moderno com suporte a temas dinâmicos, salvamento automático e realce de sintaxe. |
-| `simple-scan` | Aplicativo gráfico simples e ágil para digitalização de documentos e fotos a partir de scanners. |
-| `gnome-disk-utility` | Utilitário gráfico para particionamento, formatação, inspeção de integridade S.M.A.R.T. e montagem de discos. |
-| `p7zip` | Port do utilitário 7-Zip para sistemas POSIX, oferecendo suporte nativo ao formato de compressão `.7z`. |
-| `p7zip-plugins` | Extensões adicionais para o `p7zip`, ampliando a compatibilidade de formatos e integrações com o gerenciador de arquivos. |
-| `unrar` | Utilitário oficial para descompressão de arquivos empacotados sob o formato proprietário RAR. |
-| `zstd` | Algoritmo de compressão de dados em tempo real com taxas de compressão ultrarrápidas desenvolvido pela Meta. |
-| `tar` | Utilitário padrão do ecossistema Unix para arquivamento e concatenação de árvores de diretórios. |
-| `xz` | Utilitário e biblioteca de compressão de dados baseada no algoritmo LZMA com alta taxa de redução de tamanho. |
-| `swaylock` | Bloqueador de tela minimalista e seguro projetado para compositores Wayland com protocolo `ext-session-lock-v1`. |
-| `grim` | Ferramenta de linha de comando para captura de frames e screenshots em compositores Wayland. |
-| `slurp` | Utilitário interativo para seleção de áreas retangulares na tela via mouse em sessões Wayland. |
-| `wl-clipboard` | Utilitários de área de transferência (`wl-copy` e `wl-paste`) para gerenciamento de clipboard Wayland nativo. |
-| `playerctl` | Utilitário de terminal para inspeção e controle de reprodutores de mídia compatíveis com a especificação MPRIS D-Bus. |
-| `matugen` | Gerador e extrator de paletas de cores dinâmicas Material You a partir de papéis de parede para estilização do sistema. |
-| `adwaita-icon-theme` | Conjunto padrão de ícones da interface Adwaita/GNOME, garantindo visual consistente nas aplicações GTK. |
-| `google-noto-sans-fonts` | Família tipográfica universal Noto Sans cobrindo todo o conjunto de caracteres latinos e ocidentais. |
-| `google-noto-serif-fonts` | Família tipográfica Noto Serif para renderização clássica com serifa. |
-| `google-noto-sans-cjk-fonts` | Cobertura tipográfica completa para ideogramas CJK (Chinês, Japonês e Coreano). |
-| `google-noto-color-emoji-fonts` | Pacote oficial de glifos e emojis coloridos modernos do Google. |
-| `glycin-thumbnailer` | Gerador isolado em sandbox de miniaturas de imagens para o Nautilus desenvolvido em Rust. |
-| `ffmpegthumbnailer` | Gerador de miniaturas leves para arquivos e contêineres de vídeo (`.mp4`, `.mkv`, etc.). |
-| `papers-thumbnailer` | Gerador de miniaturas para visualização prévia da capa de arquivos e documentos PDF. |
-| `ffmpeg` | Pacote multimídia completo com codecs proprietários ativados via RPM Fusion (substitui a versão limitada `ffmpeg-free`). |
-| `gstreamer1-plugins-bad-freeworld` | Plugins do GStreamer para suporte a formatos de áudio e vídeo de uso restrito por patentes. |
-| `gstreamer1-plugins-ugly` | Plugins de codecs de alta qualidade mantidos pelo RPM Fusion sob restrições de licença. |
-| `mesa-va-drivers-freeworld` | Drivers VA-API completos da Mesa com aceleração por hardware para decodificação e codificação em GPUs Intel e AMD. |
+| `kitty` | Emulador de terminal acelerado por GPU via OpenGL, rápido, moderno e configurado como terminal padrão. |
+| `fastfetch` | Utilitário CLI em C para exibição instantânea de informações de hardware, sistema e logos ASCII. |
+| `nautilus` | Gerenciador de arquivos oficial do GNOME, com interface GTK4 e integração moderna ao Wayland. |
+| `gvfs-mtp` | Módulo GVFS para montagem e transferência de arquivos em smartphones e dispositivos Android via MTP. |
+| `gvfs-smb` | Suporte a compartilhamentos de rede SMB/CIFS (servidores Windows, Samba e NAS). |
+| `gvfs-archive` | Módulo GVFS para montagem transparente de arquivos compactados (ZIP, TAR, ISO) como pastas normais no Nautilus. |
+| `gvfs-fuse` | Ponte FUSE que expõe as montagens de rede e virtuais do GVFS para ferramentas de terminal tradicionais via `/run/user/$UID/gvfs`. |
+| `gnome-software` | Loja oficial de aplicativos do Fedora com interface gráfica completa e suporte nativo ao Flathub. |
+| `loupe` | Visualizador de imagens moderno em GTK4/libadwaita com aceleração de hardware e gestos touchpad. |
+| `papers` | Leitor de documentos e arquivos PDF em GTK4 (sucessor moderno e performático do Evince). |
+| `gnome-text-editor` | Editor de texto gráfico moderno e responsivo do GNOME. |
+| `simple-scan` | Utilitário intuitivo de digitalização de documentos e imagens integrado ao sane-airscan. |
+| `gnome-disk-utility` | Utilitário gráfico completo para particionamento, formatação, teste SMART e benchmark de unidades de disco. |
+| `p7zip` | Port Linux CLI da ferramenta de alta compressão 7-Zip. |
+| `p7zip-plugins` | Plugins estendidos para suporte a formatos de compressão avançados no p7zip. |
+| `unrar` | Utilitário para descompressão de arquivos no formato proprietário RAR. |
+| `zstd` | Algoritmo e utilitário CLI de compressão rápida em tempo real desenvolvido pela Meta. |
+| `tar` | Ferramenta universal Unix para criação e manipulação de arquivos tarball. |
+| `xz` | Utilitário de compressão LZMA de alta densidade padrão do ecossistema Linux. |
+| `swaylock` | Bloqueador de tela Wayland seguro com suporte a efeitos visuais e integração PAM. |
+| `grim` | Utilitário CLI para captura de tela (screenshots) em compositores Wayland que implementam `wlr-screencopy`. |
+| `slurp` | Utilitário para seleção interativa de regiões de tela via mouse para uso em conjunto com o `grim`. |
+| `wl-clipboard` | Ferramentas de linha de comando (`wl-copy` e `wl-paste`) para manipulação da área de transferência no Wayland. |
+| `playerctl` | Utilitário CLI e controlador D-Bus MPRIS para pausar, reproduzir e controlar players de áudio/vídeo via atalhos do teclado. |
+| `matugen` | Gerenciador de cores e temas que gera paletas harmoniosas com base no papel de parede (Material You). |
+| `adwaita-icon-theme` | Conjunto padrão de ícones do GNOME/GTK garantindo conformidade visual às aplicações. |
+| `google-noto-sans-fonts` | Família tipográfica Sans-Serif moderna e completa do projeto Google Noto. |
+| `google-noto-serif-fonts` | Família tipográfica Serifada do projeto Google Noto. |
+| `google-noto-sans-cjk-fonts` | Suporte tipográfico universal a caracteres CJK (Chinês, Japonês e Coreano). |
+| `google-noto-color-emoji-fonts` | Conjunto de emojis em cores de alta resolução padrão do Google/Android. |
+| `glycin-thumbnailer` | Gerador moderno de miniaturas de imagens protegido por sandbox para o Nautilus. |
+| `ffmpegthumbnailer` | Utilitário leve que extrai miniaturas de arquivos de vídeo locais para exibição no gerenciador de arquivos. |
+| `papers-thumbnailer` | Gerador de miniaturas da primeira página de documentos e arquivos PDF para o Nautilus. |
+| `ffmpeg` | Pacote completo e irrestrito do FFmpeg obtido do RPM Fusion (com suporte a decodificação de formatos proprietários). |
+| `gstreamer1-plugins-bad-freeworld` | Plugins GStreamer adicionais do RPM Fusion com suporte a codecs proprietários e experimentais. |
+| `gstreamer1-plugins-ugly` | Conjunto de plugins GStreamer de alta qualidade com restrições de licença (MP3 legado, MPEG, etc.). |
+| `mesa-va-drivers-freeworld` | Drivers VA-API da Mesa com suporte nativo completo a aceleração por hardware para decodificação H.264, H.265 e VC-1. |
 
 ---
 
-### 3. Compositor Niri (`config/packages-niri.conf`)
-
-Dependências exclusivas para o provisionamento do compositor scrollable-tiling Niri:
-
-| Pacote | Função e Justificativa Técnica |
-| :--- | :--- |
-| `niri` | Compositor Wayland moderno com rolagem horizontal infinita de colunas e janelas (via COPR `yalter/niri`). |
-| `xwayland-satellite` | Gerenciador X11 rootless e isolado em espaço de usuário, executado sob demanda para aplicações legadas sem poluir o Wayland nativo. |
-| `xdg-desktop-portal-gnome` | Implementação do portal GNOME para captura de tela e ScreenCast via PipeWire integrada ao Niri. |
-| `xdg-desktop-portal-gtk` | Implementação do portal GTK para diálogos de arquivos e integração de temas do desktop. |
-
----
-
-### 4. Compositor Umbriel (`config/packages-umbriel.conf`)
-
-Dependências exclusivas para o provisionamento do compositor Wayland dinâmico Umbriel:
-
-| Pacote | Função e Justificativa Técnica |
-| :--- | :--- |
-| `umbriel-nightly` | Compositor Wayland dinâmico com suporte a rolagem contínua e múltiplos modos de mosaico (Dwindle e Master) via Repositório Terra do Fyra Labs. |
-| `xwayland-satellite` | Gerenciador X11 rootless e isolado sob demanda para suporte a janelas legadas. |
-| `xdg-desktop-portal-umbriel-nightly` | Implementação oficial de portais XDG específica do compositor Umbriel. |
-| `xdg-desktop-portal-gtk` | Implementação do portal GTK para compatibilidade universal de janelas de diálogo e temas. |
-
----
-
-### 5. Desktop Shell iNiR (`config/packages-inir.conf`)
-
-Dependências nativas para o runtime visual da interface iNiR:
-
-| Pacote | Função e Justificativa Técnica |
-| :--- | :--- |
-| `quickshell` | Framework e motor declarativo em C++/Qt 6 para construção de interfaces Wayland personalizadas (via COPR `errornointernet/quickshell`). |
-
----
-
-### 6. Desktop Shell Noctalia (`config/packages-noctalia.conf`)
-
-Pacote da interface desktop nativa Noctalia:
-
-| Pacote | Função e Justificativa Técnica |
-| :--- | :--- |
-| `noctalia` | Desktop shell nativo completo em C++/Qt com painel, barra de status e lançadores. |
-
----
-
-### 7. Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)
+### 3. Drivers Proprietários NVIDIA (`config/packages-nvidia.conf`)
 
 Pacotes provisionados exclusivamente em instalações físicas com GPU dedicada NVIDIA selecionadas pelo usuário:
 
@@ -218,7 +175,7 @@ Pacotes provisionados exclusivamente em instalações físicas com GPU dedicada 
 
 ---
 
-### 8. Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)
+### 4. Aplicações Flatpak do Flathub (`config/packages-flatpak.conf`)
 
 Aplicações isoladas em contêiner gerenciadas via Flathub:
 
@@ -228,24 +185,110 @@ Aplicações isoladas em contêiner gerenciadas via Flathub:
 
 ---
 
-## ⚙️ Categoria B: Pacotes Oficiais Instalados Dinamicamente por Módulos (`modules/*.sh`)
+### 5. Desktop Shell iNiR (`config/packages-inir.conf`)
 
-Diferente dos pacotes estáticos listados em `config/`, os pacotes desta seção são provisionados **dinamicamente** via lógica condicional em tempo de execução nos módulos bash:
+Dependências declarativas, runtimes QML e módulos de efeitos da interface iNiR:
 
-| Pacote DNF | Script Responsável | Condição de Instalação | Finalidade Técnica |
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `quickshell` | Framework e motor declarativo em C++/Qt 6 para construção de interfaces Wayland personalizadas (via COPR `errornointernet/quickshell`). |
+| `qt6-qtdeclarative` | Runtime do Qt 6 e motor de execução para aplicações baseadas em QML. |
+| `qt6-qtdeclarative-devel` | Cabeçalhos e arquivos de compilação para extensões declarativas em QML do Qt 6. |
+| `qt6-qt5compat` | Módulos gráficos de compatibilidade do Qt 6 exigidos pelos shaders e efeitos visuais do tema Iris. |
+| `qt6-qt5compat-devel` | Cabeçalhos e arquivos de desenvolvimento da camada Qt 5 Compat do Qt 6. |
+| `qt6-qtsvg` | Biblioteca de renderização vetorial SVG para ícones e elementos do Qt 6. |
+| `qt6-qtwayland` | Módulo de suporte e protocolos nativos Wayland para clientes Qt 6. |
+
+---
+
+### 6. Desktop Shell Noctalia (`config/packages-noctalia.conf`)
+
+Pacotes nativos da interface desktop Noctalia e sua tela de login:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `noctalia` | Desktop shell nativo completo em C++/Qt com painel, barra de status e lançadores. |
+| `noctalia-greeter` | Tela de login gráfica em Wayland acoplada ao Greetd com suporte a sincronização de papéis de parede e temas via Polkit. |
+
+---
+
+### 7. Compositor Niri (`config/packages-niri.conf`)
+
+Componentes declarativos do compositor Wayland Niri:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `niri` | Compositor Wayland scrollable-tiling de alta performance com rolagem horizontal contínua de colunas e janelas (via COPR `yalter/niri`). |
+| `xwayland-satellite` | Gerenciador X11 rootless e isolado sob demanda para suporte a janelas legadas. |
+| `xdg-desktop-portal-gnome` | Implementação do portal GNOME exigida para compartilhamento de tela e captura via PipeWire no Niri. |
+| `xdg-desktop-portal-gtk` | Implementação do portal GTK para compatibilidade de janelas de diálogo e temas. |
+
+---
+
+### 8. Compositor Umbriel (`config/packages-umbriel.conf`)
+
+Dependências exclusivas para o provisionamento do compositor Wayland dinâmico Umbriel:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `umbriel-nightly` | Compositor Wayland dinâmico com suporte a rolagem contínua e múltiplos modos de mosaico (Dwindle e Master) via Repositório Terra do Fyra Labs. |
+| `xwayland-satellite` | Gerenciador X11 rootless e isolado sob demanda para suporte a janelas legadas. |
+| `xdg-desktop-portal-umbriel-nightly` | Implementação oficial de portais XDG específica do compositor Umbriel. |
+| `xdg-desktop-portal-gtk` | Implementação do portal GTK para compatibilidade universal de janelas de diálogo e temas. |
+
+---
+
+### 9. Display Manager Greetd (`config/packages-greetd.conf`)
+
+Componentes declarativos da pilha de login leve Greetd:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `greetd` | Daemon minimalista e modular de login gráfico em Wayland/Console. |
+| `greetd-selinux` | Políticas de segurança e contextos SELinux para o daemon `greetd`. |
+| `gnome-keyring-pam` | Módulo PAM para desbloqueio automático do cofre de credenciais GNOME Keyring no login. |
+
+---
+
+### 10. Display Manager SDDM (`config/packages-sddm.conf`)
+
+Componentes declarativos da pilha de login SDDM:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `sddm` | Display Manager oficial baseado em QML e Wayland. |
+| `gnome-keyring-pam` | Módulo PAM para desbloqueio automático do cofre de credenciais GNOME Keyring no login. |
+
+---
+
+### 11. Navegador Brave Browser (`config/packages-brave.conf`)
+
+Manifesto de instalação declarativa do navegador web principal:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `brave-origin` | Versão oficial do Brave Browser focada em privacidade e performance, desprovida de telemetria invasiva, IA desnecessária e módulos de criptomoedas. |
+
+---
+
+## ⚙️ Categoria B: Serviços e Portais Dinâmicos
+
+Os itens desta seção não são pacotes avulsos com nomes fixos em scripts procedurais, mas serviços, regras de sistema e configurações ativadas dinamicamente:
+
+| Componente / Recurso | Script Responsável | Condição de Ativação | Finalidade Técnica |
 | :--- | :--- | :--- | :--- |
-| `intel-microcode` / `amd-ucode-firmware` | `modules/01_system_hardware.sh` | Conforme detecção de CPU em `/proc/cpuinfo` | Atualização de microcódigo de segurança e estabilidade da CPU. |
-| `brave-browser` | `modules/03_desktop_apps.sh` | Contingência caso `brave-origin` falhe | Navegador alternativo via repositório DNF oficial da Brave Software. |
-| `greetd` | `modules/04_display_stack.sh` | Quando a interface for Noctalia ou DankLinux | Daemon minimalista e modular de login gráfico em Wayland/Console. |
-| `greetd-selinux` | `modules/04_display_stack.sh` | Quando a interface for Noctalia ou DankLinux | Políticas de segurança e contextos SELinux para o daemon `greetd`. |
-| `noctalia-greeter` | `modules/04_display_stack.sh` | Quando a interface selecionada for Noctalia | Tela de login gráfica em Wayland do ecossistema Noctalia acoplada ao `greetd`. |
+| Microcódigo de CPU (`intel-microcode` / `amd-ucode-firmware`) | `modules/01_system_hardware.sh` | Conforme detecção de CPU em `/proc/cpuinfo` | Atualização de microcódigo de segurança e estabilidade da CPU. |
+| `noctalia-greeter passwordless-sync` | `modules/04_display_stack.sh` | Quando a interface for Noctalia | Regra Polkit para sincronização bidirecional de papéis de parede entre o desktop e a tela de login. |
+| Integração PAM Keyring (`pam_gnome_keyring.so`) | `modules/04_display_stack.sh` | Em todas as sessões gráficas (Greetd/SDDM) | Previne pop-ups de desbloqueio de senhas no Brave e aplicativos de sistema. |
+| Prioridades XDG (`niri-portals.conf`) | `modules/compositors/niri.sh` | Quando o compositor for Niri | Define prioridades `gtk;gnome;` para ScreenCast e Screenshot sem conflitos. |
+| Software Rendering VM Flags | `modules/07_post_install.sh` | Quando executado em VM (`IS_VM=true`) | Injeção defensiva de flags OpenGL de software prevenindo telas pretas no QtQuick/Wayland. |
 
 ---
 
 ## 🌐 Categoria C: Ecossistemas e Componentes de Scripts de Terceiros
 
 > ⚠️ **Aviso de Transparência de Arquitetura:**
-> Os componentes abaixo **NÃO** constam nos arquivos `.conf` da pasta `config/` e não são pacotes RPM gerenciados pelo DNF do sistema base. Eles são provisionados e mantidos diretamente pelos pipelines e scripts oficiais de seus criadores e comunidades upstream:
+> Os componentes abaixo **NÃO** constam nos arquivos `.conf` da pasta `config/` como pacotes RPM do sistema base. Eles são provisionados e mantidos diretamente pelos pipelines e scripts oficiais de seus criadores upstream:
 
 ### 1. DankLinux / DankMaterialShell (DMS)
 - **Origem:** Instalador oficial não-interativo via pipeline HTTPS:
@@ -260,7 +303,7 @@ Diferente dos pacotes estáticos listados em `config/`, os pacotes desta seção
   - `dankcalendar`: Módulo de sincronização e exibição de calendário de eventos.
 
 ### 2. iNiR Desktop Shell
-- **Origem:** Repositório oficial Git snowarch/inir clonado em `~/.config/inir`.
+- **Origem:** Repositório oficial Git `snowarch/inir` clonado em `~/.config/inir`.
 - **Script do Instalador:** `modules/interfaces/inir.sh`
 - **Componentes e Runtimes Provisionados:**
   - **Runtime Deno Oficial:** O executável nativo do `deno` é obtido via release oficial do GitHub (`denoland/deno`) e instalado em `/usr/local/bin/deno` com permissões de execução para sustentar os daemons JavaScript/TypeScript do shell.
@@ -279,6 +322,9 @@ Para manter o sistema limpo, previsível e fácil de auditar, siga estas etapas 
    - `config/packages-umbriel.conf`: Para pacotes específicos do compositor Umbriel.
    - `config/packages-inir.conf`: Para pacotes RPM específicos da interface iNiR.
    - `config/packages-noctalia.conf`: Para pacotes RPM específicos da interface Noctalia.
+   - `config/packages-greetd.conf`: Para componentes base do Display Manager Greetd.
+   - `config/packages-sddm.conf`: Para componentes base do Display Manager SDDM.
+   - `config/packages-brave.conf`: Para manifesto do navegador Brave Browser.
    - `config/packages-nvidia.conf`: Para componentes exclusivos do ecossistema NVIDIA proprietário.
    - `config/packages-flatpak.conf`: Para aplicações gráficas de usuário disponíveis no Flathub.
 
@@ -289,4 +335,3 @@ Para manter o sistema limpo, previsível e fácil de auditar, siga estas etapas 
 
 3. **Submissão via Pull Request:**
    - Abra um Pull Request detalhando a motivação do pacote e os testes executados em máquina real ou virtual.
-

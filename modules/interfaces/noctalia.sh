@@ -5,7 +5,6 @@
 # ==============================================================================
 set -euo pipefail
 
-CONF_FILE="${INSTALLER_ROOT}/config/packages-noctalia.conf"
-install_packages_from_conf "${CONF_FILE}"
+install_packages_from_conf "${CONFIG_DIR}/packages-noctalia.conf"
 
 log_success "Submódulo Noctalia Shell configurado com sucesso."

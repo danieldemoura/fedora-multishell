@@ -25,23 +25,16 @@ log_info "Sincronizando ffmpeg com repositório RPM Fusion (swap ffmpeg-free -> 
 sudo dnf swap -y --allowerasing ffmpeg-free ffmpeg || true
 
 log_info "Instalando aplicações desktop e utilitários multimídia..."
-APPS_PACKAGES="$(read_package_list "${INSTALLER_ROOT}/config/packages-apps.conf")"
-
-if [[ -n "$APPS_PACKAGES" ]]; then
-    # shellcheck disable=SC2086
-    sudo dnf install -y --allowerasing $APPS_PACKAGES
-else
-    log_warn "Lista config/packages-apps.conf está vazia ou inacessível."
-fi
+install_packages_from_conf "${CONFIG_DIR}/packages-apps.conf" "--allowerasing"
 
 # 2. Instalação do Navegador Brave Origin (com contingência oficial)
 log_info "Instalando navegador web Brave Origin (sem IA/crypto)..."
-if ! sudo dnf install -y --allowerasing brave-origin; then
+if ! install_packages_from_conf "${CONFIG_DIR}/packages-brave.conf" "--allowerasing"; then
     log_warn "brave-origin não encontrado diretamente nos repositórios DNF. Disparando instalador oficial via curl..."
     if curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh; then
         log_success "Brave Origin instalado com sucesso via instalador oficial."
     else
-        log_warn "Falha no script de instalação do Brave Origin. Tentando pacote brave-browser padrão..."
+        log_warn "Falha no script de instalação do Brave Origin. Tentando pacote brave-browser padrão via contingência..."
         sudo dnf install -y --allowerasing brave-browser || log_warn "Não foi possível instalar pacote do Brave via DNF."
     fi
 else
@@ -57,8 +50,10 @@ if [[ -f "$LEGACY_FLATHUB_DESKTOP" ]]; then
 fi
 
 # 4. Loja Gráfica de Aplicativos Nativa (GNOME Software e repositório Flathub)
-log_info "Configurando Loja Gráfica oficial (GNOME Software) com suporte ao Flathub..."
-sudo dnf install -y --allowerasing gnome-software
+log_info "Configurando integração Flathub na Loja Gráfica GNOME Software..."
+if ! rpm -q gnome-software >/dev/null 2>&1; then
+    install_packages_from_conf "${CONFIG_DIR}/packages-apps.conf" "--allowerasing"
+fi
 
 if command -v flatpak >/dev/null 2>&1; then
     log_info "Garantindo repositório Flathub ativo para o GNOME Software..."

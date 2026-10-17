@@ -11,27 +11,63 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
 ### 1.1 Separação de Preocupações (Separation of Concerns - SoC)
 
 - Cada módulo na pasta `modules/` deve possuir **uma única responsabilidade**:
-  - `00_repos.sh`: Gerenciamento exclusivo de repositórios (RPM Fusion, COPRs, Flathub).
-  - `01_system_hardware.sh`: Hardware base, áudio (PipeWire), Bluetooth e energia.
-  - `02_gpu_drivers.sh`: Aceleração de vídeo e drivers gráficos.
-  - `03_desktop_apps.sh`: Pacotes de usuário, fontes, terminal e codecs.
-  - `04_display_stack.sh`: Display managers e integração PAM.
-  - `05_compositor.sh`: Roteador de compositores Wayland.
-  - `06_desktop_interface.sh`: Roteador de interfaces gráficas.
-  - `07_post_install.sh`: Validação final, autostart e habilitação de serviços.
+  - `00_repos.sh`: Gerenciamento exclusivo de repositórios (RPM Fusion, COPRs, Flathub, Terra e DankLinux).
+  - `01_system_hardware.sh`: Hardware base, áudio (PipeWire), Bluetooth e energia (Tuned).
+  - `02_gpu_drivers.sh`: Aceleração de vídeo e drivers gráficos (Mesa ou NVIDIA).
+  - `03_desktop_apps.sh`: Pacotes de usuário, fontes, terminal, codecs, Brave e Flatpaks.
+  - `04_display_stack.sh`: Display managers (Greetd ou SDDM) e integração PAM Keyring.
+  - `05_compositor.sh`: Roteador de compositores Wayland (Niri ou Umbriel).
+  - `06_desktop_interface.sh`: Roteador de interfaces gráficas (iNiR, Noctalia ou DankLinux).
+  - `07_post_install.sh`: Validação final, autostart, layout de teclado ABNT2 e habilitação de serviços.
 - É terminantemente proibido instalar aplicativos de usuário (como navegadores ou players) dentro de módulos de hardware ou repositórios.
 
 ### 1.2 Infraestrutura como Código (IaC) e Configuração Declarativa Isolada
 
-- **Separação Rigorosa entre Código Procedural e Dados Declarativos:** Listas de pacotes nunca devem ser chumbadas (*hardcoded*) dentro dos scripts procedurais `.sh`. Toda e qualquer dependência do sistema operacional, drivers, compositores e interfaces desktop deve residir exclusivamente em arquivos de manifesto declarativo `.conf` dentro do diretório `config/`.
+- **Regra de Ouro Arquitetural:** *Código procedural em scripts `.sh` gerencia exclusivamente fluxo, controle e lógica; dados, pacotes e dependências pertencem estritamente a manifestos declarativos `.conf` dentro do diretório `config/`.*
+- **Prevenção de Inchaço do Sistema (Anti-Bloatware):** A segregação por arquivo `.conf` especializado impede que dependências pesadas de uma shell ou compositor específico (como o runtime Quickshell do iNiR ou o repositório Terra do Noctalia) poluam a base do sistema de usuários que escolheram outros ambientes.
 - **Racional Técnico e Benefícios de IaC:**
-  1. *Auditabilidade e Transparência:* Administradores e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.
-  2. *Manutenibilidade e Desacoplamento:* Atualizar, adicionar ou remover um pacote não altera o código executável, reduzindo drasticamente o risco de efeitos colaterais ou regressões em tempo de execução.
-  3. *Reutilização e Idempotência:* A instalação é orquestrada por funções utilitárias padronizadas (como `install_packages_from_conf`), garantindo que comentários, linhas em branco e parâmetros de contenção (ex: `--exclude=alacritty`) sejam tratados de forma consistente e segura em qualquer etapa do provisionamento.
+  1. *Auditabilidade e Transparência Total:* Administradores, usuários e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.
+  2. *Manutenibilidade e Desacoplamento:* Atualizar, adicionar ou remover um pacote não altera o código executável, reduzindo a zero o risco de efeitos colaterais ou regressões em tempo de execução.
+  3. *Reutilização e Idempotência:* A instalação é orquestrada pela função utilitária padronizada `install_packages_from_conf`, garantindo que comentários, linhas em branco e parâmetros de contenção (ex: `--exclude=alacritty` ou `--allowerasing`) sejam tratados de forma consistente e segura em qualquer etapa do provisionamento.
 - **Formato dos Arquivos Declarativos `.conf`:** Um pacote por linha, com suporte nativo a comentários prefixados com `#` e linhas em branco.
 - **Uso de Templates:** Arquivos de configuração complexos (PAM, Greetd, Niri, Umbriel) devem ser mantidos como modelos limpos na pasta `templates/`, e não gerados dinamicamente via blocos extensos de `cat <<EOF` dentro do código.
 
-### 1.3 Padrão Estratégia (Strategy Pattern)
+### 1.3 A Função Central `install_packages_from_conf`
+
+Localizada em `lib/utils.sh`, a função padroniza o consumo de qualquer arquivo de manifesto `.conf`:
+
+```bash
+install_packages_from_conf() {
+    local conf_file="$1"
+    local extra_args="${2:-}"
+    
+    if [[ ! -f "$conf_file" ]]; then
+        return 0
+    fi
+
+    local pkgs=()
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%%#*}"
+        line="$(echo -e "${line}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+        [[ -z "$line" ]] && continue
+        pkgs+=("$line")
+    done < "$conf_file"
+
+    if [[ ${#pkgs[@]} -gt 0 ]]; then
+        log_info "Instalando pacotes declarados em $(basename "$conf_file")..."
+        # shellcheck disable=SC2086
+        sudo dnf install -y ${extra_args} "${pkgs[@]}"
+    fi
+}
+```
+
+- **Características:**
+  - Ignora comentários inline ou linhas comentadas com `#`.
+  - Ignora espaços e linhas vazias de forma defensiva.
+  - Suporta argumentos adicionais do DNF (ex: `--exclude=alacritty`, `--allowerasing`).
+  - Executa a chamada DNF em lote com lista de argumentos (`"${pkgs[@]}"`), acelerando drasticamente a resolução de dependências se comparado a chamadas individuais.
+
+### 1.4 Padrão Estratégia (Strategy Pattern)
 
 - Novos compositores devem ser adicionados como submódulos isolados em `modules/compositors/<nome>.sh`.
 - Novas interfaces gráficas devem ser adicionadas como submódulos isolados em `modules/interfaces/<nome>.sh`.
@@ -88,7 +124,7 @@ set -euo pipefail
 
 1. **Permissões de Arquivos PAM:** Qualquer arquivo em `/etc/pam.d/` deve possuir estritamente posse `root:root` e permissão `644`.
 2. **Desbloqueio de Cofre de Senhas:** Todas as sessões gráficas (SDDM ou Greetd) devem implementar integração nativa com `pam_gnome_keyring.so` para evitar pop-ups de desbloqueio de senhas em navegadores.
-3. **Encapsulamento de Instaladores Externos:** Se um instalador terceiro (como `dankinstall` ou scripts externos) sobrescrever arquivos de sistema, o submódulo correspondente tem a obrigação de restaurar os templates de segurança antes de concluir sua execução.
+3. **Encapsulamento de Instaladores Externos:** Se um instalador terceiro (como `dankinstall` ou scripts externos) sobrescrever arquivos de sistema, o submódulo correspondente tem a obrigação de restaurar os templates de segurança antes de concluir sua execução (como efetuado em `modules/interfaces/danklinux.sh`).
 
 ---
 
@@ -96,9 +132,10 @@ set -euo pipefail
 
 Para estender o projeto com uma nova interface:
 
-1. Adicione a opção no menu interativo em `setup.sh`.
-2. Adicione os repositórios necessários em `modules/00_repos.sh`.
-3. Crie o submódulo de instalação em `modules/interfaces/<nome>.sh`.
-4. Adicione o caso correspondente no roteador `modules/06_desktop_interface.sh`.
-5. Se a interface exigir autostart ou atalhos específicos, adicione o tratamento no `modules/07_post_install.sh`.
-6. Atualize a tabela de opções no `README.md` e na documentação técnica.
+1. Crie o arquivo declarativo de dependências em `config/packages-<nome>.conf`.
+2. Adicione a opção no menu interativo em `setup.sh`.
+3. Adicione os repositórios necessários em `modules/00_repos.sh`.
+4. Crie o submódulo de instalação em `modules/interfaces/<nome>.sh` consumindo o arquivo `.conf` via `install_packages_from_conf`.
+5. Adicione o caso correspondente no roteador `modules/06_desktop_interface.sh`.
+6. Se a interface exigir autostart ou atalhos específicos, adicione o tratamento no `modules/07_post_install.sh`.
+7. Atualize a tabela de opções no `README.md`, no catálogo de pacotes e na documentação técnica.

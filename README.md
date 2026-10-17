@@ -14,7 +14,8 @@
 > 💡 **Transparência Técnica & Engenharia:** Este projeto foi concebido e homologado pelo autor utilizando o **Antigravity IDE** e o modelo **Gemini 3.8 Flash** (plano gratuito da Google) em fluxo agêntico autônomo.
 
 > 📋 **Documento de Arquitetura Base:** Todo o projeto foi planejado e executado com base no [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md). Esse arquivo contém todas as diretrizes de arquitetura em camadas, tratamento defensivo do PAM/Keyring, suporte a máquinas virtuais e decisões de projeto utilizadas pela IA para construir o instalador.
-> Consulte o [Catálogo de Pacotes e Dependências](docs/CATALOGO_DE_PACOTES.md) para ver a listagem completa e detalhada de tudo o que é provisionado pelo sistema.
+> 
+> Consulte o [Catálogo de Pacotes e Dependências](docs/CATALOGO_DE_PACOTES.md) para ver a listagem completa e detalhada de tudo o que é provisionado pelo sistema e as [Diretrizes de Arquitetura e Boas Práticas](docs/DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md) para os padrões de engenharia e regras de programação defensiva adotadas.
 
 Instalador modular, em camadas e automatizado para transformar uma instalação mínima do **Fedora Everything Netinstall** em uma workstation gráfica moderna com suporte à seleção exclusiva de **Interface Gráfica (Desktop Shell)** e **Compositor Wayland**:
 
@@ -37,22 +38,27 @@ Instalador modular, em camadas e automatizado para transformar uma instalação 
 
 ## 🏗️ Arquitetura em Camadas (Layered Architecture)
 
-O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Idempotência** e **Padrão Strategy** para despachar submódulos de compositores e interfaces gráficas. Os pacotes de usuário (fontes, terminal Kitty e codecs) são instalados no Módulo 03, garantindo ambiente pronto antes de subir a stack visual:
+O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Idempotência**, **Infraestrutura como Código (IaC)** e **Padrão Strategy** para despachar submódulos de compositores e interfaces gráficas. Os pacotes de usuário (fontes, terminal Kitty e codecs) são instalados no Módulo 03, garantindo ambiente pronto antes de subir a stack visual:
 
 ```text
-fedora-inir/
+fedora-multishell/
 ├── setup.sh                         # Ponto de entrada: checagens, menu interativo pt-BR e orquestrador
 ├── docs/
-│   └── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
+│   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
+│   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
+│   └── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
 ├── config/
-│   ├── packages-apps.conf           # Aplicações de usuário, fontes Noto, terminal Kitty e codecs
-│   ├── packages-base.conf           # Infraestrutura do sistema (Firmware, SDDM, Áudio, Portais)
+│   ├── packages-base.conf           # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
+│   ├── packages-apps.conf           # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
 │   ├── packages-flatpak.conf        # Lista declarativa de aplicativos Flatpak do Flathub
-│   ├── packages-inir.conf           # Pacotes declarativos exclusivos da interface iNiR (Quickshell)
-│   ├── packages-niri.conf           # Pacotes declarativos exclusivos do compositor Niri
-│   ├── packages-noctalia.conf       # Pacotes declarativos exclusivos da interface Noctalia
 │   ├── packages-nvidia.conf         # Pilha proprietária de drivers e módulos NVIDIA (akmods)
-│   ├── packages-umbriel.conf        # Pacotes declarativos exclusivos do compositor Umbriel
+│   ├── packages-inir.conf           # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
+│   ├── packages-noctalia.conf       # Pacotes nativos da interface Noctalia e Greeter
+│   ├── packages-niri.conf           # Pacotes do compositor Niri, xwayland-satellite e portais
+│   ├── packages-umbriel.conf        # Pacotes do compositor Umbriel Nightly e portais
+│   ├── packages-greetd.conf         # Daemons base do Display Manager Greetd
+│   ├── packages-sddm.conf           # Pacotes base do Display Manager SDDM
+│   ├── packages-brave.conf          # Manifesto de instalação do navegador Brave Browser
 │   └── settings.conf                # Variáveis globais, repositórios e flags padrão
 ├── lib/
 │   ├── ui.sh                        # Renderização ANSI: banner sem subtítulo fixo, caixas temáticas e prompts limpos
@@ -71,7 +77,7 @@ fedora-inir/
 │   ├── 06_desktop_interface.sh       # Roteador de Interface Gráfica (Padrão Strategy)
 │   │   └── interfaces/
 │   │       ├── inir.sh              # Deno (/usr/local/bin), sudo -v antecipado, clone, ./setup install -y
-│   │       ├── noctalia.sh          # Pacote nativo 'noctalia' via DNF
+│   │       ├── noctalia.sh          # Pacote nativo 'noctalia' e 'noctalia-greeter' via DNF
 │   │       └── danklinux.sh         # Instalador oficial headless do DankMaterialShell (DMS)
 │   └── 07_post_install.sh           # Autostart/config da interface, ABNT2, VM flags, ativação DM e validações
 └── templates/

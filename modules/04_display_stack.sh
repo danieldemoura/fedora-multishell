@@ -27,9 +27,8 @@ TEMPLATES_DIR="${TEMPLATES_DIR:-${INSTALLER_ROOT}/templates}"
 if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =~ ^(danklinux|noctalia)$ ]]; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
 
-    # 1. Instalação dos pacotes base do Greetd e GNOME Keyring PAM
-    log_info "Instalando greetd, greetd-selinux e gnome-keyring-pam via DNF..."
-    sudo dnf install -y greetd greetd-selinux gnome-keyring-pam
+    # 1. Instalação declarativa dos pacotes base do Greetd e GNOME Keyring PAM
+    install_packages_from_conf "${CONFIG_DIR}/packages-greetd.conf"
 
     # 2. Permissões de hardware para o usuário greetd
     log_info "Configurando permissões de hardware (video, render, input) para o usuário greetd..."
@@ -37,8 +36,7 @@ if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =
 
     # 3. Provisionamento específico do Noctalia Greeter (se interface for noctalia)
     if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia" ]]; then
-        log_info "Instalando pacote noctalia-greeter via DNF..."
-        sudo dnf install -y noctalia-greeter
+        install_packages_from_conf "${CONFIG_DIR}/packages-noctalia.conf"
 
         log_info "Configurando diretório de estado e autorização do Noctalia Greeter..."
         sudo mkdir -p /var/lib/noctalia-greeter
@@ -117,9 +115,8 @@ EOF
 else
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (SDDM)"
 
-    # 1. Instalação do SDDM e Módulo PAM GNOME Keyring
-    log_info "Instalando sddm e gnome-keyring-pam via DNF..."
-    sudo dnf install -y sddm gnome-keyring-pam
+    # 1. Instalação declarativa do SDDM e Módulo PAM GNOME Keyring
+    install_packages_from_conf "${CONFIG_DIR}/packages-sddm.conf"
 
     # 2. Permissões de hardware para o usuário do sddm
     log_info "Configurando permissões de hardware (video, render, input) para o usuário sddm..."

@@ -37,22 +37,9 @@ if [[ -n "$CPU_UCODE_PKG" ]]; then
     sudo dnf install -y "$CPU_UCODE_PKG" || log_warn "Não foi possível instalar ${CPU_UCODE_PKG} (pode já estar incorporado)."
 fi
 
-# 2. Instalação dos Pacotes da Base do Sistema
+# 2. Instalação Declarativa dos Pacotes da Base do Sistema
 log_info "Instalando pacotes da infraestrutura base (Áudio, Rede, Energia, Impressão, Autenticação)..."
-BASE_PACKAGES="$(read_package_list "${INSTALLER_ROOT}/config/packages-base.conf")"
-
-if [[ -n "$BASE_PACKAGES" ]]; then
-    # shellcheck disable=SC2086
-    sudo dnf install -y $BASE_PACKAGES
-else
-    log_warn "Nenhum pacote encontrado em config/packages-base.conf."
-fi
-
-# Assegura explicitamente a instalação do módulo PAM do GNOME Keyring via DNF
-if ! rpm -q gnome-keyring-pam >/dev/null 2>&1; then
-    log_info "Garantindo a instalação do pacote gnome-keyring-pam via DNF..."
-    sudo dnf install -y gnome-keyring-pam
-fi
+install_packages_from_conf "${CONFIG_DIR}/packages-base.conf"
 
 # 3. Ativação dos Serviços Essenciais de Sistema
 log_info "Habilitando e iniciando serviços de hardware e conectividade..."
