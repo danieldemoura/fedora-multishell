@@ -110,6 +110,8 @@ Responsáveis pela sustentação de hardware, barramentos de sistema, subsistema
 | `sane-airscan` | Backend universal e estável de digitalização sem driver via protocolos eSCL e WSD (rede e USB). |
 | `flatpak` | Sistema universal de gerenciamento de pacotes isolados (sandboxed) para desktop. |
 | `dnf-plugins-core` | Conjunto de plugins fundamentais para expansão do gerenciador de pacotes DNF (`copr`, `config-manager`, etc.). |
+| `git` | Ferramenta de controle de versão essencial para clonagem de repositórios e gestão de código. |
+| `curl` | Utilitário de linha de comando para transferência de dados e download de arquivos com sintaxe de URL (HTTP/HTTPS/FTP). |
 
 ---
 
