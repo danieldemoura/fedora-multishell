@@ -24,6 +24,7 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
 ### 1.2 Infraestrutura como Código (IaC) e Organização Semântica de `config/`
 
 - **Regra de Ouro Arquitetural:** *Código procedural em scripts `.sh` gerencia exclusivamente fluxo, controle e lógica; dados, pacotes, dotfiles e modelos de configuração pertencem estritamente à pasta `config/`.*
+- **Exceções Justificadas e Únicas à Regra de Ouro:** bootstrap de repositórios (RPMs de release do RPM Fusion, `dnf-plugins-core`, `flatpak`, habilitação de COPRs) e escolha do microcódigo de CPU (`intel-microcode`/`amd-ucode-firmware`) podem aparecer inline nos módulos, pois *antecedem* a existência dos manifestos ou são selecionados condicionalmente pela arquitetura detectada em tempo de execução — escapam ao modelo de dados estático.
 - **Divisão Tripla da Pasta `config/`:**
   1. `config/packages/`: Manifestos declarativos `.conf` para gerenciar dependências do sistema e aplicações (DNF e Flatpak).
   2. `config/desktop/`: Configurações declarativas de interface e dotfiles do usuário aplicadas sob `~/.config/` (ex: `niri/config.kdl`, `umbriel/config.toml`).
@@ -44,9 +45,10 @@ Localizada em `lib/utils.sh`, a função padroniza o consumo de qualquer arquivo
 install_packages_from_conf() {
     local conf_file="$1"
     local extra_args="${2:-}"
-    
+
     if [[ ! -f "$conf_file" ]]; then
-        return 0
+        log_error "Manifesto declarativo não encontrado: ${conf_file}"
+        return 1
     fi
 
     local pkgs=()
@@ -66,6 +68,7 @@ install_packages_from_conf() {
 ```
 
 - **Características:**
+  - **Manifesto ausente é erro (não falha silenciosa):** um caminho digitado incorretamente registra `log_error` e retorna `1`, impedindo que uma camada inteira deixe de ser instalada sem aviso — preservando a auditabilidade IaC.
   - Ignora comentários inline ou linhas comentadas com `#`.
   - Ignora espaços e linhas vazias de forma defensiva.
   - Suporta argumentos adicionais do DNF (ex: `--exclude=alacritty`, `--allowerasing`).
@@ -122,6 +125,24 @@ set -euo pipefail
 - No Fedora, a partição `/tmp` é montada em memória RAM (`tmpfs`), sujeita a esgotamento de espaço em máquinas virtuais.
 - Downloads grandes, clonagens de repositórios ou compilações devem ser feitos na Home do usuário (`${REAL_HOME}`) e limpos após o uso.
 
+### 2.5 Validação de Entrada Interativa
+
+- Nenhum prompt de menu deve interpretar silenciosamente uma entrada inválida ou cair em um padrão implícito por omissão.
+- Toda leitura interativa usa os helpers de `lib/ui.sh`:
+  ```bash
+  ui_ask_choice "  Escolha uma opção: " "1" "1|2|3" shell_choice
+  ui_ask_yn  "  Deseja instalar drivers NVIDIA? " "n" install_nvidia
+  ```
+- Esses helpers rejeitam e reperguntam valores fora do conjunto aceito (loop de validação), assumindo o padrão somente quando o usuário pressiona Enter.
+
+### 2.6 Cadeia de Suprimentos (Supply Chain) de Binários Externos
+
+- Ao provisionar binários baixados da internet (ex: runtime Deno), o instalador deve:
+  1. Detectar a arquitetura do alvo (`uname -m`) em vez de assumir `x86_64`.
+  2. Baixar e **verificar o checksum SHA-256** publicado na release oficial antes de instalar.
+  3. Abortar com erro explícito (`exit 1`) se a verificação falhar ou a arquitetura não for suportada.
+- Pipelines `curl | sh` de terceiros são circunscritos ao usuário real (`sudo -u "${REAL_USER}"`) e sempre seguidos de reparo defensivo das configurações de sistema que possam sobrescrever.
+
 ---
 
 ## 3. Diretrizes de Autenticação, PAM e Segurança
@@ -129,6 +150,10 @@ set -euo pipefail
 1. **Permissões de Arquivos PAM:** Qualquer arquivo em `/etc/pam.d/` deve possuir estritamente posse `root:root` e permissão `644`.
 2. **Desbloqueio de Cofre de Senhas:** Todas as sessões gráficas (SDDM ou Greetd) devem implementar integração nativa com `pam_gnome_keyring.so` para evitar pop-ups de desbloqueio de senhas em navegadores.
 3. **Encapsulamento de Instaladores Externos:** Se um instalador terceiro (como `dankinstall` ou scripts externos) sobrescrever arquivos de sistema, o submódulo correspondente tem a obrigação de restaurar os templates de segurança antes de concluir sua execução (como efetuado em `modules/interfaces/danklinux.sh`).
+4. **Endurecimento do Drop-in Temporário de Sudoers:** A regra NOPASSWD temporária em `/etc/sudoers.d/` deve ser montada em `mktemp`, **validada com `sudo visudo -cf`** antes de qualquer instalação (sintaxe inválida aborta sem tocar `/etc/sudoers`), instalada com `sudo install -m 0440 -o root -g root` e removida por `trap` nos sinais `EXIT HUP INT TERM`. O instalador também remove drop-ins órfãos de execuções anteriores interrompidas (`kill -9`) para não deixar resquícios administrativos persistentes.
+5. **Log Fora de Diretórios Compartilhados:** O log de instalação reside em `${XDG_STATE_HOME:-~/.local/state}/fedora-multi-shell/install.log` (nunca em `/tmp` previsível), e o `log_init` recusa um alvo que já exista como link simbólico, mitigando ataques de symlink.
+6. **Proibição de `eval` sobre Dados de Usuário:** A resolução de `$HOME` e do usuário real usa `getent passwd` e a cadeia `${SUDO_USER:-${USER:-$(id -un)}}` — jamais `eval echo ~$user`, que permitiria injeção de código via nome de usuário controlável.
+
 
 ---
 
@@ -136,7 +161,7 @@ set -euo pipefail
 
 Para estender o projeto com uma nova interface:
 
-1. Crie o arquivo declarativo de dependências em `config/packages-<nome>.conf`.
+1. Crie o arquivo declarativo de dependências em `config/packages/<nome>.conf`.
 2. Adicione a opção no menu interativo em `install.sh`.
 3. Adicione os repositórios necessários em `modules/00_repos.sh`.
 4. Crie o submódulo de instalação em `modules/interfaces/<nome>.sh` consumindo o arquivo `.conf` via `install_packages_from_conf`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # fedora-multi-shell: install.sh
-# Ponto de entrada: checagens iniciais, menu interativo e orquestrador de módulos
+# Ponto de entrada: validações, menu interativo pt-BR e orquestrador de módulos
 # ==============================================================================
 set -euo pipefail
 
@@ -27,8 +27,20 @@ enable_error_trap
 # 3. Banner Visual
 ui_banner
 
-# 4. Verificação de Conectividade e Elevação de Privilégios Temporários (Sudoers)
+# 4. Verificação de Conectividade e Homologação da Release
 check_internet
+
+FEDORA_VER="$(rpm -E %fedora 2>/dev/null || echo 0)"
+log_info "Detectada distribuição: Fedora ${FEDORA_VER}"
+if [[ "${FEDORA_VER}" != "${TARGET_FEDORA_VERSION}" ]]; then
+    log_warn "Este instalador foi homologado para o Fedora ${TARGET_FEDORA_VERSION} (detectado: ${FEDORA_VER})."
+    log_warn "Nomes de pacotes, repositórios e versões podem divergir nessa release."
+    ui_ask_yn "  Deseja continuar mesmo assim? [s/N]: " "n" proceed_choice
+    if ! [[ "$proceed_choice" =~ ^[sSyY]$ ]]; then
+        log_warn "Operação cancelada pelo usuário. Nenhuma alteração foi realizada no sistema."
+        exit 0
+    fi
+fi
 
 log_info "Verificando privilégios administrativos (sudo)..."
 if ! sudo -v; then
@@ -37,28 +49,42 @@ if ! sudo -v; then
 fi
 
 REAL_USER="$(get_real_user)"
-SUDOERS_TEMP="/etc/sudoers.d/99-fedora-installer-temp"
+if [[ -z "${REAL_USER}" ]]; then
+    log_error "Não foi possível identificar o usuário real (variáveis USER/SUDO_USER ausentes)."
+    exit 1
+fi
 
-cleanup_installer() {
-    local exit_code=$?
-    if [[ -f "${SUDOERS_TEMP:-}" ]]; then
-        sudo rm -f "${SUDOERS_TEMP}" 2>/dev/null || true
-    fi
-    exit "${exit_code}"
-}
-trap cleanup_installer EXIT INT TERM
+SUDOERS_TEMP="/etc/sudoers.d/99-fedora-installer-temp"
+SUDOERS_BUILD_TMP=""
+
+# Regra de sudoers temporária:
+# - Drop-in órfão de execução anterior morta por SIGKILL/queda é removido antes;
+# - A regra é validada sintaticamente com visudo -cf antes de entrar em /etc;
+# - O trap (EXIT HUP INT TERM) autodestrói a regra no encerramento.
+if sudo test -f "${SUDOERS_TEMP}"; then
+    log_warn "Removendo regra temporária de sudoers órfã de uma instalação anterior."
+    sudo rm -f "${SUDOERS_TEMP}"
+fi
+
+trap 'cleanup_installer' EXIT HUP INT TERM
 
 log_info "Habilitando privilégios temporários sem senha para a instalação..."
-echo "${REAL_USER} ALL=(ALL) NOPASSWD: ALL" | sudo tee "${SUDOERS_TEMP}" >/dev/null
-sudo chmod 0440 "${SUDOERS_TEMP}"
+SUDOERS_BUILD_TMP="$(mktemp)"
+printf '%s ALL=(ALL) NOPASSWD: ALL\n' "${REAL_USER}" > "${SUDOERS_BUILD_TMP}"
+if ! sudo visudo -cf "${SUDOERS_BUILD_TMP}" >/dev/null 2>&1; then
+    log_error "Regra de sudoers temporária inválida gerada para o usuário '${REAL_USER}'. Abortando."
+    exit 1
+fi
+sudo install -m 0440 -o root -g root "${SUDOERS_BUILD_TMP}" "${SUDOERS_TEMP}"
+rm -f "${SUDOERS_BUILD_TMP}"
+SUDOERS_BUILD_TMP=""
 
 # 5. Menu Interativo - Pergunta 1: Seleção de Ambiente
 ui_section_header "SELEÇÃO DO AMBIENTE DE INSTALAÇÃO"
 echo "  [1] Máquina Física (Bare Metal / Notebook / PC)"
 echo "  [2] Máquina Virtual (VMware / VirtualBox / QEMU-KVM)"
 echo ""
-read -r -p "  Escolha uma opção: " env_choice
-env_choice="${env_choice:-1}"
+ui_ask_choice "  Escolha uma opção: " "1" "1|2" env_choice
 
 if [[ "$env_choice" == "2" ]]; then
     IS_VM=true
@@ -74,8 +100,7 @@ echo "  [1] iNiR Shell"
 echo "  [2] Noctalia Shell"
 echo "  [3] DankMaterialShell"
 echo ""
-read -r -p "  Escolha uma opção: " shell_choice
-shell_choice="${shell_choice:-1}"
+ui_ask_choice "  Escolha uma opção: " "1" "1|2|3" shell_choice
 
 if [[ "$shell_choice" == "2" ]]; then
     SELECTED_INTERFACE="noctalia"
@@ -87,8 +112,7 @@ if [[ "$shell_choice" == "2" ]]; then
     echo "    [1] Niri (Rolagem horizontal contínua de janelas)"
     echo "    [2] Umbriel (Rolagem e múltiplos modos de janelas)"
     echo ""
-    read -r -p "  Escolha uma opção: " comp_choice
-    comp_choice="${comp_choice:-1}"
+    ui_ask_choice "  Escolha uma opção: " "1" "1|2" comp_choice
 
     if [[ "$comp_choice" == "2" ]]; then
         SELECTED_COMPOSITOR="umbriel"
@@ -118,8 +142,7 @@ if [[ "$IS_VM" == true ]]; then
     GPU_DESC="Mesa / Software Emulation"
 else
     ui_section_header "DRIVER DE VÍDEO DEDICADO (NVIDIA)"
-    read -r -p "  Deseja instalar os drivers proprietários da NVIDIA? [s/N]: " nvidia_choice
-    nvidia_choice="${nvidia_choice:-n}"
+    ui_ask_yn "  Deseja instalar os drivers proprietários da NVIDIA? [s/N]: " "n" nvidia_choice
 
     if [[ "$nvidia_choice" =~ ^[sSyY]$ ]]; then
         INSTALL_NVIDIA=true
@@ -134,8 +157,7 @@ fi
 
 # Menu Interativo - Pergunta 4: Configuração de Teclado
 ui_section_header "CONFIGURAÇÃO DE TECLADO"
-read -r -p "  Deseja configurar o padrão Brasileiro ABNT2 (com tecla ç)? [S/n]: " kbd_choice
-kbd_choice="${kbd_choice:-s}"
+ui_ask_yn "  Deseja configurar o padrão Brasileiro ABNT2 (com tecla ç)? [S/n]: " "s" kbd_choice
 
 if [[ "$kbd_choice" =~ ^[sSyY]$ ]]; then
     KEYBOARD_ABNT2=true
@@ -157,8 +179,7 @@ export LOG_FILE
 # 6. Resumo e Confirmação de Instalação
 ui_summary_box "$ENV_DESC" "$SHELL_DESC" "$COMP_DESC" "$GPU_DESC" "$KBD_DESC"
 
-read -r -p "  Deseja iniciar a instalação com estas definições? [S/n]: " confirm_install
-confirm_install="${confirm_install:-s}"
+ui_ask_yn "  Deseja iniciar a instalação com estas definições? [S/n]: " "s" confirm_install
 
 if [[ ! "$confirm_install" =~ ^[sSyY]$ ]]; then
     echo ""
@@ -219,8 +240,7 @@ fi
 
 echo -e "  Seu sistema está pronto para inicializar na interface ${CLR_BOLD}${SHELL_DESC} (${COMP_DESC})${CLR_RESET}."
 echo ""
-read -r -p "  Deseja reiniciar o sistema agora? [S/n]: " reboot_choice
-reboot_choice="${reboot_choice:-s}"
+ui_ask_yn "  Deseja reiniciar o sistema agora? [S/n]: " "s" reboot_choice
 
 if [[ "$reboot_choice" =~ ^[sSyY]$ ]]; then
     log_info "Reiniciando o sistema..."

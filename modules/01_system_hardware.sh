@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/01_system_hardware.sh
+# fedora-multi-shell: modules/01_system_hardware.sh
 # Instalação de firmwares, microcódigos, som (PipeWire), energia (Tuned) e rede
 # ==============================================================================
 set -euo pipefail
@@ -34,6 +34,8 @@ else
 fi
 
 if [[ -n "$CPU_UCODE_PKG" ]]; then
+    # Exceção justificada à regra IaC: a escolha do microcódigo é condicional à
+    # arquitetura da CPU detectada em runtime, algo não expressível em manifesto estático.
     sudo dnf install -y "$CPU_UCODE_PKG" || log_warn "Não foi possível instalar ${CPU_UCODE_PKG} (pode já estar incorporado)."
 fi
 

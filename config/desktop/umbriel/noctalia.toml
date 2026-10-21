@@ -1,0 +1,10 @@
+# ==============================================================================
+# fedora-multi-shell: config/desktop/umbriel/noctalia.toml
+#
+# Arquivo OPCIONAL intencionalmente vazio, incluído pelo config.toml via
+# [include.optional] files = ["noctalia.toml"].
+#
+# Use este espaço para customizações locais de paleta de cores, regras de
+# janela e efeitos do Noctalia/Umbriel sem editar o config.toml principal
+# (que é sobrescrito pelo instalador em reexecuções).
+# ==============================================================================

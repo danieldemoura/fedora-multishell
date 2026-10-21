@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: lib/utils.sh
-# Funções utilitárias: validações, sudo keepalive, permissões e manipulação segura
+# fedora-multi-shell: lib/utils.sh
+# Funções utilitárias: validações, permissões e manipulação segura de manifests
 # ==============================================================================
-
-SUDO_KEEPALIVE_PID=""
 
 # Impede a execução direta do script como root (Segurança / Seção 1.2 da especificação)
 check_not_root() {
@@ -16,16 +14,24 @@ check_not_root() {
     fi
 }
 
-# Obtém o usuário real e o diretório home correspondente
+# Obtém o usuário real (preservando o contexto SUDO_USER quando aplicável)
 get_real_user() {
-    local target_user="${SUDO_USER:-${USER}}"
+    local target_user="${SUDO_USER:-${USER:-$(id -un)}}"
     echo "$target_user"
 }
 
+# Resolve a home do usuário real via base de contas (getent), sem eval:
+# eval sobre nome de usuário permitiria injeção de código via $USER/$SUDO_USER.
 get_real_user_home() {
-    local target_user
+    local target_user home
     target_user="$(get_real_user)"
-    eval echo "~${target_user}"
+    home="$(getent passwd "$target_user" | cut -d: -f6)"
+
+    if [[ -z "$home" ]]; then
+        log_error "Não foi possível resolver o diretório home do usuário '${target_user}'."
+        return 1
+    fi
+    echo "$home"
 }
 
 # Garante que arquivos criados pertençam ao usuário comum, nunca a root:root
@@ -39,40 +45,14 @@ ensure_user_ownership() {
     fi
 }
 
-# Inicializa validação do sudo e dispara loop de keepalive em background
-start_sudo_keepalive() {
-    log_info "Verificando privilégios administrativos (sudo)..."
-    if ! sudo -v; then
-        log_error "Falha ao obter privilégios de sudo. O usuário atual deve pertencer ao grupo wheel."
-        exit 1
-    fi
-
-    # Loop de keepalive em segundo plano atualizando o timestamp do sudo a cada 50s
-    (
-        while true; do
-            sudo -n true 2>/dev/null
-            sleep 50
-            kill -0 "$$" 2>/dev/null || exit
-        done
-    ) &
-    SUDO_KEEPALIVE_PID=$!
-    log_info "Sudo keepalive ativado (PID: ${SUDO_KEEPALIVE_PID})."
-}
-
-# Finaliza o processo de keepalive do sudo (se ativo)
-stop_sudo_keepalive() {
-    if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]] && kill -0 "${SUDO_KEEPALIVE_PID}" 2>/dev/null; then
-        kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
-        wait "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
-        SUDO_KEEPALIVE_PID=""
-    fi
-}
-
-# Limpeza geral de encerramento do script (remove regra temporária do sudoers e para keepalive residual)
+# Limpeza global de encerramento do script (usada pelo trap de install.sh).
+# Remove o drop-in temporário de sudoers e artefatos de build residuais.
 cleanup_installer() {
     local exit_code=$?
-    stop_sudo_keepalive
-    if [[ -f "${SUDOERS_TEMP:-}" ]]; then
+    if [[ -n "${SUDOERS_BUILD_TMP:-}" ]]; then
+        rm -f "${SUDOERS_BUILD_TMP}" 2>/dev/null || true
+    fi
+    if [[ -n "${SUDOERS_TEMP:-}" ]]; then
         sudo rm -f "${SUDOERS_TEMP}" 2>/dev/null || true
     fi
     exit "${exit_code}"
@@ -104,34 +84,6 @@ check_internet() {
     log_success "Conectividade com a internet confirmada."
 }
 
-# Lê lista de pacotes de um arquivo .conf (ignora linhas vazias e comentários)
-read_package_list() {
-    local conf_file="$1"
-    if [[ ! -f "$conf_file" ]]; then
-        log_error "Arquivo de lista de pacotes não encontrado: $conf_file"
-        return 1
-    fi
-
-    grep -E -v '^[[:space:]]*#' "$conf_file" | grep -E -v '^[[:space:]]*$' | tr '\n' ' '
-}
-
-# Insere linha de forma idempotente em arquivo se não existir
-append_if_missing() {
-    local file="$1"
-    local line="$2"
-    local use_sudo="${3:-false}"
-
-    if [[ "$use_sudo" == true ]]; then
-        if ! sudo grep -qF "$line" "$file" 2>/dev/null; then
-            echo "$line" | sudo tee -a "$file" >/dev/null
-        fi
-    else
-        if ! grep -qF "$line" "$file" 2>/dev/null; then
-            echo "$line" >> "$file"
-        fi
-    fi
-}
-
 # Cria backup seguro do arquivo apenas se não houver um backup prévio
 backup_file() {
     local file="$1"
@@ -147,13 +99,16 @@ backup_file() {
     fi
 }
 
-# Instala pacotes declarados em arquivo .conf (ignora linhas vazias e comentários #)
+# Instala pacotes declarados em arquivo .conf (ignora linhas vazias e comentários #).
+# Manifesto ausente é tratado como ERRO: um typo de caminho não pode silenciar
+# a instalação de uma camada inteira (auditabilidade IaC / Seção 1.2 da especificação).
 install_packages_from_conf() {
     local conf_file="$1"
     local extra_args="${2:-}"
-    
+
     if [[ ! -f "$conf_file" ]]; then
-        return 0
+        log_error "Manifesto declarativo não encontrado: ${conf_file}"
+        return 1
     fi
 
     local pkgs=()
@@ -170,4 +125,3 @@ install_packages_from_conf() {
         sudo dnf install -y ${extra_args} "${pkgs[@]}"
     fi
 }
-

@@ -130,7 +130,8 @@ window-rule {
 binds {
     // --- Aplicativos e sessão ---
     Mod+Return repeat=false { spawn "kitty"; }
-    // "Mod" sozinho não é suportado no niri; usando Mod+D para o launcher
+    // "Mod" sozinho não é suportado no niri; usando Mod+Space para o launcher
+    // (equivale ao launcher do Umbriel; no Umbriel, Mod+Space abre o scratchpad)
     Mod+space { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     Mod+Q repeat=false { close-window; }
     Mod+Shift+Escape allow-inhibiting=false repeat=false { toggle-keyboard-shortcuts-inhibit; }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: lib/ui.sh
-# Funções de renderização visual, formatação ANSI e avisos visuais
+# fedora-multi-shell: lib/ui.sh
+# Funções de renderização visual, formatação ANSI, prompts validados e avisos
 # ==============================================================================
 
 # Cores e Estilos ANSI
@@ -28,7 +28,7 @@ ui_banner() {
     echo "  ██║     ███████╗██████╔╝╚██████╔╝██║  ██║██║  ██║"
     echo "  ╚═╝     ╚══════╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝"
     echo -e "${CLR_RESET}"
-    echo -e "  ${CLR_DIM}Fedora 44 Minimal | Pure Wayland | Out-of-the-box${CLR_RESET}"
+    echo -e "  ${CLR_DIM}Fedora ${TARGET_FEDORA_VERSION:-44} Minimal | Pure Wayland | Out-of-the-box${CLR_RESET}"
     echo ""
 }
 
@@ -39,6 +39,46 @@ ui_section_header() {
     echo -e "${CLR_CYAN}┌─────────────────────────────────────────────────────────┐${CLR_RESET}"
     printf "${CLR_CYAN}│ %-55s │${CLR_RESET}\n" "$title"
     echo -e "${CLR_CYAN}└─────────────────────────────────────────────────────────┘${CLR_RESET}"
+}
+
+# Prompt numérico com validação rigorosa (repergunta até opção válida).
+# Uso: ui_ask_choice "prompt: " <padrão> <regex_opções> <variável_resultado>
+# Convenção Unix: Enter vazio assume a opção padrão informada.
+ui_ask_choice() {
+    local prompt="$1"
+    local default="$2"
+    local allowed_regex="$3"
+    local result_var="$4"
+    local choice
+
+    while true; do
+        read -r -p "$prompt" choice || choice=""
+        choice="${choice:-$default}"
+        if [[ "$choice" =~ ^(${allowed_regex})$ ]]; then
+            printf -v "$result_var" '%s' "$choice"
+            return 0
+        fi
+        echo -e "${CLR_RED}  Opção inválida: '${choice}'.${CLR_RESET}" >&2
+    done
+}
+
+# Prompt sim/não com validação (letra maiúscula indica a padrão, convenção Unix).
+# Uso: ui_ask_yn "prompt [S/n]: " <s|n> <variável_resultado>
+ui_ask_yn() {
+    local prompt="$1"
+    local default="$2"
+    local result_var="$3"
+    local choice
+
+    while true; do
+        read -r -p "$prompt" choice || choice=""
+        choice="${choice:-$default}"
+        if [[ "$choice" =~ ^[sSnNyY]$ ]]; then
+            printf -v "$result_var" '%s' "$choice"
+            return 0
+        fi
+        echo -e "${CLR_RED}  Responda com [s]im ou [n]ão.${CLR_RESET}" >&2
+    done
 }
 
 # Funções de Mensagem Padronizadas

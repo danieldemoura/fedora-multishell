@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/06_desktop_shell.sh
+# fedora-multi-shell: modules/06_desktop_interface.sh
 # Roteador / Despachante da Camada de Desktop Shell
 # ==============================================================================
 set -euo pipefail

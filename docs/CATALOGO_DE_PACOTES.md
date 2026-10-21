@@ -26,6 +26,7 @@ A arquitetura do instalador opera sob rigorosa transparência técnica, modulari
    - [Display Manager Greetd (`config/packages/greetd.conf`)](#9-display-manager-greetd-configpackagesgreetdconf)
    - [Display Manager SDDM (`config/packages/sddm.conf`)](#10-display-manager-sddm-configpackagessddmconf)
    - [Navegador Brave Browser (`config/packages/brave.conf`)](#11-navegador-brave-browser-configpackagesbraveconf)
+   - [Pilha Gráfica Aberta Mesa (`config/packages/mesa.conf`)](#12-pilha-gráfica-aberta-mesa-configpackagesmesaconf)
 3. [Categoria B: Serviços e Portais Dinâmicos](#-categoria-b-serviços-e-portais-dinâmicos)
 4. [Categoria C: Ecossistemas e Componentes de Scripts de Terceiros](#-categoria-c-ecossistemas-e-componentes-de-scripts-de-terceiros)
 5. [Guia de Contribuição: Como Sugerir Novos Pacotes](#-guia-de-contribuição-como-sugerir-novos-pacotes)
@@ -62,8 +63,8 @@ Responsáveis pela sustentação de hardware, barramentos de sistema, subsistema
 | :--- | :--- |
 | `@hardware-support` | Meta-grupo de pacotes oficial do Fedora fornecendo firmwares de suporte universal para processadores e chipsets (Intel, AMD, Realtek, Broadcom, MediaTek). |
 | `open-vm-tools` | Módulos e daemons de integração para Máquinas Virtuais (VMware, VirtualBox, KVM/QEMU), viabilizando redimensionamento automático de tela e sincronização de área de transferência. |
-| `python3.12` | Interpretador Python na versão compatível com a suíte de scripts de automação e integração de desktop. |
-| `python3.12-devel` | Cabeçalhos e bibliotecas de desenvolvimento do Python 3.12, necessários para compilar extensões nativas em C/Rust. |
+| `python3` | Interpretador Python na versão padrão da release do Fedora (não pinada), compatível com a suíte de scripts de automação e integração de desktop. |
+| `python3-devel` | Cabeçalhos e bibliotecas de desenvolvimento do Python padrão do Fedora, necessários para compilar extensões nativas em C/Rust. |
 | `cairo-devel` | Arquivos de desenvolvimento da biblioteca gráfica de renderização vetorial 2D Cairo. |
 | `cairo-gobject-devel` | Integração da biblioteca Cairo com o sistema de objetos GObject do ecossistema GNOME/GTK. |
 | `gobject-introspection-devel` | Metadados e cabeçalhos para geração de bindings dinâmicos de linguagens para bibliotecas baseadas em GObject (essencial para scripts de shell e widgets). |
@@ -98,7 +99,6 @@ Responsáveis pela sustentação de hardware, barramentos de sistema, subsistema
 | `xdg-desktop-portal-gnome` | Implementação do portal GNOME exigida para captura de tela e ScreenCast via PipeWire no compositor Niri. |
 | `xdg-user-dirs` | Utilitário para padronização e criação localizada dos diretórios especiais do usuário (`Downloads`, `Documentos`, `Música`, etc.). |
 | `xdg-utils` | Conjunto de ferramentas de linha de comando para integração ao ambiente desktop (`xdg-open`, `xdg-mime`, etc.). |
-| `switcheroo-control` | Serviço D-Bus para acoplamento dinâmico e alternância de renderização em arquiteturas com placas gráficas híbridas (PRIME). |
 | `@printing` | Grupo de pacotes de infraestrutura de impressão do Fedora, instalando o servidor CUPS e filtros base. |
 | `cups-browsed` | Daemon para descoberta automática de impressoras compartilhadas via rede local. |
 | `ipp-usb` | Daemon que expõe dispositivos IPP-over-USB locais como servidores HTTP na rede loopback, dispensando drivers proprietários. |
@@ -273,6 +273,20 @@ Manifesto de instalação declarativa do navegador web principal:
 
 ---
 
+### 12. Pilha Gráfica Aberta Mesa (`config/packages/mesa.conf`)
+
+Aceleração gráfica aberta (Intel/AMD/Nouveau) provisionada pelo Módulo 02. Em Máquinas Virtuais, a instalação é restrita à base DRI/Vulkan com `--exclude=switcheroo-control --exclude=mesa-va-drivers-freeworld`:
+
+| Pacote | Função e Justificativa Técnica |
+| :--- | :--- |
+| `mesa-dri-drivers` | Conjuntos de drivers DRI de código aberto para renderização OpenGL em Intel, AMD (Radeon) e NVIDIA (Nouveau). |
+| `mesa-vulkan-drivers` | Drivers Vulkan da mesa RADV (AMD) e ANV/Intel para renderização gráfica de baixa sobrecarga. |
+| `mesa-va-drivers-freeworld` | Drivers VA-API da Mesa com decodificação por hardware habilitada para H.264, H.265 e VC-1 (RPM Fusion). |
+| `libva-utils` | Utilitários de diagnóstico (`vainfo`) para inspecionar entrypoints e perfis VA-API disponíveis. |
+| `switcheroo-control` | Serviço D-Bus para hibridação e alternância dinâmica de GPU (PRIME) em laptops com duas placas de vídeo. |
+
+---
+
 ## ⚙️ Categoria B: Serviços e Portais Dinâmicos
 
 Os itens desta seção não são pacotes avulsos com nomes fixos em scripts procedurais, mas serviços, regras de sistema e configurações ativadas dinamicamente:
@@ -308,7 +322,7 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
 - **Origem:** Repositório oficial Git `snowarch/inir` clonado em `~/.config/inir`.
 - **Script do Instalador:** `modules/interfaces/inir.sh`
 - **Componentes e Runtimes Provisionados:**
-  - **Runtime Deno Oficial:** O executável nativo do `deno` é obtido via release oficial do GitHub (`denoland/deno`) e instalado em `/usr/local/bin/deno` com permissões de execução para sustentar os daemons JavaScript/TypeScript do shell.
+  - **Runtime Deno Oficial:** O executável nativo do `deno` é obtido via release oficial do GitHub (`denoland/deno`), com alvo de arquitetura detectado por `uname -m` (x86_64/aarch64) e **verificação de integridade via checksum SHA-256** publicado na própria release antes da instalação em `/usr/local/bin/deno`, sustentando os daemons JavaScript/TypeScript do shell.
   - **Widgets e Setup iNiR:** Compilação e linking dos componentes visuais executado via `./setup install -y` diretamente sob a sessão do usuário real.
 
 ---
@@ -327,6 +341,7 @@ Para manter o sistema limpo, previsível e fácil de auditar, siga estas etapas 
    - `config/packages/greetd.conf`: Para componentes base do Display Manager Greetd.
    - `config/packages/sddm.conf`: Para componentes base do Display Manager SDDM.
    - `config/packages/brave.conf`: Para manifesto do navegador Brave Browser.
+   - `config/packages/mesa.conf`: Para drivers e utilitários da pilha gráfica aberta Mesa (DRI/Vulkan/VA-API/PRIME).
    - `config/packages/nvidia.conf`: Para componentes exclusivos do ecossistema NVIDIA proprietário.
    - `config/packages/flatpak.conf`: Para aplicações gráficas de usuário disponíveis no Flathub.
 

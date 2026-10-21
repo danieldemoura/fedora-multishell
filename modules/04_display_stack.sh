@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/04_display_stack.sh
+# fedora-multi-shell: modules/04_display_stack.sh
 # Instalação e configuração do SDDM e PAM Keyring
 # ==============================================================================
 set -euo pipefail
@@ -22,7 +22,6 @@ SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
 SELECTED_SHELL="${SELECTED_INTERFACE}"
 IS_VM="${IS_VM:-false}"
 REAL_USER="$(get_real_user)"
-TEMPLATES_DIR="${TEMPLATES_DIR:-${INSTALLER_ROOT}/templates}"
 
 if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =~ ^(danklinux|noctalia)$ ]]; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
@@ -130,7 +129,9 @@ else
     if [[ -f "$PAM_SDDM" ]]; then
         backup_file "$PAM_SDDM" true
         
-        # Injeta 'auth optional pam_gnome_keyring.so' se não presente
+        # Injeta 'auth optional pam_gnome_keyring.so' se não presente.
+        # O awk lê o arquivo ATUAL (não o .bak): em reexecuções, o .bak pode ser
+        # um snapshot antigo de outra sessão e restaurá-lo perderia alterações.
         if ! sudo grep -q "pam_gnome_keyring.so" "$PAM_SDDM"; then
             sudo awk '
                 BEGIN { auth_added=0; sess_added=0 }
@@ -147,7 +148,8 @@ else
                     next
                 }
                 { print }
-            ' "${PAM_SDDM}.bak" | sudo tee "$PAM_SDDM" >/dev/null
+            ' "$PAM_SDDM" | sudo tee "${PAM_SDDM}.multishell.tmp" >/dev/null
+            sudo mv -f "${PAM_SDDM}.multishell.tmp" "$PAM_SDDM"
             log_success "Diretivas do pam_gnome_keyring.so injetadas em ${PAM_SDDM}."
         else
             log_info "pam_gnome_keyring.so já configurado em ${PAM_SDDM}."

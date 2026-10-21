@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/shells/noctalia.sh
+# fedora-multi-shell: modules/interfaces/noctalia.sh
 # Submódulo: Provedor do Desktop Shell Noctalia (C++/Qt)
 # ==============================================================================
 set -euo pipefail

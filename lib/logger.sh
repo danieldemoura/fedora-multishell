@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: lib/logger.sh
+# fedora-multi-shell: lib/logger.sh
 # Funções de logging com timestamp e captura de erros
 # ==============================================================================
 
-LOG_FILE="${LOG_FILE:-/tmp/fedora-multi-shell.log}"
+LOG_FILE="${LOG_FILE:-${XDG_STATE_HOME:-${HOME:-/tmp}/.local/state}/fedora-multi-shell/install.log}"
 
 # Inicializa o arquivo de log com cabeçalho de sistema
 log_init() {
     local target_file="${LOG_FILE}"
+
+    # Defesa contra symlink pré-criado (ex.: ataque clássico em /tmp compartilhado)
+    if [[ -L "$target_file" ]]; then
+        rm -f "$target_file"
+    fi
     mkdir -p "$(dirname "$target_file")"
     
     {

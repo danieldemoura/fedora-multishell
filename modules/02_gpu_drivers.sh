@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/02_gpu_drivers.sh
+# fedora-multi-shell: modules/02_gpu_drivers.sh
 # Instalação dos drivers gráficos (Mesa livre ou NVIDIA proprietário com akmods)
 # ==============================================================================
 set -euo pipefail
@@ -21,20 +21,18 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ui_section_header "MÓDULO 02: DRIVERS GRÁFICOS E GPU"
 
 # Checagem de isolamento para Máquinas Virtuais (VM)
+# Em VM instala-se apenas a base Mesa (útil para virtio-GPU/3D acceleration),
+# excluindo VA-API freeworld e switcheroo-control (GPU híbrida não existe em VM).
 if [[ "${IS_VM:-false}" == true ]]; then
-    log_info "Ambiente de Máquina Virtual detectado. Drivers de GPU dedicada e híbrida (switcheroo-control, VA-API) foram ignorados na VM."
+    log_info "Ambiente de Máquina Virtual detectado. Instalando apenas a base Mesa (DRI/Vulkan), sem drivers de GPU dedicada."
+    install_packages_from_conf "${PACKAGES_DIR}/mesa.conf" "--exclude=switcheroo-control --exclude=mesa-va-drivers-freeworld"
     log_success "Módulo 02 (Drivers Gráficos) concluído (modo VM)."
     return 0 2>/dev/null || exit 0
 fi
 
 # 1. Instalação dos Drivers Livres Mesa (Base universal para todas as máquinas físicas)
 log_info "Instalando pilha de aceleração gráfica aberta (Mesa DRI/Vulkan/VA-API)..."
-sudo dnf install -y \
-    mesa-dri-drivers \
-    mesa-vulkan-drivers \
-    mesa-va-drivers-freeworld \
-    libva-utils \
-    switcheroo-control
+install_packages_from_conf "${PACKAGES_DIR}/mesa.conf"
 
 if systemctl list-unit-files | grep -q "switcheroo-control.service"; then
     sudo systemctl enable --now switcheroo-control.service || log_warn "Aviso ao ativar switcheroo-control."
@@ -42,9 +40,7 @@ fi
 log_success "Drivers livres Mesa e switcheroo-control configurados."
 
 # 2. Ramo Condicional: Drivers Proprietários NVIDIA
-if [[ "${IS_VM:-false}" == true ]]; then
-    log_info "Ambiente de Máquina Virtual detectado. Pulando instalação de drivers proprietários NVIDIA."
-elif [[ "${INSTALL_NVIDIA:-false}" == true ]]; then
+if [[ "${INSTALL_NVIDIA:-false}" == true ]]; then
     log_warn "Iniciando instalação da pilha proprietária NVIDIA (akmod-nvidia)..."
     NVIDIA_CONF="${PACKAGES_DIR}/nvidia.conf"
     if [[ -f "$NVIDIA_CONF" ]]; then

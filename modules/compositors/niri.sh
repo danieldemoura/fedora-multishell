@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/compositors/niri.sh
+# fedora-multi-shell: modules/compositors/niri.sh
 # Submódulo: Instalação do Compositor Niri, Xwayland-satellite e Portais XDG
 # ==============================================================================
 set -euo pipefail

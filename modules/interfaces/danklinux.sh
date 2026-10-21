@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/interfaces/danklinux.sh
+# fedora-multi-shell: modules/interfaces/danklinux.sh
 # Submódulo: Provedor e instalador do DankMaterialShell (DMS) via dankinstall
 # ==============================================================================
 set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-TEMPLATES_DIR="${TEMPLATES_DIR:-${INSTALLER_ROOT}/templates}"
 
 REAL_USER="$(get_real_user)"
 REAL_HOME="$(get_real_user_home)"

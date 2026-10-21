@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/compositors/umbriel.sh
+# fedora-multi-shell: modules/compositors/umbriel.sh
 # Submódulo: Instalação do Compositor Umbriel, Xwayland-satellite e Portais XDG
 # ==============================================================================
 set -euo pipefail

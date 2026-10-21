@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/shells/inir.sh
+# fedora-multi-shell: modules/interfaces/inir.sh
 # Submódulo: Provedor e compilador do Desktop Shell iNiR
 # ==============================================================================
 set -euo pipefail
@@ -12,14 +12,41 @@ REAL_HOME="$(get_real_user_home)"
 install_packages_from_conf "${PACKAGES_DIR}/inir.conf"
 
 # 2. Provisionamento defensivo do runtime Deno em /usr/local/bin/deno
-# Baixado diretamente no $REAL_HOME para não esgotar blocos/inodes na tmpfs do /tmp
+# Baixado diretamente no $REAL_HOME para não esgotar blocos/inodes na tmpfs do /tmp.
+# O alvo de arquitetura é detectado via `uname -m` e o binário é validado contra
+# o checksum SHA-256 publicado na própria release oficial do Deno.
 if ! command -v deno &>/dev/null; then
     log_info "Provisionando defensivamente o binário oficial do Deno..."
+    DENO_ARCH="$(uname -m)"
+    case "${DENO_ARCH}" in
+        x86_64)  DENO_TARGET="x86_64-unknown-linux-gnu" ;;
+        aarch64) DENO_TARGET="aarch64-unknown-linux-gnu" ;;
+        *)
+            log_error "Arquitetura '${DENO_ARCH}' não suportada para o runtime Deno oficial."
+            exit 1
+            ;;
+    esac
+
+    DENO_ASSET="deno-${DENO_TARGET}.zip"
+    DENO_BASE_URL="https://github.com/denoland/deno/releases/latest/download"
     DENO_TMP_ZIP="${REAL_HOME}/deno-install-temp.zip"
-    curl -fsSL "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip" -o "${DENO_TMP_ZIP}"
+    DENO_TMP_SHA="${REAL_HOME}/deno-install-temp.zip.sha256"
+
+    curl -fsSL "${DENO_BASE_URL}/${DENO_ASSET}" -o "${DENO_TMP_ZIP}"
+    curl -fsSL "${DENO_BASE_URL}/${DENO_ASSET}.sha256" -o "${DENO_TMP_SHA}"
+
+    DENO_EXPECTED_SHA="$(grep -Eo '[a-fA-F0-9]{64}' "${DENO_TMP_SHA}" | head -n1)"
+    DENO_ACTUAL_SHA="$(sha256sum "${DENO_TMP_ZIP}" | cut -d' ' -f1)"
+    if [[ -z "${DENO_EXPECTED_SHA}" ]] || [[ "${DENO_EXPECTED_SHA}" != "${DENO_ACTUAL_SHA}" ]]; then
+        log_error "Verificação de integridade (SHA-256) do Deno falhou. Abortando instalação do iNiR."
+        rm -f "${DENO_TMP_ZIP}" "${DENO_TMP_SHA}"
+        exit 1
+    fi
+    log_info "Checksum SHA-256 do Deno confirmado."
+
     sudo unzip -o "${DENO_TMP_ZIP}" -d /usr/local/bin/
     sudo chmod +x /usr/local/bin/deno
-    rm -f "${DENO_TMP_ZIP}"
+    rm -f "${DENO_TMP_ZIP}" "${DENO_TMP_SHA}"
     log_success "Deno $(/usr/local/bin/deno --version | head -n1) instalado com sucesso em /usr/local/bin/deno."
 else
     log_info "Runtime Deno já detectado no sistema: $(deno --version | head -n1)"

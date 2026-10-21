@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/05_compositor.sh
+# fedora-multi-shell: modules/05_compositor.sh
 # Roteador / Despachante da Camada de Compositor Wayland
 # ==============================================================================
 set -euo pipefail
@@ -19,8 +19,6 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
 
 ui_section_header "MÓDULO 05: COMPOSITOR WAYLAND"
-
-
 
 # Despachante modular (Padrão Strategy)
 SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-niri}"

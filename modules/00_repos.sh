@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/00_repos.sh
+# fedora-multi-shell: modules/00_repos.sh
 # Configuração e ativação de repositórios oficiais e de terceiros (RPM Fusion, COPRs, Brave, Flathub)
 # ==============================================================================
 set -euo pipefail
@@ -65,14 +65,22 @@ if [[ "${SELECTED_SHELL:-}" == "noctalia" || "${SELECTED_INTERFACE:-}" == "nocta
     if rpm -q terra-release >/dev/null 2>&1 || ls /etc/yum.repos.d/*terra*.repo >/dev/null 2>&1; then
         log_info "Repositório Terra do Fyra Labs já está configurado. Pulando..."
     else
-        log_info "Instalando pacotes de repositório Terra (terra-release e terra-gpg-keys)..."
-        sudo dnf install -y --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' \
-            terra-release terra-gpg-keys || {
+        # O --nogpgcheck abaixo é o bootstrap OFICIAL documentado pela Fyra Labs
+        # (https://docs.terrapkg.com/usage/installing): necessário apenas para
+        # instalar terra-release/terra-gpg-keys (ovo-e-galinha da chave GPG).
+        # Ele é estritamente restrito a esses dois pacotes; toda instalação
+        # posterior do Terra é assinada e verificada normalmente.
+        log_info "Instalando pacotes de bootstrap do repositório Terra (terra-release e terra-gpg-keys)..."
+        if ! sudo dnf install -y --nogpgcheck --repofrompath "terra,${REPO_TERRA_URL}" \
+            terra-release terra-gpg-keys; then
             log_warn "Tentativa via repofrompath falhou. Tentando download direto dos pacotes RPM do Terra..."
-            sudo dnf install -y \
+            if ! sudo dnf install -y \
                 "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-release.rpm" \
-                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-gpg-keys.rpm" || true
-        }
+                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-gpg-keys.rpm"; then
+                log_error "Falha ao configurar o repositório Terra (obrigatório para noctalia-greeter/umbriel)."
+                exit 1
+            fi
+        fi
         log_success "Repositório Terra do Fyra Labs configurado com sucesso."
     fi
 fi
@@ -85,18 +93,18 @@ fi
 # 4. Instalação do Repositório Brave Software
 log_info "Configurando repositório oficial do Brave Browser..."
 if dnf config-manager --help 2>&1 | grep -q "addrepo"; then
-    sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo || true
+    sudo dnf config-manager addrepo --from-repofile="${REPO_BRAVE_URL}" || true
 elif dnf config-manager --help 2>&1 | grep -q -- "--add-repo"; then
-    sudo dnf config-manager --add-repo https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo || true
+    sudo dnf config-manager --add-repo "${REPO_BRAVE_URL}" || true
 else
-    sudo curl -fsSL https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo -o /etc/yum.repos.d/brave-browser.repo
+    sudo curl -fsSL "${REPO_BRAVE_URL}" -o /etc/yum.repos.d/brave-browser.repo
 fi
 log_success "Repositório Brave configurado com sucesso."
 
 # 5. Habilitação do Flathub Oficial
 log_info "Configurando Flatpak e repositório Flathub..."
 sudo dnf install -y flatpak
-sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+sudo flatpak remote-add --if-not-exists flathub "${REPO_FLATHUB_URL}" || true
 log_success "Repositório Flathub adicionado com sucesso."
 
 # 6. Atualização e Sincronização dos Metadados

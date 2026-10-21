@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# fedora-inir: modules/07_post_install.sh
+# fedora-multi-shell: modules/07_post_install.sh
 # Configurações de pós-instalação: Keyring, Compositor config (Niri/Umbriel),
 # autostart de Shell (iNiR/Noctalia), ABNT2, VM flags, target gráfico e testes
 # ==============================================================================
@@ -26,7 +26,6 @@ REAL_HOME="$(get_real_user_home)"
 SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-niri}"
 SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
 SELECTED_SHELL="${SELECTED_INTERFACE}"
-TEMPLATES_DIR="${TEMPLATES_DIR:-${INSTALLER_ROOT}/templates}"
 
 NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
 NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
@@ -69,10 +68,18 @@ if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
         sudo -u "${REAL_USER}" cp -r "${DESKTOP_DIR}/umbriel/"* "${UMB_CONFIG_DIR}/"
         log_info "Configurações declarativas de Umbriel copiadas para ${UMB_CONFIG_DIR}/ com sucesso."
 
-        # Injeção Dinâmica para VM: apenas se IS_VM=true
+        # Respeita a escolha de teclado do usuário: os templates são distribuídos
+        # com ABNT2; se a opção foi negada no menu, remove o layout "br".
+        if [[ "${KEYBOARD_ABNT2:-true}" != true ]] && grep -qF 'layout = "br"' "${UMB_CONFIG_FILE}"; then
+            log_info "ABNT2 não selecionado: removendo 'layout = \"br\"' de ${UMB_CONFIG_FILE}."
+            sudo -u "${REAL_USER}" sed -i '/^layout = "br"/d' "${UMB_CONFIG_FILE}"
+        fi
+
+        # Injeção Dinâmica para VM: apenas se IS_VM=true (idempotente por guard de grep)
         if [[ "${IS_VM:-false}" == true ]]; then
-            log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Umbriel..."
-            sudo -u "${REAL_USER}" tee -a "${UMB_CONFIG_FILE}" >/dev/null <<'EOF'
+            if ! grep -qF 'LIBGL_ALWAYS_SOFTWARE' "${UMB_CONFIG_FILE}"; then
+                log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Umbriel..."
+                sudo -u "${REAL_USER}" tee -a "${UMB_CONFIG_FILE}" >/dev/null <<'EOF'
 
 # ==============================================================================
 # Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
@@ -83,7 +90,10 @@ WLR_NO_HARDWARE_CURSORS = "1"
 [input.cursor]
 hardware_cursor = false
 EOF
-            log_success "Flags de VM anexadas dinamicamente ao final de ${UMB_CONFIG_FILE}."
+                log_success "Flags de VM anexadas dinamicamente ao final de ${UMB_CONFIG_FILE}."
+            else
+                log_info "Flags de VM já presentes em ${UMB_CONFIG_FILE}."
+            fi
         fi
 
         # Validação do arquivo final
@@ -120,10 +130,18 @@ EOF
         sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/niri/config.kdl" "${NIRI_CONFIG_FILE}"
         log_info "Configuração declarativa do Niri copiada para ${NIRI_CONFIG_FILE}."
 
-        # Injeção Dinâmica para VM: apenas se IS_VM=true
+        # Respeita a escolha de teclado do usuário: o template é distribuído com
+        # ABNT2; se a opção foi negada no menu, remove o layout "br" do bloco xkb.
+        if [[ "${KEYBOARD_ABNT2:-true}" != true ]] && grep -qF 'layout "br"' "${NIRI_CONFIG_FILE}"; then
+            log_info "ABNT2 não selecionado: removendo 'layout \"br\"' de ${NIRI_CONFIG_FILE}."
+            sudo -u "${REAL_USER}" sed -i '/layout "br"/d' "${NIRI_CONFIG_FILE}"
+        fi
+
+        # Injeção Dinâmica para VM: apenas se IS_VM=true (idempotente por guard de grep)
         if [[ "${IS_VM:-false}" == true ]]; then
-            log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Niri..."
-            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+            if ! grep -qF 'LIBGL_ALWAYS_SOFTWARE' "${NIRI_CONFIG_FILE}"; then
+                log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Niri..."
+                sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
 
 // =============================================================================
 // Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
@@ -132,7 +150,10 @@ environment {
     WLR_NO_HARDWARE_CURSORS "1"
 }
 EOF
-            log_success "Flags de VM anexadas dinamicamente ao final de ${NIRI_CONFIG_FILE}."
+                log_success "Flags de VM anexadas dinamicamente ao final de ${NIRI_CONFIG_FILE}."
+            else
+                log_info "Flags de VM já presentes em ${NIRI_CONFIG_FILE}."
+            fi
         fi
 
         # Validação do arquivo final
@@ -308,7 +329,7 @@ EOF
         fi
     fi
 
-    # 2. Injeção de variáveis de renderização segura para VM
+    # 3. Injeção de variáveis de renderização segura para VM
     if [[ "${IS_VM:-false}" == true ]]; then
         log_info "Detectado ambiente VM (IS_VM=true). Assegurando flags de renderização por software no Niri..."
         if grep -q 'environment {' "${NIRI_CONFIG_FILE}"; then
@@ -329,10 +350,10 @@ EOF
         log_success "Flags de VM asseguradas em ${NIRI_CONFIG_FILE}."
     fi
 
-    # 3. Garantir permissões de posse antes da validação
+    # 4. Garantir permissões de posse antes da validação
     ensure_user_ownership "${REAL_HOME}/.config"
 
-    # 4. Validação oficial do Niri
+    # 5. Validação oficial do Niri
     log_info "Validando configuração do Niri para DankMaterialShell (niri validate)..."
     if command -v niri >/dev/null 2>&1; then
         if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
@@ -380,7 +401,7 @@ fi
 if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(danklinux|noctalia)$ ]]; then
     log_info "Configurando inicialização gráfica padrão (Greetd)..."
     sudo systemctl disable gdm lightdm sddm 2>/dev/null || true
-    sudo systemctl enable --force greetd.service
+    sudo systemctl enable greetd.service
     sudo systemctl set-default graphical.target
     log_success "Target gráfico e greetd.service definidos como padrão."
 
@@ -393,7 +414,7 @@ if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-
 else
     log_info "Configurando inicialização gráfica padrão (SDDM)..."
     sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
-    sudo systemctl enable --force sddm.service
+    sudo systemctl enable sddm.service
     sudo systemctl set-default graphical.target
     log_success "Target gráfico e sddm.service definidos como padrão."
 
@@ -519,7 +540,7 @@ elif [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
     fi
 fi
 
-# Teste 5: Validação de ausência de NVIDIA em VM
+# Teste 4: Validação de ausência de NVIDIA em VM
 if [[ "${IS_VM:-false}" == true ]]; then
     if rpm -q akmod-nvidia >/dev/null 2>&1; then
         log_error "[Checklist] Inconsistência: akmod-nvidia instalado em ambiente de Máquina Virtual!"
@@ -528,7 +549,7 @@ if [[ "${IS_VM:-false}" == true ]]; then
     fi
 fi
 
-# Teste 6: Validação da instalação do pacote gnome-keyring-pam
+# Teste 5: Validação da instalação do pacote gnome-keyring-pam
 if rpm -q gnome-keyring-pam >/dev/null 2>&1; then
     log_success "[Checklist] Pacote 'gnome-keyring-pam' confirmado instalado."
 else
@@ -536,7 +557,7 @@ else
     exit 1
 fi
 
-# Teste 7: Validação do ponteiro padrão do chaveiro (${KEYRINGS_DIR}/default)
+# Teste 6: Validação do ponteiro padrão do chaveiro (${KEYRINGS_DIR}/default)
 if [[ -f "${KEYRINGS_DIR}/default" ]] && [[ "$(cat "${KEYRINGS_DIR}/default" 2>/dev/null)" == "login" ]]; then
     DEFAULT_PERM="$(stat -c '%a' "${KEYRINGS_DIR}/default" 2>/dev/null || echo '')"
     if [[ "$DEFAULT_PERM" == "600" ]]; then
@@ -551,7 +572,7 @@ else
     exit 1
 fi
 
-# Teste 8: Validação de permissão e propriedade da pasta keyrings
+# Teste 7: Validação de permissão e propriedade da pasta keyrings
 KEYRINGS_PERM="$(stat -c '%a' "${KEYRINGS_DIR}" 2>/dev/null || echo '')"
 KEYRINGS_OWNER="$(stat -c '%U' "${KEYRINGS_DIR}" 2>/dev/null || echo '')"
 if [[ "$KEYRINGS_PERM" == "700" ]] && [[ "$KEYRINGS_OWNER" == "$REAL_USER" ]]; then
@@ -561,6 +582,16 @@ else
     sudo chmod 700 "${KEYRINGS_DIR}"
     sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
     log_success "[Checklist] Pasta ${KEYRINGS_DIR} corrigida para 700 e propriedade de ${REAL_USER}."
+fi
+
+# Teste 8: Validação do runtime Deno (exclusivo do caminho iNiR)
+if [[ "${SELECTED_INTERFACE}" == "inir" ]]; then
+    if command -v deno >/dev/null 2>&1; then
+        log_success "[Checklist] Runtime Deno confirmado: $(deno --version | head -n1)."
+    else
+        log_error "[Checklist] Falha crítica: Deno não encontrado no PATH para a interface iNiR!"
+        exit 1
+    fi
 fi
 
 echo ""
