@@ -23,12 +23,56 @@ ui_section_header "MÓDULO 00: CONFIGURAÇÃO DE REPOSITÓRIOS"
 FEDORA_VER="$(rpm -E %fedora)"
 log_info "Detectada distribuição: Fedora ${FEDORA_VER}"
 
+# 0. Otimização de Mirrors: habilita o plugin fastestmirror do DNF para que
+# repositórios baseados em metalink (Fedora, RPM Fusion, COPRs) escolham o
+# mirror de MENOR LATÊNCIA medida em runtime, em vez de um mirror sorteado
+# aleatoriamente da lista global (sorteios já favoreceram mirrors caídos).
+DNF_CONF="/etc/dnf/dnf.conf"
+if ! sudo grep -qE '^fastestmirror' "$DNF_CONF" 2>/dev/null; then
+    log_info "Habilitando fastestmirror no DNF (seleção do mirror mais próximo/veloz)..."
+    sudo sed -i '/^\[main\]/a fastestmirror=True' "$DNF_CONF"
+    log_success "fastestmirror habilitado em ${DNF_CONF}."
+fi
+
 # 1. Instalação do RPM Fusion Free e Nonfree
+# O host mirrors.rpmfusion.org redireciona cada requisição para um mirror
+# público ALEATÓRIO da lista global. Se o mirror sorteado estiver fora do ar,
+# o dnf instala do URL falha; como cada nova tentativa de curl cai em outro
+# mirror, baixamos os RPMs localmente com retentativas antes de instalar.
+fetch_rpm_with_fallback() {
+    local url="$1" dest="$2" attempts="${3:-5}" i
+    for ((i = 1; i <= attempts; i++)); do
+        log_info "Baixando $(basename "$url") (tentativa ${i}/${attempts} — mirror sorteado a cada tentativa)..."
+        if curl -fL --connect-timeout 15 --max-time 180 "$url" -o "${dest}.part"; then
+            mv -f "${dest}.part" "$dest"
+            return 0
+        fi
+        rm -f "${dest}.part"
+        sleep 2
+    done
+    return 1
+}
+
 log_info "Configurando repositórios RPM Fusion (Free & Nonfree)..."
-sudo dnf install -y \
-    "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
-    "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"
-log_success "RPM Fusion configurado com sucesso."
+if rpm -q rpmfusion-free-release rpmfusion-nonfree-release >/dev/null 2>&1; then
+    log_info "RPM Fusion já está configurado. Pulando..."
+else
+    # Download na Home do usuário (nunca em /tmp, que é tmpfs limitada em VMs)
+    RPM_TMP_DIR="${HOME:-/tmp}/.fedora-multishell-rpm-$$"
+    mkdir -p "$RPM_TMP_DIR"
+    RF_FREE="${RPM_TMP_DIR}/rpmfusion-free-release.rpm"
+    RF_NONFREE="${RPM_TMP_DIR}/rpmfusion-nonfree-release.rpm"
+    if fetch_rpm_with_fallback "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" "$RF_FREE" &&
+       fetch_rpm_with_fallback "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" "$RF_NONFREE"; then
+        sudo dnf install -y "$RF_FREE" "$RF_NONFREE"
+        log_success "RPM Fusion configurado com sucesso."
+    else
+        log_error "Falha ao baixar os release RPMs do RPM Fusion após múltiplas tentativas (todos os mirrors sorteados estavam inacessíveis)."
+        rm -rf "$RPM_TMP_DIR"
+        exit 1
+    fi
+    rm -rf "$RPM_TMP_DIR"
+fi
 
 # 2. Habilitação de plugins do DNF (dnf-plugins-core necessário para copr e config-manager)
 log_info "Garantindo suporte a plugins do DNF (dnf-plugins-core)..."
