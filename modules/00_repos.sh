@@ -143,8 +143,10 @@ if [[ "${SELECTED_SHELL:-}" == "noctalia" || "${SELECTED_INTERFACE:-}" == "nocta
     fi
 fi
 
-# Se a interface escolhida for DankLinux: ativa o COPR avengemedia/danklinux
-if [[ "${SELECTED_INTERFACE:-}" == "danklinux" || "${SELECTED_SHELL:-}" == "danklinux" ]]; then
+# Se a interface escolhida for Dux Shell: ativa o COPR avengemedia/danklinux
+# (Os COPRs novos duxlabs/dux e duxlabs/dms ainda não estão prontos para produção,
+# conforme aviso oficial na página dos repositórios — manter avengemedia até o 2.0.1)
+if [[ "${SELECTED_INTERFACE:-}" == "duxshell" || "${SELECTED_SHELL:-}" == "duxshell" ]]; then
     enable_copr_repo "avengemedia/danklinux" "avengemedia:danklinux"
 fi
 

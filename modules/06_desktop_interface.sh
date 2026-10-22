@@ -34,10 +34,10 @@ case "${SELECTED_INTERFACE}" in
         # shellcheck source=interfaces/noctalia.sh
         source "${SCRIPT_DIR}/interfaces/noctalia.sh"
         ;;
-    danklinux)
-        log_info "Ativando submódulo da interface: DankMaterialShell (DankLinux)"
-        # shellcheck source=interfaces/danklinux.sh
-        source "${SCRIPT_DIR}/interfaces/danklinux.sh"
+    duxshell)
+        log_info "Ativando submódulo da interface: Dux Shell (DMS)"
+        # shellcheck source=interfaces/duxshell.sh
+        source "${SCRIPT_DIR}/interfaces/duxshell.sh"
         ;;
     *)
         log_error "Interface gráfica desconhecida: ${SELECTED_INTERFACE}"

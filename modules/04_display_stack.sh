@@ -23,7 +23,7 @@ SELECTED_SHELL="${SELECTED_INTERFACE}"
 IS_VM="${IS_VM:-false}"
 REAL_USER="$(get_real_user)"
 
-if [[ "${SELECTED_INTERFACE}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL}" =~ ^(danklinux|noctalia)$ ]]; then
+if [[ "${SELECTED_INTERFACE}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL}" =~ ^(duxshell|noctalia)$ ]]; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
 
     # 1. Instalação declarativa dos pacotes base do Greetd e GNOME Keyring PAM

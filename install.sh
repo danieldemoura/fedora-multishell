@@ -98,7 +98,7 @@ fi
 ui_section_header "SELEÇÃO DA INTERFACE GRÁFICA (DESKTOP SHELL)"
 echo "  [1] iNiR Shell"
 echo "  [2] Noctalia Shell"
-echo "  [3] DankMaterialShell"
+echo "  [3] Dux Shell (DMS)"
 echo ""
 ui_ask_choice "  Escolha uma opção: " "1" "1|2|3" shell_choice
 
@@ -122,8 +122,8 @@ if [[ "$shell_choice" == "2" ]]; then
         COMP_DESC="Niri (Scrollable Tiling)"
     fi
 elif [[ "$shell_choice" == "3" ]]; then
-    SELECTED_INTERFACE="danklinux"
-    SHELL_DESC="DankMaterialShell"
+    SELECTED_INTERFACE="duxshell"
+    SHELL_DESC="Dux Shell"
     SELECTED_COMPOSITOR="niri"
     COMP_DESC="Niri (Scrollable Tiling)"
 else

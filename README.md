@@ -22,7 +22,7 @@ Instalador modular, em camadas e automatizado para transformar uma instalação 
 - **Interfaces Gráficas (Desktop Interfaces):**
   - **iNiR Shell:** Interface moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You via COPR `errornointernet/quickshell` (utiliza exclusivamente o compositor Niri).
   - **Noctalia Shell:** Interface gráfica desktop nativa em C++/Qt via pacote nativo Fedora (permite escolher entre o compositor Niri ou Umbriel).
-  - **DankMaterialShell / DMS (DankLinux):** Interface gráfica e ambiente completo DankLinux via COPR `avengemedia/danklinux` e instalador oficial headless `dankinstall` (utiliza Niri, terminal Kitty, `dms-greeter`, `danksearch` e `dankcalendar`).
+  - **Dux Shell / DMS (Dux Labs):** Interface gráfica e ambiente completo da Dux Labs (a antiga DankLinux/DankMaterialShell, renomeada no release 2.0) via COPR `avengemedia/danklinux` e o instalador oficial headless `install.duxlabs.dev` (utiliza Niri, terminal Kitty, `dms-greeter`, `danksearch` e `dankcalendar`).
 - **Compositores Wayland de Alta Performance:**
   - **Niri:** Scrollable tiling Wayland compositor com rolagem horizontal contínua de colunas via COPR `yalter/niri`.
   - **Umbriel:** Compositor Wayland dinâmico via Repositório Terra do Fyra Labs, com suporte à rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de exibição dinâmicos (Dwindle e Master).
@@ -77,7 +77,7 @@ fedora-multishell/
 │   ├── logger.sh                    # Registro em $XDG_STATE_HOME/fedora-multi-shell/install.log (fora de /tmp) e traps de erro
 │   └── utils.sh                     # Validação de não-root, resolução segura via getent, install_packages_from_conf e cleanup do sudoers
 └── modules/
-    ├── 00_repos.sh                  # Repositórios (RPM Fusion, Brave, Flathub, COPRs condicionais, Terra e DankLinux)
+    ├── 00_repos.sh                  # Repositórios (RPM Fusion, Brave, Flathub, COPRs condicionais, Terra e Dux Labs)
     ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, som e energia (Tuned)
     ├── 02_gpu_drivers.sh            # Drivers Mesa abertos (via mesa.conf) ou NVIDIA com akmods
     ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin e Flatpaks
@@ -91,19 +91,19 @@ fedora-multishell/
     └── interfaces/
         ├── inir.sh                  # Deno (sha256/arquitetura), clone e ./setup install -y sob o usuário real
         ├── noctalia.sh              # Pacote nativo 'noctalia' e 'noctalia-greeter' via DNF
-        └── danklinux.sh             # Instalador oficial headless do DankMaterialShell (DMS)
+        └── duxshell.sh              # Instalador oficial headless do Dux Shell (DMS)
 ```
 
 ---
 
 ## 🎯 Matriz de Combinações Suportadas
 
-| Opção de Interface Gráfica  | Compositor Wayland | Características Principais                                                                                                                                                        |
-| :-------------------------- | :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **iNiR Shell**              | **Niri** (Fixo)    | Estética moderna com cores dinâmicas Material You, widgets e rolagem horizontal de janelas contínua.                                                                              |
-| **Noctalia Shell**          | **Niri**           | Shell nativa em C++/Qt com painel clássico/moderno sobre o motor de rolagem horizontal contínua do Niri.                                                                          |
-| **Noctalia Shell**          | **Umbriel**        | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de janelas (Dwindle e Master). |
-| **DankMaterialShell (DMS)** | **Niri** (Fixo)    | Ambiente DankLinux com painéis Material You, dms-greeter (Greetd), danksearch, dankcalendar e terminal Kitty fixado.                                                              |
+| Opção de Interface Gráfica | Compositor Wayland | Características Principais                                                                                                                                                        |
+| :------------------------- | :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **iNiR Shell**             | **Niri** (Fixo)    | Estética moderna com cores dinâmicas Material You, widgets e rolagem horizontal de janelas contínua.                                                                              |
+| **Noctalia Shell**         | **Niri**           | Shell nativa em C++/Qt com painel clássico/moderno sobre o motor de rolagem horizontal contínua do Niri.                                                                          |
+| **Noctalia Shell**         | **Umbriel**        | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de janelas (Dwindle e Master). |
+| **Dux Shell (DMS)**        | **Niri** (Fixo)    | Ambiente Dux Labs com painéis Material You, dms-greeter (Greetd), danksearch, dankcalendar e terminal Kitty fixado.                                                               |
 
 ---
 
@@ -194,15 +194,15 @@ O instalador conta com um menu interativo sem poluição visual:
 | <kbd>Super</kbd> + <kbd>Q</kbd>         | Fecha a janela em foco                                                  |
 | <kbd>Super</kbd> + Navegação de Janelas | Rolagem contínua bidirecional e comutação de layouts (Dwindle e Master) |
 
-### DankLinux (DankMaterialShell / DMS)
+### Dux Shell (DMS)
 
-> ⚠️ Os atalhos do DMS são definidos pelos **padrões upstream** do DankMaterialShell e do Niri (instalados pelo `dankinstall`), não por templates deste instalador. A tabela abaixo é ilustrativa — confira o painel/atalhos oficiais do DMS após a instalação.
+> ⚠️ Os atalhos do DMS são definidos pelos **padrões upstream** do Dux Shell e do Niri (instalados pelo instalador da Dux Labs), não por templates deste instalador. A tabela abaixo é ilustrativa — confira o painel/atalhos oficiais do DMS após a instalação.
 
-| Atalho                                                                        | Ação                                                                      |
-| :---------------------------------------------------------------------------- | :------------------------------------------------------------------------ |
-| <kbd>Super</kbd> + <kbd>T</kbd>                                               | Abre o Terminal GPU (`kitty`)                                             |
-| <kbd>Super</kbd> + <kbd>Q</kbd>                                               | Fecha a janela em foco                                                    |
-| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd>                            | Lança o menu de aplicativos / busca (`danksearch`)                        |
-| <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima no compositor Niri                       |
-| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd>             | Move a coluna atual para a esquerda / direita                             |
-| Controles DMS / Niri                                                          | Gestão de painéis, notificações e widgets integrados do DankMaterialShell |
+| Atalho                                                                        | Ação                                                              |
+| :---------------------------------------------------------------------------- | :---------------------------------------------------------------- |
+| <kbd>Super</kbd> + <kbd>T</kbd>                                               | Abre o Terminal GPU (`kitty`)                                     |
+| <kbd>Super</kbd> + <kbd>Q</kbd>                                               | Fecha a janela em foco                                            |
+| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd>                            | Lança o menu de aplicativos / busca (`danksearch`)                |
+| <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima no compositor Niri               |
+| <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd>             | Move a coluna atual para a esquerda / direita                     |
+| Controles DMS / Niri                                                          | Gestão de painéis, notificações e widgets integrados do Dux Shell |

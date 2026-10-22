@@ -238,11 +238,11 @@ EOF
     else
         log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
     fi
-elif [[ "${SELECTED_INTERFACE}" == "danklinux" ]]; then
+elif [[ "${SELECTED_INTERFACE}" == "duxshell" ]]; then
     NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
     NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
 
-    log_info "Interface selecionada é DankMaterialShell (DMS): ajustando configurações no Niri..."
+    log_info "Interface selecionada é Dux Shell (DMS): ajustando configurações no Niri..."
     sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
 
     if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
@@ -250,14 +250,14 @@ elif [[ "${SELECTED_INTERFACE}" == "danklinux" ]]; then
         sudo -u "${REAL_USER}" touch "${NIRI_CONFIG_FILE}"
     fi
 
-    # 1. Injeção de Autostart do DankMaterialShell (DMS)
+    # 1. Injeção de Autostart do Dux Shell (DMS)
     if ! grep -q 'spawn-at-startup "dms"' "${NIRI_CONFIG_FILE}"; then
-        log_info "Configurando autostart do DankMaterialShell (dms run) no Niri..."
+        log_info "Configurando autostart do Dux Shell (dms run) no Niri..."
         # Injeta spawn-at-startup "dms" "run" no topo do arquivo de configuração
         sudo -u "${REAL_USER}" sed -i '1i spawn-at-startup "dms" "run"' "${NIRI_CONFIG_FILE}"
-        log_success "Autostart do DankMaterialShell configurado com sucesso em ${NIRI_CONFIG_FILE}."
+        log_success "Autostart do Dux Shell configurado com sucesso em ${NIRI_CONFIG_FILE}."
     else
-        log_info "Autostart do DankMaterialShell já presente em ${NIRI_CONFIG_FILE}."
+        log_info "Autostart do Dux Shell já presente em ${NIRI_CONFIG_FILE}."
     fi
 
     # 2. Injeção de variáveis de renderização segura para VM
@@ -285,7 +285,7 @@ EOF
     ensure_user_ownership "${REAL_HOME}/.config"
 
     # 4. Validação oficial do Niri
-    log_info "Validando configuração do Niri para DankMaterialShell (niri validate)..."
+    log_info "Validando configuração do Niri para o Dux Shell (niri validate)..."
     if command -v niri >/dev/null 2>&1; then
         if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
             log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração do DMS."
@@ -329,7 +329,7 @@ if [[ "${IS_VM:-false}" == false ]] && [[ "${INSTALL_NVIDIA:-false}" == true ]];
 fi
 
 # 5. Definição do Alvo Gráfico e Ativação do Display Manager no Systemd
-if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(danklinux|noctalia)$ ]]; then
+if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(duxshell|noctalia)$ ]]; then
     log_info "Configurando inicialização gráfica padrão (Greetd)..."
     sudo systemctl disable gdm lightdm sddm 2>/dev/null || true
     sudo systemctl enable greetd.service
@@ -364,7 +364,7 @@ echo ""
 log_info "Iniciando checagens internas de integridade do sistema..."
 
 # Teste 1: Serviço de Display Manager
-if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(danklinux|noctalia)$ ]]; then
+if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(duxshell|noctalia)$ ]]; then
     if systemctl is-enabled greetd.service >/dev/null 2>&1; then
         log_success "[Checklist] greetd.service está devidamente habilitado no systemd."
     else
@@ -379,7 +379,7 @@ elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]
 fi
 
 # Teste 2: PAM do Display Manager (Checklist Final Rigoroso)
-if [[ "${SELECTED_INTERFACE:-}" =~ ^(danklinux|noctalia)$ || "${SELECTED_SHELL:-}" == "noctalia" ]]; then
+if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" == "noctalia" ]]; then
     if grep -qF "pam_gnome_keyring.so" /etc/pam.d/greetd; then
         log_ok "[Checklist] Integração com pam_gnome_keyring.so confirmada em /etc/pam.d/greetd."
     else

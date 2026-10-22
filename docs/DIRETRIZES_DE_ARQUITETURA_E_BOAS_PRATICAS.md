@@ -11,13 +11,13 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
 ### 1.1 Separação de Preocupações (Separation of Concerns - SoC)
 
 - Cada módulo na pasta `modules/` deve possuir **uma única responsabilidade**:
-  - `00_repos.sh`: Gerenciamento exclusivo de repositórios (RPM Fusion, COPRs, Flathub, Terra e DankLinux).
+  - `00_repos.sh`: Gerenciamento exclusivo de repositórios (RPM Fusion, COPRs, Flathub, Terra e Dux Labs).
   - `01_system_hardware.sh`: Hardware base, áudio (PipeWire), Bluetooth e energia (Tuned).
   - `02_gpu_drivers.sh`: Aceleração de vídeo e drivers gráficos (Mesa ou NVIDIA).
   - `03_desktop_apps.sh`: Pacotes de usuário, fontes, terminal, codecs, Brave e Flatpaks.
   - `04_display_stack.sh`: Display managers (Greetd ou SDDM) e integração PAM Keyring.
   - `05_compositor.sh`: Roteador de compositores Wayland (Niri ou Umbriel).
-  - `06_desktop_interface.sh`: Roteador de interfaces gráficas (iNiR, Noctalia ou DankLinux).
+  - `06_desktop_interface.sh`: Roteador de interfaces gráficas (iNiR, Noctalia ou Dux Shell).
   - `07_post_install.sh`: Validação final, autostart da interface e habilitação de serviços.
 - É terminantemente proibido instalar aplicativos de usuário (como navegadores ou players) dentro de módulos de hardware ou repositórios.
 
@@ -173,7 +173,7 @@ set -euo pipefail
 
 1. **Permissões de Arquivos PAM:** Qualquer arquivo em `/etc/pam.d/` deve possuir estritamente posse `root:root` e permissão `644`.
 2. **Desbloqueio de Cofre de Senhas:** Todas as sessões gráficas (SDDM ou Greetd) devem implementar integração nativa com `pam_gnome_keyring.so` para evitar pop-ups de desbloqueio de senhas em navegadores.
-3. **Encapsulamento de Instaladores Externos:** Se um instalador terceiro (como `dankinstall` ou scripts externos) sobrescrever arquivos de sistema, o submódulo correspondente tem a obrigação de restaurar os templates de segurança antes de concluir sua execução (como efetuado em `modules/interfaces/danklinux.sh`).
+3. **Encapsulamento de Instaladores Externos:** Se um instalador terceiro (como o `dankinstall` da Dux Labs ou scripts externos) sobrescrever arquivos de sistema, o submódulo correspondente tem a obrigação de restaurar os templates de segurança antes de concluir sua execução (como efetuado em `modules/interfaces/duxshell.sh`).
 4. **Endurecimento do Drop-in Temporário de Sudoers:** A regra NOPASSWD temporária em `/etc/sudoers.d/` deve ser montada em `mktemp`, **validada com `sudo visudo -cf`** antes de qualquer instalação (sintaxe inválida aborta sem tocar `/etc/sudoers`), instalada com `sudo install -m 0440 -o root -g root` e removida por `trap` nos sinais `EXIT HUP INT TERM`. O instalador também remove drop-ins órfãos de execuções anteriores interrompidas (`kill -9`) para não deixar resquícios administrativos persistentes.
 5. **Log Fora de Diretórios Compartilhados:** O log de instalação reside em `${XDG_STATE_HOME:-~/.local/state}/fedora-multi-shell/install.log` (nunca em `/tmp` previsível), e o `log_init` recusa um alvo que já exista como link simbólico, mitigando ataques de symlink.
 6. **Proibição de `eval` sobre Dados de Usuário:** A resolução de `$HOME` e do usuário real usa `getent passwd` e a cadeia `${SUDO_USER:-${USER:-$(id -un)}}` — jamais `eval echo ~$user`, que permitiria injeção de código via nome de usuário controlável.
