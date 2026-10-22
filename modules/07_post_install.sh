@@ -181,20 +181,137 @@ elif [[ "${SELECTED_SHELL}" == "inir" ]]; then
         sudo -u "${REAL_USER}" touch "${NIRI_CONFIG_FILE}"
     fi
 
-    # 1. Assegura injeção do comando de autostart do iNiR
-    if ! grep -q 'spawn-at-startup "inir" "run"' "${NIRI_CONFIG_FILE}"; then
-        log_info "Adicionando spawn-at-startup 'inir' 'run' em ${NIRI_CONFIG_FILE}..."
-        sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+    # 1. Inicialização supervisionada da shell (inir.service)
+    #    Caminho canônico upstream: niri.service (sessão) puxa inir.service via
+    #    wants link. A troca de família de painéis em runtime (iRiS) exige o
+    #    serviço supervisionado — spawn-at-startup é contingência apenas quando
+    #    a unidade de usuário do niri não existe na instalação.
+    INIR_SUPERVISED=false
+    INIR_BIN="${REAL_HOME}/.local/bin/inir"
+    [[ -x "${INIR_BIN}" ]] || INIR_BIN="$(sudo -u "${REAL_USER}" bash -lc 'command -v inir' 2>/dev/null || true)"
+    NIRI_USER_UNIT=""
+    for unit_path in /usr/lib/systemd/user/niri.service /lib/systemd/user/niri.service /usr/local/lib/systemd/user/niri.service; do
+        [[ -f "${unit_path}" ]] && { NIRI_USER_UNIT="${unit_path}"; break; }
+    done
+    SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
+
+    if [[ -n "${INIR_BIN}" && -n "${NIRI_USER_UNIT}" ]]; then
+        log_info "Vinculando o iNiR como serviço de usuário systemd (inir.service -> niri.service)..."
+        sudo -u "${REAL_USER}" HOME="${REAL_HOME}" "${INIR_BIN}" service install || true
+        sudo -u "${REAL_USER}" HOME="${REAL_HOME}" "${INIR_BIN}" service enable || true
+        if [[ -f "${SYSTEMD_USER_DIR}/inir.service" ]]; then
+            # Garantia apenas de sistema de arquivos (idempotente e sem D-Bus,
+            # que não está disponível durante a instalação em TTY)
+            mkdir -p "${SYSTEMD_USER_DIR}/niri.service.wants"
+            ln -sf "${SYSTEMD_USER_DIR}/inir.service" "${SYSTEMD_USER_DIR}/niri.service.wants/inir.service"
+            sudo chown -R "${REAL_USER}:${REAL_USER}" "${SYSTEMD_USER_DIR}"
+            INIR_SUPERVISED=true
+            # No modo canônico não deve haver spawn handwritten (risco de shell duplicada)
+            sudo -u "${REAL_USER}" sed -i '/^spawn-at-startup "inir" "run"$/d;/^\/\/ Autostart da interface de usuário iNiR$/d' "${NIRI_CONFIG_FILE}"
+            log_success "[Checklist] iNiR vinculado como serviço supervisionado (trocas de família em runtime habilitadas)."
+        fi
+    fi
+
+    if [[ "${INIR_SUPERVISED}" == false ]]; then
+        # Contingência: sem unidade de usuário do niri ou sem lançador, a shell
+        # sobe como filha do Niri (interruptor de família em runtime ficará indisponível)
+        if ! grep -q 'spawn-at-startup "inir" "run"' "${NIRI_CONFIG_FILE}"; then
+            log_warn "Supervisionamento systemd indisponível: usando autostart de contingência via spawn-at-startup."
+            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
 
 // Autostart da interface de usuário iNiR
 spawn-at-startup "inir" "run"
 EOF
-        log_success "Autostart do iNiR adicionado ao ${NIRI_CONFIG_FILE}."
-    else
-        log_info "Autostart do iNiR já presente em ${NIRI_CONFIG_FILE}."
+            log_success "Autostart do iNiR adicionado ao ${NIRI_CONFIG_FILE}."
+        else
+            log_info "Autostart do iNiR já presente em ${NIRI_CONFIG_FILE} (modo de contingência)."
+        fi
     fi
 
-    # 2. Injeção de variáveis de renderização segura para VM
+    # 2. Pré-ativação declarativa da família iRiS no config.json
+    #    Equivalente ao botão "Ativar o Iris" (scripts/switch-family-restart.py),
+    #    aplicado offline antes do primeiro boot — sem depender do serviço.
+    #    ATENÇÃO AO CAMINHO: a shell em runtime lê o config de
+    #    ~/.config/illogical-impulse/config.json (modules/common/Directories.qml
+    #    fixa "shellConfig = <XDG_CONFIG>/illogical-impulse"; o mesmo caminho é
+    #    usado pelo switch-family-restart.py). O ./setup install, porém, semeia os
+    #    defaults em ~/.config/inir/config.json (resolve_inir_config_dir prefere o
+    #    diretório novo). Escrevemos no caminho operativo (illogical-impulse) e,
+    #    se existir, espelhamos em ~/.config/inir para manter o lançador coerente.
+    INIR_LEGACY_JSON="${REAL_HOME}/.config/illogical-impulse/config.json"
+    INIR_NEW_JSON="${REAL_HOME}/.config/inir/config.json"
+
+    # Semeia o config operativo a partir do default instalado, se ainda não existir
+    if [[ ! -f "${INIR_LEGACY_JSON}" && -f "${INIR_NEW_JSON}" ]]; then
+        log_info "Semeando ${INIR_LEGACY_JSON} a partir do config instalado em ${INIR_NEW_JSON}..."
+        sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config/illogical-impulse"
+        sudo -u "${REAL_USER}" cp "${INIR_NEW_JSON}" "${INIR_LEGACY_JSON}"
+    fi
+
+    INIR_IRIS_TARGETS=()
+    [[ -f "${INIR_LEGACY_JSON}" ]] && INIR_IRIS_TARGETS+=("${INIR_LEGACY_JSON}")
+    [[ -f "${INIR_NEW_JSON}" ]] && INIR_IRIS_TARGETS+=("${INIR_NEW_JSON}")
+
+    if [[ "${#INIR_IRIS_TARGETS[@]}" -gt 0 ]]; then
+        log_info "Ativando a família de painéis iRiS na configuração do iNiR..."
+        if sudo -u "${REAL_USER}" python3 - "${INIR_IRIS_TARGETS[@]}" <<'PYEOF'
+import json, os, sys
+
+# Painéis da família iRiS (root.panelFamilies["iris"] em shell.qml)
+iris = ["irisBar", "irisBackground", "irisPalette", "irisControlCenter",
+        "irisNotificationPopup", "irisOnScreenDisplay", "irisSessionScreen",
+        "irisLock", "irisPolkit"]
+
+rc = 0
+for path in sys.argv[1:]:
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"{path}: cannot read config: {exc}", file=sys.stderr)
+        rc = 1
+        continue
+    if not isinstance(data, dict):
+        print(f"{path}: config root is not an object", file=sys.stderr)
+        rc = 1
+        continue
+
+    was = data.get("panelFamily") == "iris"
+    data["panelFamily"] = "iris"
+    panels = data.get("enabledPanels") if isinstance(data.get("enabledPanels"), list) else []
+    for p in iris:
+        if p not in panels:
+            panels.append(p)
+    data["enabledPanels"] = panels
+    known = data.get("knownPanels") if isinstance(data.get("knownPanels"), list) else []
+    if known:
+        for p in iris:
+            if p not in known:
+                known.append(p)
+        data["knownPanels"] = known
+
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(data, fh, indent=4, ensure_ascii=False)
+            fh.write("\n")
+        os.replace(tmp, path)
+        print(f"{path}: " + ("iRiS já estava ativa" if was else "iRiS ativada"))
+    except OSError as exc:
+        print(f"{path}: write failed: {exc}", file=sys.stderr)
+        rc = 1
+sys.exit(rc)
+PYEOF
+        then
+            log_success "[Checklist] Família iRiS pré-ativada no config operativo do iNiR."
+        else
+            log_warn "Falha ao ativar iRiS no config.json (iNiR subirá na família padrão; ative via Settings)."
+        fi
+    else
+        log_warn "Nenhum config.json do iNiR encontrado (illogical-impulse nem inir) — pré-ativação do iRiS ignorada."
+    fi
+
+    # 3. Injeção de variáveis de renderização segura para VM
     if [[ "${IS_VM:-false}" == true ]]; then
         if ! grep -q 'LIBGL_ALWAYS_SOFTWARE "1"' "${NIRI_CONFIG_FILE}"; then
             log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Niri..."
@@ -213,7 +330,7 @@ EOF
         fi
     fi
 
-    # 3. Validação oficial do Niri
+    # 4. Validação oficial do Niri
     log_info "Validando configuração do Niri para iNiR (niri validate)..."
     if command -v niri >/dev/null 2>&1; then
         if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
