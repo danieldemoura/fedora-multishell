@@ -40,10 +40,14 @@ fi
 # o dnf instala do URL falha; como cada nova tentativa de curl cai em outro
 # mirror, baixamos os RPMs localmente com retentativas antes de instalar.
 fetch_rpm_with_fallback() {
-    local url="$1" dest="$2" attempts="${3:-5}" i
+    local url="$1" dest="$2" attempts="${3:-5}" i extra=()
     for ((i = 1; i <= attempts; i++)); do
-        log_info "Baixando $(basename "$url") (tentativa ${i}/${attempts} — mirror sorteado a cada tentativa)..."
-        if curl -fL --connect-timeout 15 --max-time 180 "$url" -o "${dest}.part"; then
+        # Alterna IPv6/dual-stack e IPv4 puro: VMs com IPv6 sem rota (blackhole)
+        # travam o SYN de TCP até o timeout sem nunca testar o IPv4; o --ipv4
+        # nas tentativas pares garante que esse cenário seja contornado.
+        if (( i % 2 == 0 )); then extra=(--ipv4); else extra=(); fi
+        log_info "Baixando $(basename "$url") (tentativa ${i}/${attempts}${extra:+, forçando IPv4} — mirror sorteado a cada tentativa)..."
+        if curl -fL --connect-timeout 15 --max-time 180 ${extra[@]+"${extra[@]}"} "$url" -o "${dest}.part"; then
             mv -f "${dest}.part" "$dest"
             return 0
         fi
