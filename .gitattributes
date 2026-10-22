@@ -1,0 +1,18 @@
+# Normaliza line endings: força LF em todos os arquivos de texto no repositório,
+# independente do SO de quem clona (evita o erro "env: bash\r" em scripts no Linux).
+* text=auto eol=lf
+
+# Arquivos deste projeto que são sempre texto
+*.sh        text eol=lf
+*.conf      text eol=lf
+*.template  text eol=lf
+*.kdl       text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
+
+# Binários (preservados como estão, se adicionados no futuro)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
