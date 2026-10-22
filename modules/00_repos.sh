@@ -35,18 +35,24 @@ if ! sudo grep -qE '^fastestmirror' "$DNF_CONF" 2>/dev/null; then
 fi
 
 # 1. Instalação do RPM Fusion Free e Nonfree
-# O host mirrors.rpmfusion.org redireciona cada requisição para um mirror
-# público ALEATÓRIO da lista global. Se o mirror sorteado estiver fora do ar,
-# o dnf instala do URL falha; como cada nova tentativa de curl cai em outro
-# mirror, baixamos os RPMs localmente com retentativas antes de instalar.
+# download1.rpmfusion.org é o servidor-mestre DIRETO (o mesmo usado como
+# baseurl nos .repo oficiais, sem roleta de mirrors). Já mirrors.rpmfusion.org
+# redireciona cada requisição para um mirror "sorteado" — mas o MirrorManager
+# faz steering geográfico: se o mirror designado para a região do usuário
+# estiver fora do ar, TODAS as requisições caem no mesmo mirror morto.
+# Estratégia: mestre direto primeiro; se falhar, retentativas na roleta
+# (que pode acertar outro mirror), alternando IPv4 puro nas tentativas
+# pares (VMs com IPv6 blackhole travam o SYN de TCP até o timeout).
 fetch_rpm_with_fallback() {
-    local url="$1" dest="$2" attempts="${3:-5}" i extra=()
+    local dest="$1" url_direto="$2" url_roleta="$3" attempts="${4:-5}" i url fonte extra=()
     for ((i = 1; i <= attempts; i++)); do
-        # Alterna IPv6/dual-stack e IPv4 puro: VMs com IPv6 sem rota (blackhole)
-        # travam o SYN de TCP até o timeout sem nunca testar o IPv4; o --ipv4
-        # nas tentativas pares garante que esse cenário seja contornado.
-        if (( i % 2 == 0 )); then extra=(--ipv4); else extra=(); fi
-        log_info "Baixando $(basename "$url") (tentativa ${i}/${attempts}${extra:+, forçando IPv4} — mirror sorteado a cada tentativa)..."
+        if (( i == 1 )); then
+            url="$url_direto"; fonte="servidor-mestre direto"
+        else
+            url="$url_roleta"; fonte="mirror da roleta"
+            if (( i % 2 == 0 )); then extra=(--ipv4); fonte+=", forçando IPv4"; else extra=(); fi
+        fi
+        log_info "Baixando $(basename "$dest") (tentativa ${i}/${attempts}: ${fonte})..."
         if curl -fL --connect-timeout 15 --max-time 180 ${extra[@]+"${extra[@]}"} "$url" -o "${dest}.part"; then
             mv -f "${dest}.part" "$dest"
             return 0
@@ -66,12 +72,16 @@ else
     mkdir -p "$RPM_TMP_DIR"
     RF_FREE="${RPM_TMP_DIR}/rpmfusion-free-release.rpm"
     RF_NONFREE="${RPM_TMP_DIR}/rpmfusion-nonfree-release.rpm"
-    if fetch_rpm_with_fallback "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" "$RF_FREE" &&
-       fetch_rpm_with_fallback "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" "$RF_NONFREE"; then
+    if fetch_rpm_with_fallback "$RF_FREE" \
+         "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" \
+         "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VER}.noarch.rpm" &&
+       fetch_rpm_with_fallback "$RF_NONFREE" \
+         "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" \
+         "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"; then
         sudo dnf install -y "$RF_FREE" "$RF_NONFREE"
         log_success "RPM Fusion configurado com sucesso."
     else
-        log_error "Falha ao baixar os release RPMs do RPM Fusion após múltiplas tentativas (todos os mirrors sorteados estavam inacessíveis)."
+        log_error "Falha ao baixar os release RPMs do RPM Fusion (servidor-mestre e roleta de mirrors inacessíveis)."
         rm -rf "$RPM_TMP_DIR"
         exit 1
     fi
