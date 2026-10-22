@@ -102,9 +102,18 @@ backup_file() {
 # Instala pacotes declarados em arquivo .conf (ignora linhas vazias e comentários #).
 # Manifesto ausente é tratado como ERRO: um typo de caminho não pode silenciar
 # a instalação de uma camada inteira (auditabilidade IaC / Seção 1.2 da especificação).
+# Uso: install_packages_from_conf <conf_file> [flags_extras_dnf] [exclusoes_csv]
+#   - flags_extras_dnf: opções passadas ao dnf (ex.: --allowerasing)
+#   - exclusoes_csv: nomes a filtrar ANTES de chamar o dnf. O dnf5 rejeita
+#     argumentos que "correspondem apenas a pacotes excluídos" quando um
+#     --exclude é combinado com o mesmo nome na linha de instalação.
+# Pacotes já instalados são pulados localmente: o dnf5 falha a transação
+# quando um pacote instalado é solicitado explicitamente, e o filtro garante
+# a reexecução idempotente de qualquer módulo do instalador.
 install_packages_from_conf() {
     local conf_file="$1"
     local extra_args="${2:-}"
+    local exclude_csv="${3:-}"
 
     if [[ ! -f "$conf_file" ]]; then
         log_error "Manifesto declarativo não encontrado: ${conf_file}"
@@ -119,9 +128,38 @@ install_packages_from_conf() {
         pkgs+=("$line")
     done < "$conf_file"
 
-    if [[ ${#pkgs[@]} -gt 0 ]]; then
-        log_info "Instalando pacotes declarados em $(basename "$conf_file")..."
-        # shellcheck disable=SC2086
-        sudo dnf install -y ${extra_args} "${pkgs[@]}"
+    # 1. Filtro de exclusões nominais (ex.: ramos de VM que não têm GPU híbrida)
+    if [[ -n "$exclude_csv" ]]; then
+        local -a excluded_names=() filtered=()
+        IFS=',' read -ra excluded_names <<< "$exclude_csv"
+        local pkg name excluded
+        for pkg in "${pkgs[@]}"; do
+            excluded=false
+            for name in "${excluded_names[@]}"; do
+                if [[ "$pkg" == "$name" ]]; then excluded=true; break; fi
+            done
+            [[ "$excluded" == true ]] || filtered+=("$pkg")
+        done
+        pkgs=("${filtered[@]}")
     fi
+
+    # 2. Filtro de pacotes já instalados (idempotência de reexecução)
+    local -a pending=()
+    local pkg
+    for pkg in "${pkgs[@]}"; do
+        if rpm -q "$pkg" >/dev/null 2>&1; then
+            log_info "Já instalado, pulando: ${pkg}"
+        else
+            pending+=("$pkg")
+        fi
+    done
+
+    if [[ ${#pending[@]} -eq 0 ]]; then
+        log_info "Nenhum pacote pendente em $(basename "$conf_file"). Nada a fazer."
+        return 0
+    fi
+
+    log_info "Instalando ${#pending[@]} pacote(s) declarados em $(basename "$conf_file")..."
+    # shellcheck disable=SC2086
+    sudo dnf install -y ${extra_args} "${pending[@]}"
 }

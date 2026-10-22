@@ -174,7 +174,7 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
 
 ### Módulo 02: Drivers Gráficos e GPU (`02_gpu_drivers.sh`)
 
-- Em VM: instalação apenas da base Mesa (DRI/Vulkan) via `install_packages_from_conf "${PACKAGES_DIR}/mesa.conf" "--exclude=switcheroo-control --exclude=mesa-va-drivers-freeworld"` — virtio-GPU não se beneficia de GPU híbrida nem de decodificação VA-API por hardware (o driver freeworld de VA-API continua sendo provido como codec na camada de aplicativos do Módulo 03 via `apps.conf`).
+- Em VM: instalação apenas da base Mesa (DRI/Vulkan) via `install_packages_from_conf "${PACKAGES_DIR}/mesa.conf" "" "switcheroo-control,mesa-va-drivers-freeworld"` — os nomes são filtrados localmente antes de chamar o dnf (o dnf5 rejeita argumentos que "correspondem apenas a pacotes excluídos"); virtio-GPU não se beneficia de GPU híbrida nem de decodificação VA-API por hardware (o driver freeworld de VA-API continua sendo provido como codec na camada de aplicativos do Módulo 03 via `apps.conf`).
 - Em Bare Metal: instalação declarativa da aceleração aberta Mesa DRI/Vulkan/VA-API e switcheroo-control via `install_packages_from_conf "${PACKAGES_DIR}/mesa.conf"`. Se NVIDIA for selecionado, instalação declarativa via `install_packages_from_conf "${PACKAGES_DIR}/nvidia.conf"` e ativação dos serviços RTD3.
 
 ### Módulo 03: Camada de Aplicativos do Usuário (`03_desktop_apps.sh`)
@@ -207,7 +207,7 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
 ### Módulo 05: Roteador de Compositor Wayland (`05_compositor.sh`)
 
 - Despacha a execução para o submódulo correspondente (Padrão Strategy):
-  - **`compositors/niri.sh`**: Instalação declarativa via `install_packages_from_conf "${PACKAGES_DIR}/niri.conf" "--exclude=alacritty"` (niri, xwayland-satellite, portais GNOME/GTK), remoção defensiva de resquícios do Alacritty e configuração de prioridade em `/etc/xdg/xdg-desktop-portal/niri-portals.conf`.
+  - **`compositors/niri.sh`**: Instalação declarativa via `install_packages_from_conf "${PACKAGES_DIR}/niri.conf" "" "alacritty"` (niri, xwayland-satellite, portais GNOME/GTK; alacritty filtrado localmente antes do dnf), remoção defensiva de resquícios do Alacritty e configuração de prioridade em `/etc/xdg/xdg-desktop-portal/niri-portals.conf`.
   - **`compositors/umbriel.sh`**: Instalação declarativa via `install_packages_from_conf "${PACKAGES_DIR}/umbriel.conf"` (umbriel-nightly, xwayland-satellite, portais Umbriel e GTK).
 
 ### Módulo 06: Roteador de Interface Gráfica (`06_desktop_interface.sh`)

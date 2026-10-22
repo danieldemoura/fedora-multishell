@@ -5,7 +5,7 @@
 # ==============================================================================
 set -euo pipefail
 
-install_packages_from_conf "${PACKAGES_DIR}/niri.conf" "--exclude=alacritty"
+install_packages_from_conf "${PACKAGES_DIR}/niri.conf" "" "alacritty"
 
 # Remoção defensiva caso o Alacritty já esteja presente no sistema
 sudo dnf remove -y alacritty 2>/dev/null || true

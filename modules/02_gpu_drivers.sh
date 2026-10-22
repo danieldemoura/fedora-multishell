@@ -25,7 +25,7 @@ ui_section_header "MÓDULO 02: DRIVERS GRÁFICOS E GPU"
 # excluindo VA-API freeworld e switcheroo-control (GPU híbrida não existe em VM).
 if [[ "${IS_VM:-false}" == true ]]; then
     log_info "Ambiente de Máquina Virtual detectado. Instalando apenas a base Mesa (DRI/Vulkan), sem drivers de GPU dedicada."
-    install_packages_from_conf "${PACKAGES_DIR}/mesa.conf" "--exclude=switcheroo-control --exclude=mesa-va-drivers-freeworld"
+    install_packages_from_conf "${PACKAGES_DIR}/mesa.conf" "" "switcheroo-control,mesa-va-drivers-freeworld"
     log_success "Módulo 02 (Drivers Gráficos) concluído (modo VM)."
     return 0 2>/dev/null || exit 0
 fi

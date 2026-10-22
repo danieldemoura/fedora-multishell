@@ -23,17 +23,17 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
 
 ### 1.2 Infraestrutura como Código (IaC) e Organização Semântica de `config/`
 
-- **Regra de Ouro Arquitetural:** *Código procedural em scripts `.sh` gerencia exclusivamente fluxo, controle e lógica; dados, pacotes, dotfiles e modelos de configuração pertencem estritamente à pasta `config/`.*
-- **Exceções Justificadas e Únicas à Regra de Ouro:** bootstrap de repositórios (RPMs de release do RPM Fusion, `dnf-plugins-core`, `flatpak`, habilitação de COPRs) e escolha do microcódigo de CPU (`intel-microcode`/`amd-ucode-firmware`) podem aparecer inline nos módulos, pois *antecedem* a existência dos manifestos ou são selecionados condicionalmente pela arquitetura detectada em tempo de execução — escapam ao modelo de dados estático.
+- **Regra de Ouro Arquitetural:** _Código procedural em scripts `.sh` gerencia exclusivamente fluxo, controle e lógica; dados, pacotes, dotfiles e modelos de configuração pertencem estritamente à pasta `config/`._
+- **Exceções Justificadas e Únicas à Regra de Ouro:** bootstrap de repositórios (RPMs de release do RPM Fusion, `dnf-plugins-core`, `flatpak`, habilitação de COPRs) e escolha do microcódigo de CPU (`intel-microcode`/`amd-ucode-firmware`) podem aparecer inline nos módulos, pois _antecedem_ a existência dos manifestos ou são selecionados condicionalmente pela arquitetura detectada em tempo de execução — escapam ao modelo de dados estático.
 - **Divisão Tripla da Pasta `config/`:**
   1. `config/packages/`: Manifestos declarativos `.conf` para gerenciar dependências do sistema e aplicações (DNF e Flatpak).
   2. `config/desktop/`: Configurações declarativas de interface e dotfiles do usuário aplicadas sob `~/.config/` (ex: `niri/config.kdl`, `umbriel/config.toml`).
   3. `config/system/`: Modelos e arquivos de configuração administrativa aplicados sob `/etc/` (ex: `greetd.toml.template`, `pam_greetd.template`, `pam_sddm.template`).
 - **Prevenção de Inchaço do Sistema (Anti-Bloatware):** A segregação por arquivo `.conf` especializado dentro de `config/packages/` impede que dependências pesadas de uma shell ou compositor específico (como o runtime Quickshell do iNiR ou o repositório Terra do Noctalia) poluam a base do sistema de usuários que escolheram outros ambientes.
 - **Racional Técnico e Benefícios de IaC:**
-  1. *Auditabilidade e Transparência Total:* Administradores, usuários e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.
-  2. *Manutenibilidade e Desacoplamento:* Atualizar, adicionar ou remover um pacote ou dotfile não altera o código executável, reduzindo a zero o risco de efeitos colaterais ou regressões em tempo de execução.
-  3. *Reutilização e Idempotência:* A instalação é orquestrada pela função utilitária padronizada `install_packages_from_conf`, garantindo que comentários, linhas em branco e parâmetros de contenção (ex: `--exclude=alacritty` ou `--allowerasing`) sejam tratados de forma consistente e segura em qualquer etapa do provisionamento.
+  1. _Auditabilidade e Transparência Total:_ Administradores, usuários e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.
+  2. _Manutenibilidade e Desacoplamento:_ Atualizar, adicionar ou remover um pacote ou dotfile não altera o código executável, reduzindo a zero o risco de efeitos colaterais ou regressões em tempo de execução.
+  3. _Reutilização e Idempotência:_ A instalação é orquestrada pela função utilitária padronizada `install_packages_from_conf`, que filtra exclusões nominais antes de chamar o DNF (o dnf5 rejeita argumentos que "correspondem apenas a pacotes excluídos") e pula pacotes já instalados, garantindo reexecução idempotente de qualquer módulo com flags de contenção (ex: `--allowerasing`) tratadas de forma consistente.
 - **Formato dos Arquivos Declarativos `.conf`:** Um pacote por linha, com suporte nativo a comentários prefixados com `#` e linhas em branco.
 - **Eliminação de `templates/` da Raiz:** Toda e qualquer configuração declarativa de dotfiles e de sistema reside exclusivamente em `config/desktop/` e `config/system/`, eliminando pastas de templates dispersas na raiz do projeto.
 
@@ -42,9 +42,11 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
 Localizada em `lib/utils.sh`, a função padroniza o consumo de qualquer arquivo de manifesto `.conf`:
 
 ```bash
+# Uso: install_packages_from_conf <conf_file> [flags_extras_dnf] [exclusoes_csv]
 install_packages_from_conf() {
     local conf_file="$1"
     local extra_args="${2:-}"
+    local exclude_csv="${3:-}"
 
     if [[ ! -f "$conf_file" ]]; then
         log_error "Manifesto declarativo não encontrado: ${conf_file}"
@@ -59,11 +61,31 @@ install_packages_from_conf() {
         pkgs+=("$line")
     done < "$conf_file"
 
-    if [[ ${#pkgs[@]} -gt 0 ]]; then
-        log_info "Instalando pacotes declarados em $(basename "$conf_file")..."
-        # shellcheck disable=SC2086
-        sudo dnf install -y ${extra_args} "${pkgs[@]}"
+    # 1. Filtro de exclusões nominais (ex.: ramos de VM que não têm GPU híbrida)
+    if [[ -n "$exclude_csv" ]]; then
+        # remove do vetor pkgs os nomes listados em exclusoes_csv ("a,b,c")
+        ...
     fi
+
+    # 2. Filtro de pacotes já instalados (idempotência de reexecução)
+    local -a pending=()
+    local pkg
+    for pkg in "${pkgs[@]}"; do
+        if rpm -q "$pkg" >/dev/null 2>&1; then
+            log_info "Já instalado, pulando: ${pkg}"
+        else
+            pending+=("$pkg")
+        fi
+    done
+
+    if [[ ${#pending[@]} -eq 0 ]]; then
+        log_info "Nenhum pacote pendente em $(basename "$conf_file"). Nada a fazer."
+        return 0
+    fi
+
+    log_info "Instalando ${#pending[@]} pacote(s) declarados em $(basename "$conf_file")..."
+    # shellcheck disable=SC2086
+    sudo dnf install -y ${extra_args} "${pending[@]}"
 }
 ```
 
@@ -71,8 +93,10 @@ install_packages_from_conf() {
   - **Manifesto ausente é erro (não falha silenciosa):** um caminho digitado incorretamente registra `log_error` e retorna `1`, impedindo que uma camada inteira deixe de ser instalada sem aviso — preservando a auditabilidade IaC.
   - Ignora comentários inline ou linhas comentadas com `#`.
   - Ignora espaços e linhas vazias de forma defensiva.
-  - Suporta argumentos adicionais do DNF (ex: `--exclude=alacritty`, `--allowerasing`).
-  - Executa a chamada DNF em lote com lista de argumentos (`"${pkgs[@]}"`), acelerando drasticamente a resolução de dependências se comparado a chamadas individuais.
+  - **Exclusões por nome (3º argumento, CSV):** filtradas localmente antes do DNF — nunca via `--exclude` combinado com o mesmo nome na linha de instalação, padrão que o dnf5 rejeita com "corresponde apenas a pacotes excluídos".
+  - **Idempotência:** pacotes já instalados (`rpm -q`) são pulados localmente, pois o dnf5 falha a transação quando um pacote instalado é solicitado explicitamente; reexecutar o instalador é sempre seguro.
+  - Suporta flags adicionais do DNF (ex: `--allowerasing`) como 2º argumento.
+  - Executa a chamada DNF em lote com lista de argumentos (`"${pending[@]}"`), acelerando drasticamente a resolução de dependências se comparado a chamadas individuais.
 
 ### 1.4 Padrão Estratégia (Strategy Pattern)
 
@@ -153,7 +177,6 @@ set -euo pipefail
 4. **Endurecimento do Drop-in Temporário de Sudoers:** A regra NOPASSWD temporária em `/etc/sudoers.d/` deve ser montada em `mktemp`, **validada com `sudo visudo -cf`** antes de qualquer instalação (sintaxe inválida aborta sem tocar `/etc/sudoers`), instalada com `sudo install -m 0440 -o root -g root` e removida por `trap` nos sinais `EXIT HUP INT TERM`. O instalador também remove drop-ins órfãos de execuções anteriores interrompidas (`kill -9`) para não deixar resquícios administrativos persistentes.
 5. **Log Fora de Diretórios Compartilhados:** O log de instalação reside em `${XDG_STATE_HOME:-~/.local/state}/fedora-multi-shell/install.log` (nunca em `/tmp` previsível), e o `log_init` recusa um alvo que já exista como link simbólico, mitigando ataques de symlink.
 6. **Proibição de `eval` sobre Dados de Usuário:** A resolução de `$HOME` e do usuário real usa `getent passwd` e a cadeia `${SUDO_USER:-${USER:-$(id -un)}}` — jamais `eval echo ~$user`, que permitiria injeção de código via nome de usuário controlável.
-
 
 ---
 
