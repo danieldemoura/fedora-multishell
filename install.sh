@@ -155,29 +155,16 @@ else
     fi
 fi
 
-# Menu Interativo - Pergunta 4: Configuração de Teclado
-ui_section_header "CONFIGURAÇÃO DE TECLADO"
-ui_ask_yn "  Deseja configurar o padrão Brasileiro ABNT2 (com tecla ç)? [S/n]: " "s" kbd_choice
-
-if [[ "$kbd_choice" =~ ^[sSyY]$ ]]; then
-    KEYBOARD_ABNT2=true
-    KBD_DESC="Brasileiro (ABNT2 / br)"
-else
-    KEYBOARD_ABNT2=false
-    KBD_DESC="Padrão do Sistema (US / Atual)"
-fi
-
 # Exporta variáveis para os módulos
 export IS_VM
 export SELECTED_INTERFACE
 export SELECTED_SHELL
 export SELECTED_COMPOSITOR
 export INSTALL_NVIDIA
-export KEYBOARD_ABNT2
 export LOG_FILE
 
 # 6. Resumo e Confirmação de Instalação
-ui_summary_box "$ENV_DESC" "$SHELL_DESC" "$COMP_DESC" "$GPU_DESC" "$KBD_DESC"
+ui_summary_box "$ENV_DESC" "$SHELL_DESC" "$COMP_DESC" "$GPU_DESC"
 
 ui_ask_yn "  Deseja iniciar a instalação com estas definições? [S/n]: " "s" confirm_install
 

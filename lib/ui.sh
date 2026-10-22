@@ -145,7 +145,6 @@ ui_summary_box() {
     local shell_name="$2"
     local comp_name="$3"
     local gpu_name="$4"
-    local kbd_name="$5"
 
     echo ""
     echo -e "${CLR_CYAN}╔═════════════════════════════════════════════════════════╗${CLR_RESET}"
@@ -155,7 +154,6 @@ ui_summary_box() {
     printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Interface Gráfica" "$shell_name"
     printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Compositor" "$comp_name"
     printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Driver Gráfico / GPU" "$gpu_name"
-    printf "${CLR_CYAN}║${CLR_RESET}  %-23s : ${CLR_BOLD}%-26s${CLR_RESET} ${CLR_CYAN}║${CLR_RESET}\n" "Layout de Teclado" "$kbd_name"
     echo -e "${CLR_CYAN}╚═════════════════════════════════════════════════════════╝${CLR_RESET}"
     echo ""
 }

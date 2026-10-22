@@ -2,7 +2,7 @@
 # ==============================================================================
 # fedora-multi-shell: modules/07_post_install.sh
 # Configurações de pós-instalação: Keyring, Compositor config (Niri/Umbriel),
-# autostart de Shell (iNiR/Noctalia), ABNT2, VM flags, target gráfico e testes
+# autostart de Shell (iNiR/Noctalia), VM flags, target gráfico e testes
 # ==============================================================================
 set -euo pipefail
 
@@ -68,13 +68,6 @@ if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
         sudo -u "${REAL_USER}" cp -r "${DESKTOP_DIR}/umbriel/"* "${UMB_CONFIG_DIR}/"
         log_info "Configurações declarativas de Umbriel copiadas para ${UMB_CONFIG_DIR}/ com sucesso."
 
-        # Respeita a escolha de teclado do usuário: os templates são distribuídos
-        # com ABNT2; se a opção foi negada no menu, remove o layout "br".
-        if [[ "${KEYBOARD_ABNT2:-true}" != true ]] && grep -qF 'layout = "br"' "${UMB_CONFIG_FILE}"; then
-            log_info "ABNT2 não selecionado: removendo 'layout = \"br\"' de ${UMB_CONFIG_FILE}."
-            sudo -u "${REAL_USER}" sed -i '/^layout = "br"/d' "${UMB_CONFIG_FILE}"
-        fi
-
         # Injeção Dinâmica para VM: apenas se IS_VM=true (idempotente por guard de grep)
         if [[ "${IS_VM:-false}" == true ]]; then
             if ! grep -qF 'LIBGL_ALWAYS_SOFTWARE' "${UMB_CONFIG_FILE}"; then
@@ -129,13 +122,6 @@ EOF
         # Copia configuração declarativa config/desktop/niri/config.kdl
         sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/niri/config.kdl" "${NIRI_CONFIG_FILE}"
         log_info "Configuração declarativa do Niri copiada para ${NIRI_CONFIG_FILE}."
-
-        # Respeita a escolha de teclado do usuário: o template é distribuído com
-        # ABNT2; se a opção foi negada no menu, remove o layout "br" do bloco xkb.
-        if [[ "${KEYBOARD_ABNT2:-true}" != true ]] && grep -qF 'layout "br"' "${NIRI_CONFIG_FILE}"; then
-            log_info "ABNT2 não selecionado: removendo 'layout \"br\"' de ${NIRI_CONFIG_FILE}."
-            sudo -u "${REAL_USER}" sed -i '/layout "br"/d' "${NIRI_CONFIG_FILE}"
-        fi
 
         # Injeção Dinâmica para VM: apenas se IS_VM=true (idempotente por guard de grep)
         if [[ "${IS_VM:-false}" == true ]]; then
@@ -227,36 +213,7 @@ EOF
         fi
     fi
 
-    # 3. Assegura layout de teclado ABNT2 (layout "br")
-    if [[ "${KEYBOARD_ABNT2:-true}" == true ]]; then
-        if ! grep -q 'layout "br"' "${NIRI_CONFIG_FILE}"; then
-            log_info "Configurando layout de teclado ABNT2 (br) no Niri..."
-            if grep -q 'xkb {' "${NIRI_CONFIG_FILE}"; then
-                # Se bloco xkb já existe sem layout br, injeta layout "br" dentro de xkb
-                sudo -u "${REAL_USER}" sed -i '/xkb {/a \        layout "br"' "${NIRI_CONFIG_FILE}"
-            elif grep -q 'keyboard {' "${NIRI_CONFIG_FILE}"; then
-                # Se bloco keyboard já existe sem xkb, injeta xkb com layout br dentro de keyboard
-                sudo -u "${REAL_USER}" sed -i '/keyboard {/a \        xkb {\n            layout "br"\n        }' "${NIRI_CONFIG_FILE}"
-            else
-                # Se não houver bloco de entrada/teclado, anexa bloco input completo
-                sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
-
-input {
-    keyboard {
-        xkb {
-            layout "br"
-        }
-    }
-}
-EOF
-            fi
-            log_success "Layout ABNT2 (br) configurado em ${NIRI_CONFIG_FILE}."
-        else
-            log_info "Layout ABNT2 (br) já presente em ${NIRI_CONFIG_FILE}."
-        fi
-    fi
-
-    # 4. Validação oficial do Niri
+    # 3. Validação oficial do Niri
     log_info "Validando configuração do Niri para iNiR (niri validate)..."
     if command -v niri >/dev/null 2>&1; then
         if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
@@ -303,33 +260,7 @@ elif [[ "${SELECTED_INTERFACE}" == "danklinux" ]]; then
         log_info "Autostart do DankMaterialShell já presente em ${NIRI_CONFIG_FILE}."
     fi
 
-    # 2. Configuração de layout de teclado ABNT2 (br)
-    if [[ "${KEYBOARD_ABNT2:-true}" == true ]]; then
-        if ! grep -q 'layout "br"' "${NIRI_CONFIG_FILE}"; then
-            log_info "Configurando layout de teclado ABNT2 (br) no Niri (DMS)..."
-            if grep -q 'xkb {' "${NIRI_CONFIG_FILE}"; then
-                sudo -u "${REAL_USER}" sed -i '/xkb {/a \        layout "br"' "${NIRI_CONFIG_FILE}"
-            elif grep -q 'keyboard {' "${NIRI_CONFIG_FILE}"; then
-                sudo -u "${REAL_USER}" sed -i '/keyboard {/a \        xkb {\n            layout "br"\n        }' "${NIRI_CONFIG_FILE}"
-            else
-                sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
-
-input {
-    keyboard {
-        xkb {
-            layout "br"
-        }
-    }
-}
-EOF
-            fi
-            log_success "Layout ABNT2 (br) configurado em ${NIRI_CONFIG_FILE}."
-        else
-            log_info "Layout ABNT2 (br) já presente em ${NIRI_CONFIG_FILE}."
-        fi
-    fi
-
-    # 3. Injeção de variáveis de renderização segura para VM
+    # 2. Injeção de variáveis de renderização segura para VM
     if [[ "${IS_VM:-false}" == true ]]; then
         log_info "Detectado ambiente VM (IS_VM=true). Assegurando flags de renderização por software no Niri..."
         if grep -q 'environment {' "${NIRI_CONFIG_FILE}"; then
@@ -350,10 +281,10 @@ EOF
         log_success "Flags de VM asseguradas em ${NIRI_CONFIG_FILE}."
     fi
 
-    # 4. Garantir permissões de posse antes da validação
+    # 3. Garantir permissões de posse antes da validação
     ensure_user_ownership "${REAL_HOME}/.config"
 
-    # 5. Validação oficial do Niri
+    # 4. Validação oficial do Niri
     log_info "Validando configuração do Niri para DankMaterialShell (niri validate)..."
     if command -v niri >/dev/null 2>&1; then
         if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then

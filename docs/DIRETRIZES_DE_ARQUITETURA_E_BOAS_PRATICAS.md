@@ -18,7 +18,7 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
   - `04_display_stack.sh`: Display managers (Greetd ou SDDM) e integração PAM Keyring.
   - `05_compositor.sh`: Roteador de compositores Wayland (Niri ou Umbriel).
   - `06_desktop_interface.sh`: Roteador de interfaces gráficas (iNiR, Noctalia ou DankLinux).
-  - `07_post_install.sh`: Validação final, autostart, layout de teclado ABNT2 e habilitação de serviços.
+  - `07_post_install.sh`: Validação final, autostart da interface e habilitação de serviços.
 - É terminantemente proibido instalar aplicativos de usuário (como navegadores ou players) dentro de módulos de hardware ou repositórios.
 
 ### 1.2 Infraestrutura como Código (IaC) e Organização Semântica de `config/`
