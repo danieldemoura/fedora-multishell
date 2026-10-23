@@ -30,10 +30,19 @@ if ! command -v deno &>/dev/null; then
     DENO_ASSET="deno-${DENO_TARGET}.zip"
     DENO_BASE_URL="https://github.com/denoland/deno/releases/latest/download"
     DENO_TMP_ZIP="${REAL_HOME}/deno-install-temp.zip"
-    DENO_TMP_SHA="${REAL_HOME}/deno-install-temp.zip.sha256"
+    DENO_TMP_SHA="${REAL_HOME}/deno-install-temp.zip.sha256sum"
 
-    curl -fsSL "${DENO_BASE_URL}/${DENO_ASSET}" -o "${DENO_TMP_ZIP}"
-    curl -fsSL "${DENO_BASE_URL}/${DENO_ASSET}.sha256" -o "${DENO_TMP_SHA}"
+    # A release do Deno publica o checksum por asset com o sufixo ".sha256sum"
+    # (ex.: deno-x86_64-unknown-linux-gnu.zip.sha256sum) — nao ".sha256".
+    if ! curl -fsSL "${DENO_BASE_URL}/${DENO_ASSET}" -o "${DENO_TMP_ZIP}"; then
+        log_error "Falha ao baixar o binario do Deno: ${DENO_BASE_URL}/${DENO_ASSET}"
+        exit 1
+    fi
+    if ! curl -fsSL "${DENO_BASE_URL}/${DENO_ASSET}.sha256sum" -o "${DENO_TMP_SHA}"; then
+        log_error "Falha ao baixar o checksum do Deno: ${DENO_BASE_URL}/${DENO_ASSET}.sha256sum"
+        rm -f "${DENO_TMP_ZIP}"
+        exit 1
+    fi
 
     DENO_EXPECTED_SHA="$(grep -Eo '[a-fA-F0-9]{64}' "${DENO_TMP_SHA}" | head -n1)"
     DENO_ACTUAL_SHA="$(sha256sum "${DENO_TMP_ZIP}" | cut -d' ' -f1)"
