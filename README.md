@@ -36,6 +36,28 @@ Instalador modular, em camadas e automatizado para transformar uma instalação 
 
 ---
 
+## 📸 Prévia Visual das Interfaces
+
+Amostras reais do visual de cada **Desktop Shell** (Fedora Linux 44), para você escolher com base no estilo de cada interface antes de instalar:
+
+### iNiR Shell
+
+> Usa **exclusivamente o compositor Niri**.
+
+Central de configurações com a família de painéis **iRiS** ativa — barra superior, dock e theming dinâmico _Material You_:
+
+![Prévia da iNiR Shell (Niri) com a família de painéis iRiS](docs/preview/inir-shell.png)
+
+### Noctalia Shell
+
+> Permite escolher entre os compositores **Niri** e **Umbriel**.
+
+Painel de **Acesso Rápido** (Quick Access) com widgets de sistema, mídia, energia e rede — captura abaixo mostrando o **Noctalia sobre o compositor Umbriel**:
+
+![Prévia da Noctalia Shell (Umbriel) com o painel de Acesso Rápido](docs/preview/noctalia-shell.png)
+
+---
+
 ## 🏗️ Arquitetura em Camadas (Layered Architecture)
 
 O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Idempotência**, **Infraestrutura como Código (IaC)** e **Padrão Strategy** para despachar submódulos de compositores e interfaces gráficas. Os pacotes de usuário (fontes, terminal Kitty e codecs) são instalados no Módulo 03, garantindo ambiente pronto antes de subir a stack visual:
@@ -46,7 +68,8 @@ fedora-multishell/
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
-│   └── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
+│   ├── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
+│   └── preview/                     # Capturas de prévia visual das Desktop Shells (iNiR, Noctalia)
 ├── config/
 │   ├── settings.conf                # Variáveis globais, repositórios e flags padrão
 │   ├── packages/                    # Manifestos declarativos de pacotes (DNF / Flatpak)
