@@ -34,6 +34,27 @@ if ! sudo grep -qE '^fastestmirror' "$DNF_CONF" 2>/dev/null; then
     log_success "fastestmirror habilitado em ${DNF_CONF}."
 fi
 
+# 0.1 Hardening IPv4 em VMs: muitas VMs (rede NAT com IPv6 semi-configurado) têm
+# stack IPv6 em modo "blackhole" — consultas DNS/AAAA e conexões IPv6 travam, e o
+# librepo/curl aborta com "Curl error (6): Could not resolve host" ou timeouts. Forçar
+# IPv4 no dnf (ip_resolve=4, global — vale também para o ./setup install do iNiR) e no
+# curl do usuário (--ipv4 em ~/.curlrc) elimina essa classe de falha. Só em IS_VM=true
+# para não penalizar bare metal (que pode ter IPv6 funcional ou até IPv6-only).
+if [[ "${IS_VM:-false}" == true ]]; then
+    if ! sudo grep -qE '^ip_resolve' "$DNF_CONF" 2>/dev/null; then
+        log_info "VM detectada: forçando resolução/conexão IPv4 no DNF (ip_resolve=4)..."
+        sudo sed -i '/^\[main\]/a ip_resolve=4' "$DNF_CONF"
+        log_success "ip_resolve=4 habilitado em ${DNF_CONF}."
+    fi
+    REAL_USER_00="$(get_real_user)"
+    CURLRC_00="$(get_real_user_home)/.curlrc"
+    if ! grep -qE '^[[:space:]]*--ipv4' "$CURLRC_00" 2>/dev/null; then
+        log_info "VM detectada: forçando IPv4 no curl do usuário (--ipv4 em ${CURLRC_00})..."
+        printf '%s\n' '--ipv4' | sudo -u "${REAL_USER_00}" tee -a "$CURLRC_00" >/dev/null
+        log_success "--ipv4 adicionado a ${CURLRC_00}."
+    fi
+fi
+
 # 1. Instalação do RPM Fusion Free e Nonfree
 # download1.rpmfusion.org é o servidor-mestre DIRETO (o mesmo usado como
 # baseurl nos .repo oficiais, sem roleta de mirrors). Já mirrors.rpmfusion.org
