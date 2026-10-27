@@ -99,7 +99,15 @@ else
        fetch_rpm_with_fallback "$RF_NONFREE" \
          "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" \
          "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"; then
-        sudo dnf install -y "$RF_FREE" "$RF_NONFREE"
+        # O --nogpgcheck abaixo é restrito ao bootstrap dos pacotes -release do
+        # RPM Fusion (ovo-e-galinha da chave GPG): a chave de assinatura deles só
+        # passa a existir no sistema DEPOIS que esses pacotes são instalados. No
+        # Fedora 45+ a verificação de assinatura RPM passou a ser obrigatória por
+        # padrão (RPM 6.1), o que faria este `dnf install -y` abortar em modo não
+        # interativo. São os mesmos dois RPMs oficiais baixados acima por HTTPS de
+        # rpmfusion.org; toda instalação posterior do RPM Fusion é assinada e
+        # verificada normalmente (as chaves entram com esses release pacotes).
+        sudo dnf install -y --nogpgcheck "$RF_FREE" "$RF_NONFREE"
         log_success "RPM Fusion configurado com sucesso."
     else
         log_error "Falha ao baixar os release RPMs do RPM Fusion (servidor-mestre e roleta de mirrors inacessíveis)."
