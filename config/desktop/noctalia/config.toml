@@ -1,0 +1,9 @@
+# ==============================================================================
+# fedora-multi-shell: Configuração Declarativa do Noctalia Shell
+# ==============================================================================
+# Copiado para ~/.config/noctalia/config.toml durante o pós-instalação.
+
+[shell]
+# Habilita o agente Polkit nativo do Noctalia para autenticação gráfica
+# (montagem de partições UDisks2/NTFS, diálogos de rede e privilégios de sistema)
+polkit_agent = true

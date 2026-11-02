@@ -88,6 +88,8 @@ fedora-multishell/
 │   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
 │   │   ├── niri/
 │   │   │   └── config.kdl           # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
+│   │   ├── noctalia/
+│   │   │   └── config.toml          # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
 │   │   └── umbriel/
 │   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
 │   │       └── noctalia.toml        # Include opcional intencionalmente vazio para customizações locais

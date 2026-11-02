@@ -51,6 +51,8 @@ fedora-multishell/
 │   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
 │   │   ├── niri/
 │   │   │   └── config.kdl           # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
+│   │   ├── noctalia/
+│   │   │   └── config.toml          # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
 │   │   └── umbriel/
 │   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
 │   │       └── noctalia.toml        # Include opcional intencionalmente vazio para customizações locais
@@ -232,6 +234,7 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
 - Inicialização do cofre de credenciais PAM em `~/.local/share/keyrings/default` com conteúdo `login` (permissão `600`).
 - Configuração declarativa do compositor ativo:
   - **Se Noctalia Shell (`SELECTED_INTERFACE="noctalia"`):**
+    - Cria `~/.config/noctalia`, copia a configuração declarativa de `${DESKTOP_DIR}/noctalia/config.toml` (`config/desktop/noctalia/config.toml`) ativando o agente Polkit nativo (`polkit_agent = true`) sob `${REAL_USER}`.
     - **Se Umbriel:** Cria `~/.config/umbriel`, copia os arquivos de `${DESKTOP_DIR}/umbriel/*` (`config/desktop/umbriel/`) para `~/.config/umbriel/`. Se `IS_VM=true`, anexa (de forma idempotente, protegida por `grep -qF`) o bloco de software rendering e desativação de cursor de hardware ao final de `config.toml`. Valida via `sudo -u "${REAL_USER}" umbriel config validate`.
     - **Se Niri:** Cria `~/.config/niri`, copia `${DESKTOP_DIR}/niri/config.kdl` para `~/.config/niri/config.kdl`. Se `IS_VM=true`, anexa de forma idempotente o bloco `environment` de renderização por software. Valida via `sudo -u "${REAL_USER}" niri validate`.
   - **Se iNiR Shell (`SELECTED_INTERFACE="inir"`):** Não copia nem sobrescreve arquivos com os templates do Noctalia; assegura que `~/.config/niri/config.kdl` exista e vincula a shell ao sistema de serviços do systemd de usuário (`inir service install` + wants link `niri.service.wants/inir.service` — o caminho canônico upstream, exigido pelas trocas de família de painéis em runtime como o iRiS; a injeção `spawn-at-startup "inir" "run"` fica restrita a contingência quando a unidade de usuário do Niri não está presente). Pré-ativa a família **iRiS** editando o config operativo lido pela shell em runtime (`~/.config/illogical-impulse/config.json` — caminho fixado pelo `Directories.qml`; quando ausente, é semeado a partir do default instalado em `~/.config/inir/config.json` e o iRiS é espelhado nele), aplicando `panelFamily="iris"` + painéis da família mesclados em `enabledPanels`/`knownPanels` com escrita atômica e idempotência, injeta o bloco `environment` de renderização por software se `IS_VM=true` e valida a sintaxe ao final com `niri validate`. Previne tela cinza vazia no Niri após o login.

@@ -50,8 +50,23 @@ sudo chmod 600 "${KEYRINGS_DIR}/default"
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
 log_success "Ponteiro do chaveiro canônico 'login' configurado em ${KEYRINGS_DIR}/default."
 
-# 2. Configuração do Compositor Ativo (Niri ou Umbriel)
-if [[ "${SELECTED_SHELL}" == "noctalia" ]]; then
+# 2. Configuração do Compositor Ativo e Shell
+if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia" ]]; then
+    # 2.1 Configuração Declarativa do Noctalia Shell
+    NOCTALIA_CONFIG_DIR="${REAL_HOME}/.config/noctalia"
+    NOCTALIA_CONFIG_FILE="${NOCTALIA_CONFIG_DIR}/config.toml"
+
+    log_info "Configurando ambiente declarativo do Noctalia Shell..."
+    sudo -u "${REAL_USER}" mkdir -p "${NOCTALIA_CONFIG_DIR}"
+
+    if [[ -f "${DESKTOP_DIR}/noctalia/config.toml" ]]; then
+        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/noctalia/config.toml" "${NOCTALIA_CONFIG_FILE}"
+        log_info "Configuração declarativa do Noctalia copiada para ${NOCTALIA_CONFIG_FILE}."
+    fi
+
+    ensure_user_ownership "${REAL_HOME}/.config"
+
+    # 2.2 Configuração do Compositor Ativo para Noctalia
     if [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
         UMB_CONFIG_DIR="${REAL_HOME}/.config/umbriel"
         UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
