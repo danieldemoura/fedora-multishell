@@ -120,45 +120,46 @@ Responsáveis pela sustentação de hardware, barramentos de sistema, subsistema
 
 Conjunto essencial de ferramentas gráficas, terminal, fontes e codecs provisionados para o usuário:
 
-| Pacote                             | Função e Justificativa Técnica                                                                                                    |
-| :--------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
-| `kitty`                            | Emulador de terminal acelerado por GPU via OpenGL, rápido, moderno e configurado como terminal padrão.                            |
-| `fastfetch`                        | Utilitário CLI em C para exibição instantânea de informações de hardware, sistema e logos ASCII.                                  |
-| `nautilus`                         | Gerenciador de arquivos oficial do GNOME, com interface GTK4 e integração moderna ao Wayland.                                     |
-| `gvfs-mtp`                         | Módulo GVFS para montagem e transferência de arquivos em smartphones e dispositivos Android via MTP.                              |
-| `gvfs-smb`                         | Suporte a compartilhamentos de rede SMB/CIFS (servidores Windows, Samba e NAS).                                                   |
-| `gvfs-archive`                     | Módulo GVFS para montagem transparente de arquivos compactados (ZIP, TAR, ISO) como pastas normais no Nautilus.                   |
-| `gvfs-fuse`                        | Ponte FUSE que expõe as montagens de rede e virtuais do GVFS para ferramentas de terminal tradicionais via `/run/user/$UID/gvfs`. |
-| `gnome-software`                   | Loja oficial de aplicativos do Fedora com interface gráfica completa e suporte nativo ao Flathub.                                 |
-| `loupe`                            | Visualizador de imagens moderno em GTK4/libadwaita com aceleração de hardware e gestos touchpad.                                  |
-| `papers`                           | Leitor de documentos e arquivos PDF em GTK4 (sucessor moderno e performático do Evince).                                          |
-| `gnome-text-editor`                | Editor de texto gráfico moderno e responsivo do GNOME.                                                                            |
-| `simple-scan`                      | Utilitário intuitivo de digitalização de documentos e imagens integrado ao sane-airscan.                                          |
-| `gnome-disk-utility`               | Utilitário gráfico completo para particionamento, formatação, teste SMART e benchmark de unidades de disco.                       |
-| `p7zip`                            | Port Linux CLI da ferramenta de alta compressão 7-Zip.                                                                            |
-| `p7zip-plugins`                    | Plugins estendidos para suporte a formatos de compressão avançados no p7zip.                                                      |
-| `unrar`                            | Utilitário para descompressão de arquivos no formato proprietário RAR.                                                            |
-| `zstd`                             | Algoritmo e utilitário CLI de compressão rápida em tempo real desenvolvido pela Meta.                                             |
-| `tar`                              | Ferramenta universal Unix para criação e manipulação de arquivos tarball.                                                         |
-| `xz`                               | Utilitário de compressão LZMA de alta densidade padrão do ecossistema Linux.                                                      |
-| `swaylock`                         | Bloqueador de tela Wayland seguro com suporte a efeitos visuais e integração PAM.                                                 |
-| `grim`                             | Utilitário CLI para captura de tela (screenshots) em compositores Wayland que implementam `wlr-screencopy`.                       |
-| `slurp`                            | Utilitário para seleção interativa de regiões de tela via mouse para uso em conjunto com o `grim`.                                |
-| `wl-clipboard`                     | Ferramentas de linha de comando (`wl-copy` e `wl-paste`) para manipulação da área de transferência no Wayland.                    |
-| `playerctl`                        | Utilitário CLI e controlador D-Bus MPRIS para pausar, reproduzir e controlar players de áudio/vídeo via atalhos do teclado.       |
-| `matugen`                          | Gerenciador de cores e temas que gera paletas harmoniosas com base no papel de parede (Material You).                             |
-| `adwaita-icon-theme`               | Conjunto padrão de ícones do GNOME/GTK garantindo conformidade visual às aplicações.                                              |
-| `google-noto-sans-fonts`           | Família tipográfica Sans-Serif moderna e completa do projeto Google Noto.                                                         |
-| `google-noto-serif-fonts`          | Família tipográfica Serifada do projeto Google Noto.                                                                              |
-| `google-noto-sans-cjk-fonts`       | Suporte tipográfico universal a caracteres CJK (Chinês, Japonês e Coreano).                                                       |
-| `google-noto-color-emoji-fonts`    | Conjunto de emojis em cores de alta resolução padrão do Google/Android.                                                           |
-| `glycin-thumbnailer`               | Gerador moderno de miniaturas de imagens protegido por sandbox para o Nautilus.                                                   |
-| `ffmpegthumbnailer`                | Utilitário leve que extrai miniaturas de arquivos de vídeo locais para exibição no gerenciador de arquivos.                       |
-| `papers-thumbnailer`               | Gerador de miniaturas da primeira página de documentos e arquivos PDF para o Nautilus.                                            |
-| `ffmpeg`                           | Pacote completo e irrestrito do FFmpeg obtido do RPM Fusion (com suporte a decodificação de formatos proprietários).              |
-| `gstreamer1-plugins-bad-freeworld` | Plugins GStreamer adicionais do RPM Fusion com suporte a codecs proprietários e experimentais.                                    |
-| `gstreamer1-plugins-ugly`          | Conjunto de plugins GStreamer de alta qualidade com restrições de licença (MP3 legado, MPEG, etc.).                               |
-| `mesa-va-drivers-freeworld`        | Drivers VA-API da Mesa com suporte nativo completo a aceleração por hardware para decodificação H.264, H.265 e VC-1.              |
+| Pacote                             | Função e Justificativa Técnica                                                                                                                                                                    |
+| :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `kitty`                            | Emulador de terminal acelerado por GPU via OpenGL, rápido, moderno e configurado como terminal padrão.                                                                                            |
+| `fastfetch`                        | Utilitário CLI em C para exibição instantânea de informações de hardware, sistema e logos ASCII.                                                                                                  |
+| `nautilus`                         | Gerenciador de arquivos oficial do GNOME, com interface GTK4 e integração moderna ao Wayland.                                                                                                     |
+| `gvfs-mtp`                         | Módulo GVFS para montagem e transferência de arquivos em smartphones e dispositivos Android via MTP.                                                                                              |
+| `gvfs-smb`                         | Suporte a compartilhamentos de rede SMB/CIFS (servidores Windows, Samba e NAS).                                                                                                                   |
+| `gvfs-archive`                     | Módulo GVFS para montagem transparente de arquivos compactados (ZIP, TAR, ISO) como pastas normais no Nautilus.                                                                                   |
+| `gvfs-fuse`                        | Ponte FUSE que expõe as montagens de rede e virtuais do GVFS para ferramentas de terminal tradicionais via `/run/user/$UID/gvfs`.                                                                 |
+| `gnome-software`                   | Loja oficial de aplicativos do Fedora com interface gráfica completa e suporte nativo ao Flathub.                                                                                                 |
+| `loupe`                            | Visualizador de imagens moderno em GTK4/libadwaita com aceleração de hardware e gestos touchpad.                                                                                                  |
+| `papers`                           | Leitor de documentos e arquivos PDF em GTK4 (sucessor moderno e performático do Evince).                                                                                                          |
+| `gnome-text-editor`                | Editor de texto gráfico moderno e responsivo do GNOME.                                                                                                                                            |
+| `simple-scan`                      | Utilitário intuitivo de digitalização de documentos e imagens integrado ao sane-airscan.                                                                                                          |
+| `gnome-disk-utility`               | Utilitário gráfico completo para particionamento, formatação, teste SMART e benchmark de unidades de disco.                                                                                       |
+| `p7zip`                            | Port Linux CLI da ferramenta de alta compressão 7-Zip.                                                                                                                                            |
+| `p7zip-plugins`                    | Plugins estendidos para suporte a formatos de compressão avançados no p7zip.                                                                                                                      |
+| `unrar`                            | Utilitário para descompressão de arquivos no formato proprietário RAR.                                                                                                                            |
+| `zstd`                             | Algoritmo e utilitário CLI de compressão rápida em tempo real desenvolvido pela Meta.                                                                                                             |
+| `tar`                              | Ferramenta universal Unix para criação e manipulação de arquivos tarball.                                                                                                                         |
+| `xz`                               | Utilitário de compressão LZMA de alta densidade padrão do ecossistema Linux.                                                                                                                      |
+| `swaylock`                         | Bloqueador de tela Wayland seguro com suporte a efeitos visuais e integração PAM.                                                                                                                 |
+| `grim`                             | Utilitário CLI para captura de tela (screenshots) em compositores Wayland que implementam `wlr-screencopy`.                                                                                       |
+| `slurp`                            | Utilitário para seleção interativa de regiões de tela via mouse para uso em conjunto com o `grim`.                                                                                                |
+| `wl-clipboard`                     | Ferramentas de linha de comando (`wl-copy` e `wl-paste`) para manipulação da área de transferência no Wayland.                                                                                    |
+| `playerctl`                        | Utilitário CLI e controlador D-Bus MPRIS para pausar, reproduzir e controlar players de áudio/vídeo via atalhos do teclado.                                                                       |
+| `matugen`                          | Gerenciador de cores e temas que gera paletas harmoniosas com base no papel de parede (Material You).                                                                                             |
+| `adwaita-icon-theme`               | Conjunto padrão de ícones do GNOME/GTK garantindo conformidade visual às aplicações.                                                                                                              |
+| `adw-gtk3-theme`                   | Tema base GTK3 que emula a folha de estilos Libadwaita (GTK4), permitindo ao Matugen/Dux Shell injetar a paleta dinâmica Material You em caixas de diálogo do sistema e navegadores como o Brave. |
+| `google-noto-sans-fonts`           | Família tipográfica Sans-Serif moderna e completa do projeto Google Noto.                                                                                                                         |
+| `google-noto-serif-fonts`          | Família tipográfica Serifada do projeto Google Noto.                                                                                                                                              |
+| `google-noto-sans-cjk-fonts`       | Suporte tipográfico universal a caracteres CJK (Chinês, Japonês e Coreano).                                                                                                                       |
+| `google-noto-color-emoji-fonts`    | Conjunto de emojis em cores de alta resolução padrão do Google/Android.                                                                                                                           |
+| `glycin-thumbnailer`               | Gerador moderno de miniaturas de imagens protegido por sandbox para o Nautilus.                                                                                                                   |
+| `ffmpegthumbnailer`                | Utilitário leve que extrai miniaturas de arquivos de vídeo locais para exibição no gerenciador de arquivos.                                                                                       |
+| `papers-thumbnailer`               | Gerador de miniaturas da primeira página de documentos e arquivos PDF para o Nautilus.                                                                                                            |
+| `ffmpeg`                           | Pacote completo e irrestrito do FFmpeg obtido do RPM Fusion (com suporte a decodificação de formatos proprietários).                                                                              |
+| `gstreamer1-plugins-bad-freeworld` | Plugins GStreamer adicionais do RPM Fusion com suporte a codecs proprietários e experimentais.                                                                                                    |
+| `gstreamer1-plugins-ugly`          | Conjunto de plugins GStreamer de alta qualidade com restrições de licença (MP3 legado, MPEG, etc.).                                                                                               |
+| `mesa-va-drivers-freeworld`        | Drivers VA-API da Mesa com suporte nativo completo a aceleração por hardware para decodificação H.264, H.265 e VC-1.                                                                              |
 
 ---
 
