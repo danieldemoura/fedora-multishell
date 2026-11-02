@@ -94,7 +94,7 @@ saturation = 1.1
 # selection = "unused_first" # or round_robin, random
 # Select with border = "borders" in your [effects] table.
 # Add to your existing [keybinds] table:
-# "Mod+Shift+E" = "effect-border-cycle:borders"
+# "Mod+Shift+E" = "effect-border-cycle borders"
 # "Mod+Ctrl+E" = "effect-border-toggle"
 # "Mod+Alt+E" = "effect-border-reset"
 
@@ -127,16 +127,16 @@ numlock_toggle = true
 [keybinds]
 
 # Applications and session
-"Mod+Return" = { action = "spawn:kitty", repeat = false }
-"Mod" = "spawn:noctalia msg panel-toggle launcher"
+"Mod+Return" = { action = "spawn kitty", repeat = false }
+"Mod" = "spawn noctalia msg panel-toggle launcher"
 "Mod+Q" = { action = "window-close", repeat = false }
 "Mod+Shift+Escape" = { action = "shortcuts-inhibit-toggle", allow_when_inhibited = true, repeat = false }
 "Mod+Shift+Slash" = "cheatsheet-toggle"
 
 # Gerenciamento de Energia e Sessão
 "Mod+Escape" = "session-quit"                  # Fazer Logout (Sair da sessão)
-"Mod+Shift+Delete" = "spawn:systemctl poweroff" # Desligar o computador diretamente
-"Mod+Ctrl+Delete" = "spawn:systemctl reboot"   # Reiniciar o computador diretamente
+"Mod+Shift+Delete" = "spawn systemctl poweroff" # Desligar o computador diretamente
+"Mod+Ctrl+Delete" = "spawn systemctl reboot"   # Reiniciar o computador diretamente
 
 # Focus and movement
 "Mod+Left" = "window-focus-left"
@@ -146,7 +146,7 @@ numlock_toggle = true
 "Mod+H" = "window-focus-left"
 "Mod+J" = "window-focus-down"
 "Mod+K" = "window-focus-up"
-"Mod+L" = "spawn:noctalia msg session lock"
+"Mod+L" = "spawn noctalia msg session lock"
 "Mod+F1" = "window-focus-next"
 "Mod+Shift+Left" = "column-move-left"
 "Mod+Shift+Down" = "window-move-down"
@@ -172,26 +172,26 @@ numlock_toggle = true
 "Mod+O" = { action = "overview-toggle", repeat = false }
 
 # Workspaces (Teclado Numérico / Numpad)
-"Mod+KP_1" = "workspace-switch:1"
-"Mod+KP_2" = "workspace-switch:2"
-"Mod+KP_3" = "workspace-switch:3"
-"Mod+KP_4" = "workspace-switch:4"
-"Mod+KP_5" = "workspace-switch:5"
-"Mod+KP_6" = "workspace-switch:6"
-"Mod+KP_7" = "workspace-switch:7"
-"Mod+KP_8" = "workspace-switch:8"
-"Mod+KP_9" = "workspace-switch:9"
+"Mod+KP_1" = "workspace-switch 1"
+"Mod+KP_2" = "workspace-switch 2"
+"Mod+KP_3" = "workspace-switch 3"
+"Mod+KP_4" = "workspace-switch 4"
+"Mod+KP_5" = "workspace-switch 5"
+"Mod+KP_6" = "workspace-switch 6"
+"Mod+KP_7" = "workspace-switch 7"
+"Mod+KP_8" = "workspace-switch 8"
+"Mod+KP_9" = "workspace-switch 9"
 
 # Mover janela focada para workspace (Ctrl + Numpad)
-"Mod+Ctrl+KP_1" = "window-move-to-workspace:1"
-"Mod+Ctrl+KP_2" = "window-move-to-workspace:2"
-"Mod+Ctrl+KP_3" = "window-move-to-workspace:3"
-"Mod+Ctrl+KP_4" = "window-move-to-workspace:4"
-"Mod+Ctrl+KP_5" = "window-move-to-workspace:5"
-"Mod+Ctrl+KP_6" = "window-move-to-workspace:6"
-"Mod+Ctrl+KP_7" = "window-move-to-workspace:7"
-"Mod+Ctrl+KP_8" = "window-move-to-workspace:8"
-"Mod+Ctrl+KP_9" = "window-move-to-workspace:9"
+"Mod+Ctrl+KP_1" = "window-move-to-workspace 1"
+"Mod+Ctrl+KP_2" = "window-move-to-workspace 2"
+"Mod+Ctrl+KP_3" = "window-move-to-workspace 3"
+"Mod+Ctrl+KP_4" = "window-move-to-workspace 4"
+"Mod+Ctrl+KP_5" = "window-move-to-workspace 5"
+"Mod+Ctrl+KP_6" = "window-move-to-workspace 6"
+"Mod+Ctrl+KP_7" = "window-move-to-workspace 7"
+"Mod+Ctrl+KP_8" = "window-move-to-workspace 8"
+"Mod+Ctrl+KP_9" = "window-move-to-workspace 9"
 
 # Scratchpad
 "Mod+Shift+Space" = { action = "window-move-to-scratchpad", repeat = false }
@@ -200,19 +200,19 @@ numlock_toggle = true
 "Mod+Tab" = "scratchpad-focus-next"
 
 # Controle de Áudio (Volume)
-"XF86AudioRaiseVolume" = "spawn:noctalia msg volume-up"
-"XF86AudioLowerVolume" = "spawn:noctalia msg volume-down"
+"XF86AudioRaiseVolume" = "spawn noctalia msg volume-up"
+"XF86AudioLowerVolume" = "spawn noctalia msg volume-down"
 
 # Correção para os botões de Mudo (Linha única)
-"XF86AudioMute"        = "spawn:noctalia msg volume-mute"
-"XF86AudioMicMute"     = "spawn:noctalia msg mic-mute"
+"XF86AudioMute"        = "spawn noctalia msg volume-mute"
+"XF86AudioMicMute"     = "spawn noctalia msg mic-mute"
 
 # Controle de Brilho da Tela
-"XF86MonBrightnessUp"   = "spawn:noctalia msg brightness-up"
-"XF86MonBrightnessDown" = "spawn:noctalia msg brightness-down"
+"XF86MonBrightnessUp"   = "spawn noctalia msg brightness-up"
+"XF86MonBrightnessDown" = "spawn noctalia msg brightness-down"
 
 # CAPTURA DE TELA NATIVA DO NOCTALIA
-"Print" = "spawn:noctalia msg screenshot-region"
+"Print" = "spawn noctalia msg screenshot-region"
 
 
 # ==============================================================================
@@ -226,25 +226,6 @@ extent_presets = [0.333, 0.5, 0.667]
 
 [layout.scrolling]
 default_extent_fraction = 0.5
-
-# A tab group shows one window at a time below a bar of titles, and stacks and
-# resizes like any row of its column. Mod+W tabs the focused window with the
-# windows stacked beside it; Mod+Shift+J/K move a tab out of its group or a
-# window into one. Click, scroll, or drag a title to switch, reorder, or pull it
-# out.
-# [layout.tabs]
-# default_display = "normal"
-# new_tab_position = "after_active"
-# middle_click_closes = true
-#
-# [appearance.tab_bar]
-# style = "titles"         # "indicator" draws thin slots without titles
-# height = 24
-# font = "sans 10"
-# visible = true           # false hides every bar; tabs keep working
-# hide_when_single = false
-# max_tabs = 6            # show at most 6 slots; more tabs scroll
-# overflow = "scroll"      # or "shrink" to fit every tab
 
 # ==============================================================================
 # Window rules
@@ -280,28 +261,6 @@ default_position = { x = 0, y = 0, anchor = "bottom_right" }
 default_focused = false
 default_pinned = true
 
-# Named scratchpads can launch an application when toggled while empty.
-# [[scratchpad]]
-# name = "music"
-# spawn_when_empty = "spotify"
-
-# [[window_rule]]
-# match.app_id = "^spotify$"
-# default_scratchpad = "music"
-
-# Give scratchpad windows their own border colors.
-# [[window_rule]]
-# match.is_scratchpad = true
-# border_color_focused = "#E5C07BFF"
-# border_color_unfocused = "#5C4A2AFF"
-
-# Leave an application that draws its own corners and shadow undecorated.
-# [[window_rule]]
-# match.app_id = "^org[.]gnome[.]TextEditor$"
-# border_width = 0
-# corner_radius = 0
-# shadow = false
-
 # ==============================================================================
 # Layer rules
 # https://docs.noctalia.dev/umbriel/layer-rules/
@@ -322,5 +281,3 @@ blur_optimized = false
 enabled = true
 delay_ms = 500
 action = "overview-open"
-
-
