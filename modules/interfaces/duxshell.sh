@@ -37,6 +37,7 @@ sudo -u "${REAL_USER}" bash -c "curl -fsSL https://install.duxlabs.dev | sh -s -
 # 4. Auto-reparo de encapsulamento: assegurar PAM oo7 no Greetd pós-instalação Dux
 log_info "Assegurando integração do PAM oo7 (Secret Service) no Greetd pós-instalação do Dux Shell..."
 if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
+    backup_file /etc/pam.d/greetd true
     sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
     sudo chmod 644 /etc/pam.d/greetd
     sudo chown root:root /etc/pam.d/greetd

@@ -1,4 +1,22 @@
-# Integração com o oo7 (Fedora 45+) para desbloqueio automático de senhas no SDDM.
-# O pam_oo7.so não usa o argumento 'auto_start' (exclusivo do gnome-keyring).
+# ==============================================================================
+# fedora-multi-shell: config/system/pam_sddm.template
+# Pilha PAM COMPLETA do SDDM com integração oo7 (Fedora 45+).
+# Espelha a estrutura do pam_greetd.template: preserva os includes 'system-auth'
+# (verificação real de senha) e injeta o pam_oo7.so nas etapas auth/password/
+# session. O pam_oo7.so NÃO aceita 'auto_start' (flag exclusiva do módulo antigo
+# gnome-keyring). Copiar um fragmento por cima da pilha quebraria o login SDDM.
+# ==============================================================================
+#%PAM-1.0
+auth       include     system-auth
 auth       optional    pam_oo7.so
+
+account    include     system-auth
+
+password   include     system-auth
+password   optional    pam_oo7.so use_authtok
+
+session    optional    pam_keyinit.so revoke
+session    required    pam_limits.so
+-session   optional    pam_systemd_home.so
+session    include     system-auth
 session    optional    pam_oo7.so

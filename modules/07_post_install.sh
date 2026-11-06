@@ -508,6 +508,7 @@ if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}
 
     log_info "Assegurando integridade do PAM oo7 em /etc/pam.d/greetd..."
     if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
+        backup_file /etc/pam.d/greetd true
         sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
         sudo chmod 644 /etc/pam.d/greetd
         sudo chown root:root /etc/pam.d/greetd
@@ -519,13 +520,15 @@ else
     sudo systemctl set-default graphical.target
     log_success "Target gráfico e sddm.service definidos como padrão."
 
-    log_info "Assegurando integridade do PAM oo7 em /etc/pam.d/sddm..."
+    log_info "Aplicando pilha PAM completa do SDDM com oo7 em /etc/pam.d/sddm..."
     if [[ -f "${SYSTEM_DIR}/pam_sddm.template" ]]; then
-        if ! grep -qF "pam_oo7.so" /etc/pam.d/sddm 2>/dev/null; then
-            sudo cp "${SYSTEM_DIR}/pam_sddm.template" /etc/pam.d/sddm
-            sudo chmod 644 /etc/pam.d/sddm
-            sudo chown root:root /etc/pam.d/sddm
-        fi
+        # cp INCONDICIONAL (com backup): o template é uma pilha completa e
+        # idempotente. O antigo guard 'grep pam_oo7' impediria REPARAR sistemas
+        # já deixados com o fragmento de 2 linhas (que contém a string).
+        backup_file /etc/pam.d/sddm true
+        sudo cp "${SYSTEM_DIR}/pam_sddm.template" /etc/pam.d/sddm
+        sudo chmod 644 /etc/pam.d/sddm
+        sudo chown root:root /etc/pam.d/sddm
     fi
 fi
 
@@ -557,10 +560,12 @@ if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}
         exit 1
     fi
 elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]]; then
-    if grep -qF "pam_oo7.so" /etc/pam.d/sddm; then
-        log_ok "[Checklist] Integração com pam_oo7.so confirmada em /etc/pam.d/sddm."
+    # Verifica oo7 E a presença do include system-auth: o antigo grep isolado de
+    # pam_oo7 dava FALSO POSITIVO mesmo com a pilha truncada (só o fragmento).
+    if grep -qF "pam_oo7.so" /etc/pam.d/sddm && grep -qE "^[[:space:]]*auth[[:space:]]+include[[:space:]]+system-auth" /etc/pam.d/sddm; then
+        log_ok "[Checklist] Pilha PAM do SDDM íntegra (system-auth + pam_oo7.so) confirmada."
     else
-        log_error "[Checklist] Falha: Integração com pam_oo7.so ausente em /etc/pam.d/sddm!"
+        log_error "[Checklist] Falha: /etc/pam.d/sddm sem pam_oo7.so ou sem 'auth include system-auth'!"
         exit 1
     fi
 fi
