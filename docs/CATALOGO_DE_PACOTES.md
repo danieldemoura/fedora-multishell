@@ -60,59 +60,60 @@ Para assegurar fidelidade absoluta entre a documentação e os arquivos reais do
 
 Responsáveis pela sustentação de hardware, barramentos de sistema, subsistemas de áudio e rede, portais universais, impressão e segurança:
 
-| Pacote                        | Função e Justificativa Técnica                                                                                                                                                     |
-| :---------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@hardware-support`           | Meta-grupo de pacotes oficial do Fedora fornecendo firmwares de suporte universal para processadores e chipsets (Intel, AMD, Realtek, Broadcom, MediaTek).                         |
-| `open-vm-tools`               | Módulos e daemons de integração para Máquinas Virtuais (VMware, VirtualBox, KVM/QEMU), viabilizando redimensionamento automático de tela e sincronização de área de transferência. |
-| `python3`                     | Interpretador Python na versão padrão da release do Fedora (não pinada), compatível com a suíte de scripts de automação e integração de desktop.                                   |
-| `python3-devel`               | Cabeçalhos e bibliotecas de desenvolvimento do Python padrão do Fedora, necessários para compilar extensões nativas em C/Rust.                                                     |
-| `cairo-devel`                 | Arquivos de desenvolvimento da biblioteca gráfica de renderização vetorial 2D Cairo.                                                                                               |
-| `cairo-gobject-devel`         | Integração da biblioteca Cairo com o sistema de objetos GObject do ecossistema GNOME/GTK.                                                                                          |
-| `gobject-introspection-devel` | Metadados e cabeçalhos para geração de bindings dinâmicos de linguagens para bibliotecas baseadas em GObject (essencial para scripts de shell e widgets).                          |
-| `unzip`                       | Utilitário CLI para extração de arquivos compactados no formato ZIP.                                                                                                               |
-| `socat`                       | Utilitário de retransmissão bidirecional de sockets de rede e Unix domain sockets, utilizado na comunicação entre scripts e compositores Wayland.                                  |
-| `mpv`                         | Reprodutor de mídia leve e motor de reprodução por linha de comando com aceleração de hardware.                                                                                    |
-| `tuned`                       | Daemon de monitoramento adaptativo do sistema e aplicação de perfis dinâmicos de otimização de CPU/disco.                                                                          |
-| `tuned-ppd`                   | Camada de tradução que implementa a API D-Bus do `power-profiles-daemon` sobre o motor do `tuned`, permitindo que shells Wayland alternem modos de energia nativamente.            |
-| `upower`                      | Daemon de abstração para gerenciamento e monitoramento de baterias de laptops e periféricos sem fio.                                                                               |
-| `brightnessctl`               | Utilitário leve de controle de brilho de telas, painéis e retroiluminação de teclados sem necessidade de privilégios de root.                                                      |
-| `libinput`                    | Biblioteca padrão do subsistema Linux para processamento de eventos de entrada (mouses, teclados, touchpads e touchscreens).                                                       |
-| `libinput-utils`              | Conjunto de ferramentas de diagnóstico e calibração de dispositivos de entrada gerenciados pela libinput.                                                                          |
-| `pipewire`                    | Servidor gráfico e multimídia moderno de processamento de áudio e vídeo de baixíssima latência.                                                                                    |
-| `wireplumber`                 | Gerenciador de sessão modular e orquestrador de políticas de conexão de endpoints do PipeWire.                                                                                     |
-| `pipewire-pulseaudio`         | Servidor de compatibilidade que substitui o PulseAudio tradicional sem quebrar aplicações legadas.                                                                                 |
-| `pipewire-alsa`               | Plugin de redirecionamento transparente de chamadas ALSA para o subsistema PipeWire.                                                                                               |
-| `NetworkManager-wifi`         | Módulo de gerenciamento de interfaces e conexões de rede sem fio (Wi-Fi) no NetworkManager.                                                                                        |
-| `wpa_supplicant`              | Daemon de autenticação e negociação de chaves para redes protegidas por WPA, WPA2 e WPA3 Enterprise/Personal.                                                                      |
-| `bluez`                       | Pilha de protocolos oficial de Bluetooth para Linux.                                                                                                                               |
-| `bluez-tools`                 | Utilitários de linha de comando para configuração, pareamento e diagnóstico de adaptadores e dispositivos Bluetooth.                                                               |
-| `dbus-broker`                 | Implementação moderna, paralela e de alta performance do barramento de mensagens D-Bus.                                                                                            |
-| `seatd`                       | Daemon leve para gerenciamento de permissões de assento gráfico (_seat management_) para sessões Wayland puras.                                                                    |
-| `sddm`                        | Display Manager e tela de login gráfica baseada em Qt/QML.                                                                                                                         |
-| `udisks2`                     | Serviço D-Bus para gerenciamento de operações de armazenamento em bloco, partições e montagem automática de mídias removíveis.                                                     |
-| `ntfs-3g`                     | Driver de sistema de arquivos em espaço de usuário (FUSE) para leitura e escrita estável em partições NTFS (Windows).                                                              |
-| `polkit`                      | Framework de autorização e controle de privilégios de granularidade fina para processos não privilegiados.                                                                         |
-| `gnome-keyring`               | Serviço de armazenamento seguro de chaves SSH, certificados e senhas de aplicações (chaveiro GNOME).                                                                               |
-| `gnome-keyring-pam`           | Módulo PAM que realiza o desbloqueio automático do chaveiro do usuário sincronizado à autenticação no login.                                                                       |
-| `libsecret`                   | Biblioteca cliente GObject para acessar e consultar itens protegidos no serviço Secret Service API / gnome-keyring.                                                                |
-| `xdg-desktop-portal`          | Barramento central de portais de desktop universais para isolamento de aplicações, compartilhamento de tela e seleção de arquivos.                                                 |
-| `xdg-desktop-portal-gtk`      | Implementação do portal XDG voltada a ambientes baseados em GTK e diálogos visuais universais.                                                                                     |
-| `xdg-desktop-portal-gnome`    | Implementação do portal GNOME exigida para captura de tela e ScreenCast via PipeWire no compositor Niri.                                                                           |
-| `xdg-user-dirs`               | Utilitário para padronização e criação localizada dos diretórios especiais do usuário (`Downloads`, `Documentos`, `Música`, etc.).                                                 |
-| `xdg-utils`                   | Conjunto de ferramentas de linha de comando para integração ao ambiente desktop (`xdg-open`, `xdg-mime`, etc.).                                                                    |
-| `@printing`                   | Grupo de pacotes de infraestrutura de impressão do Fedora, instalando o servidor CUPS e filtros base.                                                                              |
-| `cups-browsed`                | Daemon para descoberta automática de impressoras compartilhadas via rede local.                                                                                                    |
-| `ipp-usb`                     | Daemon que expõe dispositivos IPP-over-USB locais como servidores HTTP na rede loopback, dispensando drivers proprietários.                                                        |
-| `hplip`                       | Conjunto oficial de drivers e utilitários de impressão/digitalização da HP.                                                                                                        |
-| `printer-driver-brlaser`      | Driver aberto e otimizado para impressoras laser monocromáticas da marca Brother.                                                                                                  |
-| `system-config-printer-udev`  | Módulos e regras Udev para detecção plug-and-play automática e configuração de impressoras USB.                                                                                    |
-| `avahi`                       | Implementação do protocolo mDNS/DNS-SD (Bonjour/ZeroConf) para descoberta de impressoras e scanners em rede.                                                                       |
-| `sane-backends`               | Infraestrutura central e drivers de digitalização de imagens do Linux (SANE).                                                                                                      |
-| `sane-airscan`                | Backend universal e estável de digitalização sem driver via protocolos eSCL e WSD (rede e USB).                                                                                    |
-| `flatpak`                     | Sistema universal de gerenciamento de pacotes isolados (sandboxed) para desktop.                                                                                                   |
-| `dnf-plugins-core`            | Conjunto de plugins fundamentais para expansão do gerenciador de pacotes DNF (`copr`, `config-manager`, etc.).                                                                     |
-| `git`                         | Ferramenta de controle de versão essencial para clonagem de repositórios e gestão de código.                                                                                       |
-| `curl`                        | Utilitário de linha de comando para transferência de dados e download de arquivos com sintaxe de URL (HTTP/HTTPS/FTP).                                                             |
+| Pacote                        | Função e Justificativa Técnica                                                                                                                                                                                                    |
+| :---------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@hardware-support`           | Meta-grupo de pacotes oficial do Fedora fornecendo firmwares de suporte universal para processadores e chipsets (Intel, AMD, Realtek, Broadcom, MediaTek).                                                                        |
+| `open-vm-tools`               | Módulos e daemons de integração para Máquinas Virtuais (VMware, VirtualBox, KVM/QEMU), viabilizando redimensionamento automático de tela e sincronização de área de transferência.                                                |
+| `python3`                     | Interpretador Python na versão padrão da release do Fedora (não pinada), compatível com a suíte de scripts de automação e integração de desktop.                                                                                  |
+| `python3-devel`               | Cabeçalhos e bibliotecas de desenvolvimento do Python padrão do Fedora, necessários para compilar extensões nativas em C/Rust.                                                                                                    |
+| `cairo-devel`                 | Arquivos de desenvolvimento da biblioteca gráfica de renderização vetorial 2D Cairo.                                                                                                                                              |
+| `cairo-gobject-devel`         | Integração da biblioteca Cairo com o sistema de objetos GObject do ecossistema GNOME/GTK.                                                                                                                                         |
+| `gobject-introspection-devel` | Metadados e cabeçalhos para geração de bindings dinâmicos de linguagens para bibliotecas baseadas em GObject (essencial para scripts de shell e widgets).                                                                         |
+| `unzip`                       | Utilitário CLI para extração de arquivos compactados no formato ZIP.                                                                                                                                                              |
+| `socat`                       | Utilitário de retransmissão bidirecional de sockets de rede e Unix domain sockets, utilizado na comunicação entre scripts e compositores Wayland.                                                                                 |
+| `mpv`                         | Reprodutor de mídia leve e motor de reprodução por linha de comando com aceleração de hardware.                                                                                                                                   |
+| `tuned`                       | Daemon de monitoramento adaptativo do sistema e aplicação de perfis dinâmicos de otimização de CPU/disco.                                                                                                                         |
+| `tuned-ppd`                   | Camada de tradução que implementa a API D-Bus do `power-profiles-daemon` sobre o motor do `tuned`, permitindo que shells Wayland alternem modos de energia nativamente.                                                           |
+| `upower`                      | Daemon de abstração para gerenciamento e monitoramento de baterias de laptops e periféricos sem fio.                                                                                                                              |
+| `brightnessctl`               | Utilitário leve de controle de brilho de telas, painéis e retroiluminação de teclados sem necessidade de privilégios de root.                                                                                                     |
+| `libinput`                    | Biblioteca padrão do subsistema Linux para processamento de eventos de entrada (mouses, teclados, touchpads e touchscreens).                                                                                                      |
+| `libinput-utils`              | Conjunto de ferramentas de diagnóstico e calibração de dispositivos de entrada gerenciados pela libinput.                                                                                                                         |
+| `pipewire`                    | Servidor gráfico e multimídia moderno de processamento de áudio e vídeo de baixíssima latência.                                                                                                                                   |
+| `wireplumber`                 | Gerenciador de sessão modular e orquestrador de políticas de conexão de endpoints do PipeWire.                                                                                                                                    |
+| `pipewire-pulseaudio`         | Servidor de compatibilidade que substitui o PulseAudio tradicional sem quebrar aplicações legadas.                                                                                                                                |
+| `pipewire-alsa`               | Plugin de redirecionamento transparente de chamadas ALSA para o subsistema PipeWire.                                                                                                                                              |
+| `NetworkManager-wifi`         | Módulo de gerenciamento de interfaces e conexões de rede sem fio (Wi-Fi) no NetworkManager.                                                                                                                                       |
+| `wpa_supplicant`              | Daemon de autenticação e negociação de chaves para redes protegidas por WPA, WPA2 e WPA3 Enterprise/Personal.                                                                                                                     |
+| `bluez`                       | Pilha de protocolos oficial de Bluetooth para Linux.                                                                                                                                                                              |
+| `bluez-tools`                 | Utilitários de linha de comando para configuração, pareamento e diagnóstico de adaptadores e dispositivos Bluetooth.                                                                                                              |
+| `dbus-broker`                 | Implementação moderna, paralela e de alta performance do barramento de mensagens D-Bus.                                                                                                                                           |
+| `seatd`                       | Daemon leve para gerenciamento de permissões de assento gráfico (_seat management_) para sessões Wayland puras.                                                                                                                   |
+| `sddm`                        | Display Manager e tela de login gráfica baseada em Qt/QML.                                                                                                                                                                        |
+| `udisks2`                     | Serviço D-Bus para gerenciamento de operações de armazenamento em bloco, partições e montagem automática de mídias removíveis.                                                                                                    |
+| `ntfs-3g`                     | Driver de sistema de arquivos em espaço de usuário (FUSE) para leitura e escrita estável em partições NTFS (Windows).                                                                                                             |
+| `polkit`                      | Framework de autorização e controle de privilégios de granularidade fina para processos não privilegiados.                                                                                                                        |
+| `oo7-daemon`                  | Provedor oficial do freedesktop Secret Service (`org.freedesktop.secrets`) no Fedora 45, escrito em Rust; substitui o GNOME Keyring no armazenamento seguro de senhas de aplicações.                                              |
+| `oo7-portal`                  | Backend de XDG Desktop Portal do oo7 (exigido condicionalmente pelo daemon) para aplicações isoladas (Flatpak) acessarem o cofre de segredos.                                                                                     |
+| `pam_oo7`                     | Módulo PAM (`pam_oo7.so`) que captura a credencial no login e destrava automaticamente o chaveiro do usuário (sucessor do `gnome-keyring-pam`). O agente SSH passou a ser o `ssh-agent` nativo do OpenSSH via `ssh-agent.socket`. |
+| `libsecret`                   | Biblioteca cliente GObject para acessar e consultar itens protegidos via Secret Service API (`org.freedesktop.secrets`).                                                                                                          |
+| `xdg-desktop-portal`          | Barramento central de portais de desktop universais para isolamento de aplicações, compartilhamento de tela e seleção de arquivos.                                                                                                |
+| `xdg-desktop-portal-gtk`      | Implementação do portal XDG voltada a ambientes baseados em GTK e diálogos visuais universais.                                                                                                                                    |
+| `xdg-desktop-portal-gnome`    | Implementação do portal GNOME exigida para captura de tela e ScreenCast via PipeWire no compositor Niri.                                                                                                                          |
+| `xdg-user-dirs`               | Utilitário para padronização e criação localizada dos diretórios especiais do usuário (`Downloads`, `Documentos`, `Música`, etc.).                                                                                                |
+| `xdg-utils`                   | Conjunto de ferramentas de linha de comando para integração ao ambiente desktop (`xdg-open`, `xdg-mime`, etc.).                                                                                                                   |
+| `@printing`                   | Grupo de pacotes de infraestrutura de impressão do Fedora, instalando o servidor CUPS e filtros base.                                                                                                                             |
+| `cups-browsed`                | Daemon para descoberta automática de impressoras compartilhadas via rede local.                                                                                                                                                   |
+| `ipp-usb`                     | Daemon que expõe dispositivos IPP-over-USB locais como servidores HTTP na rede loopback, dispensando drivers proprietários.                                                                                                       |
+| `hplip`                       | Conjunto oficial de drivers e utilitários de impressão/digitalização da HP.                                                                                                                                                       |
+| `printer-driver-brlaser`      | Driver aberto e otimizado para impressoras laser monocromáticas da marca Brother.                                                                                                                                                 |
+| `system-config-printer-udev`  | Módulos e regras Udev para detecção plug-and-play automática e configuração de impressoras USB.                                                                                                                                   |
+| `avahi`                       | Implementação do protocolo mDNS/DNS-SD (Bonjour/ZeroConf) para descoberta de impressoras e scanners em rede.                                                                                                                      |
+| `sane-backends`               | Infraestrutura central e drivers de digitalização de imagens do Linux (SANE).                                                                                                                                                     |
+| `sane-airscan`                | Backend universal e estável de digitalização sem driver via protocolos eSCL e WSD (rede e USB).                                                                                                                                   |
+| `flatpak`                     | Sistema universal de gerenciamento de pacotes isolados (sandboxed) para desktop.                                                                                                                                                  |
+| `dnf-plugins-core`            | Conjunto de plugins fundamentais para expansão do gerenciador de pacotes DNF (`copr`, `config-manager`, etc.).                                                                                                                    |
+| `git`                         | Ferramenta de controle de versão essencial para clonagem de repositórios e gestão de código.                                                                                                                                      |
+| `curl`                        | Utilitário de linha de comando para transferência de dados e download de arquivos com sintaxe de URL (HTTP/HTTPS/FTP).                                                                                                            |
 
 ---
 
@@ -246,11 +247,11 @@ Dependências exclusivas para o provisionamento do compositor Wayland dinâmico 
 
 Componentes declarativos da pilha de login leve Greetd:
 
-| Pacote              | Função e Justificativa Técnica                                                         |
-| :------------------ | :------------------------------------------------------------------------------------- |
-| `greetd`            | Daemon minimalista e modular de login gráfico em Wayland/Console.                      |
-| `greetd-selinux`    | Políticas de segurança e contextos SELinux para o daemon `greetd`.                     |
-| `gnome-keyring-pam` | Módulo PAM para desbloqueio automático do cofre de credenciais GNOME Keyring no login. |
+| Pacote           | Função e Justificativa Técnica                                                              |
+| :--------------- | :------------------------------------------------------------------------------------------ |
+| `greetd`         | Daemon minimalista e modular de login gráfico em Wayland/Console.                           |
+| `greetd-selinux` | Políticas de segurança e contextos SELinux para o daemon `greetd`.                          |
+| `pam_oo7`        | Módulo PAM (`pam_oo7.so`) para desbloqueio automático do cofre de credenciais oo7 no login. |
 
 ---
 
@@ -258,10 +259,10 @@ Componentes declarativos da pilha de login leve Greetd:
 
 Componentes declarativos da pilha de login SDDM:
 
-| Pacote              | Função e Justificativa Técnica                                                         |
-| :------------------ | :------------------------------------------------------------------------------------- |
-| `sddm`              | Display Manager oficial baseado em QML e Wayland.                                      |
-| `gnome-keyring-pam` | Módulo PAM para desbloqueio automático do cofre de credenciais GNOME Keyring no login. |
+| Pacote    | Função e Justificativa Técnica                                                              |
+| :-------- | :------------------------------------------------------------------------------------------ |
+| `sddm`    | Display Manager oficial baseado em QML e Wayland.                                           |
+| `pam_oo7` | Módulo PAM (`pam_oo7.so`) para desbloqueio automático do cofre de credenciais oo7 no login. |
 
 ---
 
@@ -297,7 +298,7 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
 | :------------------------------------------------------------ | :------------------------------ | :------------------------------------------ | :-------------------------------------------------------------------------------------------------- |
 | Microcódigo de CPU (`intel-microcode` / `amd-ucode-firmware`) | `modules/01_system_hardware.sh` | Conforme detecção de CPU em `/proc/cpuinfo` | Atualização de microcódigo de segurança e estabilidade da CPU.                                      |
 | `noctalia-greeter passwordless-sync`                          | `modules/04_display_stack.sh`   | Quando a interface for Noctalia             | Regra Polkit para sincronização bidirecional de papéis de parede entre o desktop e a tela de login. |
-| Integração PAM Keyring (`pam_gnome_keyring.so`)               | `modules/04_display_stack.sh`   | Em todas as sessões gráficas (Greetd/SDDM)  | Previne pop-ups de desbloqueio de senhas no Brave e aplicativos de sistema.                         |
+| Integração PAM Secret Service (`pam_oo7.so`)                  | `modules/04_display_stack.sh`   | Em todas as sessões gráficas (Greetd/SDDM)  | Previne pop-ups de desbloqueio de senhas no Brave e aplicativos de sistema.                         |
 | Prioridades XDG (`niri-portals.conf`)                         | `modules/compositors/niri.sh`   | Quando o compositor for Niri                | Define prioridades `gtk;gnome;` para ScreenCast e Screenshot sem conflitos.                         |
 | Software Rendering VM Flags                                   | `modules/07_post_install.sh`    | Quando executado em VM (`IS_VM=true`)       | Injeção defensiva de flags OpenGL de software prevenindo telas pretas no QtQuick/Wayland.           |
 

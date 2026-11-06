@@ -26,7 +26,7 @@ REAL_USER="$(get_real_user)"
 if [[ "${SELECTED_INTERFACE}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL}" =~ ^(duxshell|noctalia)$ ]]; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
 
-    # 1. Instalação declarativa dos pacotes base do Greetd e GNOME Keyring PAM
+    # 1. Instalação declarativa dos pacotes base do Greetd e pilha oo7 (Secret Service)
     install_packages_from_conf "${PACKAGES_DIR}/greetd.conf"
 
     # 2. Permissões de hardware para o usuário greetd
@@ -74,7 +74,7 @@ EOF
     fi
 
     # 4. Configuração defensiva do PAM (/etc/pam.d/greetd)
-    log_info "Configurando integração PAM no Greetd para desbloqueio do cofre de senhas..."
+    log_info "Configurando integração PAM no Greetd para desbloqueio do cofre de senhas (oo7)..."
     PAM_GREETD="/etc/pam.d/greetd"
     PAM_GREETD_TEMPLATE="${SYSTEM_DIR}/pam_greetd.template"
 
@@ -89,7 +89,7 @@ EOF
 #%PAM-1.0
 auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth     substack     password-auth
-auth     optional     pam_gnome_keyring.so
+auth     optional     pam_oo7.so
 -auth    optional     pam_kwallet5.so
 
 account  include      password-auth
@@ -101,27 +101,27 @@ session  required     pam_loginuid.so
 session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
 session  include      password-auth
-session  optional     pam_gnome_keyring.so auto_start
+session  optional     pam_oo7.so
 -session optional     pam_kwallet5.so auto_start
 EOF
     fi
     sudo chmod 644 "$PAM_GREETD"
     sudo chown root:root "$PAM_GREETD"
-    log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_gnome_keyring (permissão 644)."
+    log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_oo7 (permissão 644)."
 
     log_success "Módulo 04 (Display Stack - Greetd) concluído com sucesso."
 
 else
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (SDDM)"
 
-    # 1. Instalação declarativa do SDDM e Módulo PAM GNOME Keyring
+    # 1. Instalação declarativa do SDDM e Módulo PAM oo7
     install_packages_from_conf "${PACKAGES_DIR}/sddm.conf"
 
     # 2. Permissões de hardware para o usuário do sddm
     log_info "Configurando permissões de hardware (video, render, input) para o usuário sddm..."
     sudo usermod -aG video,render,input sddm 2>/dev/null || true
 
-    # 3. Configuração do PAM (/etc/pam.d/sddm) para Desbloqueio do Gnome Keyring
+    # 3. Configuração do PAM (/etc/pam.d/sddm) para Desbloqueio do Cofre oo7
     log_info "Configurando integração PAM no SDDM para desbloqueio automático do cofre de senhas..."
     PAM_SDDM="/etc/pam.d/sddm"
     PAM_SDDM_TEMPLATE="${SYSTEM_DIR}/pam_sddm.template"
@@ -129,30 +129,30 @@ else
     if [[ -f "$PAM_SDDM" ]]; then
         backup_file "$PAM_SDDM" true
         
-        # Injeta 'auth optional pam_gnome_keyring.so' se não presente.
+        # Injeta 'auth optional pam_oo7.so' se não presente.
         # O awk lê o arquivo ATUAL (não o .bak): em reexecuções, o .bak pode ser
         # um snapshot antigo de outra sessão e restaurá-lo perderia alterações.
-        if ! sudo grep -q "pam_gnome_keyring.so" "$PAM_SDDM"; then
+        if ! sudo grep -q "pam_oo7.so" "$PAM_SDDM"; then
             sudo awk '
                 BEGIN { auth_added=0; sess_added=0 }
                 /^auth/ && !auth_added {
                     print
-                    print "auth       optional    pam_gnome_keyring.so"
+                    print "auth       optional    pam_oo7.so"
                     auth_added=1
                     next
                 }
                 /^session/ && !sess_added {
                     print
-                    print "session    optional    pam_gnome_keyring.so auto_start"
+                    print "session    optional    pam_oo7.so"
                     sess_added=1
                     next
                 }
                 { print }
             ' "$PAM_SDDM" | sudo tee "${PAM_SDDM}.multishell.tmp" >/dev/null
             sudo mv -f "${PAM_SDDM}.multishell.tmp" "$PAM_SDDM"
-            log_success "Diretivas do pam_gnome_keyring.so injetadas em ${PAM_SDDM}."
+            log_success "Diretivas do pam_oo7.so injetadas em ${PAM_SDDM}."
         else
-            log_info "pam_gnome_keyring.so já configurado em ${PAM_SDDM}."
+            log_info "pam_oo7.so já configurado em ${PAM_SDDM}."
         fi
     else
         # Se o arquivo não existir, cria o arquivo com configuração padrão completa
@@ -163,7 +163,7 @@ else
 #%PAM-1.0
 auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth     substack     password-auth
-auth     optional     pam_gnome_keyring.so
+auth     optional     pam_oo7.so
 -auth    optional     pam_kwallet5.so
 
 account  include      password-auth
@@ -175,11 +175,11 @@ session  required     pam_loginuid.so
 session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
 session  include      password-auth
-session  optional     pam_gnome_keyring.so auto_start
+session  optional     pam_oo7.so
 -session optional     pam_kwallet5.so auto_start
 EOF
         fi
-        log_success "Arquivo ${PAM_SDDM} criado com suporte ao pam_gnome_keyring."
+        log_success "Arquivo ${PAM_SDDM} criado com suporte ao pam_oo7."
     fi
     sudo chmod 644 "$PAM_SDDM"
     sudo chown root:root "$PAM_SDDM"

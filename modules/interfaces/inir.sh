@@ -81,8 +81,8 @@ if [[ -f "${INIR_DIR}/setup" ]]; then
     log_info "Executando instalação não-interativa do iNiR sob o usuário ${REAL_USER}..."
     sudo -u "${REAL_USER}" chmod +x "${INIR_DIR}/setup"
     # O pacote `uv` do Fedora traz uma configuração com python-downloads="manual",
-    # o que faz o `uv venv --prompt ii-venv <venv> -p 3.12` do iNiR falhar: o Fedora 44
-    # não traz um interpretador Python 3.12 no sistema e o uv está impedido de baixá-lo
+    # o que faz o `uv venv --prompt ii-venv <venv> -p 3.12` do iNiR falhar: as releases
+    # atuais do Fedora não trazem um interpretador Python 3.12 no sistema e o uv está impedido de baixá-lo
     # automaticamente. Sobrescrevemos via ambiente (que tem precedência sobre o config
     # file do uv) para permitir o download do Python gerenciado 3.12 durante o venv.
     sudo -u "${REAL_USER}" env UV_PYTHON_DOWNLOADS=automatic bash -c "cd '${REAL_HOME}/.config/inir' && ./setup install -y"

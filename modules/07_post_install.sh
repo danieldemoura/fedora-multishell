@@ -35,20 +35,58 @@ UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
 log_info "Executando ajustes pós-instalação para o usuário: ${REAL_USER} (${REAL_HOME})"
 log_info "Configurações ativas -> Compositor: ${SELECTED_COMPOSITOR} | Shell: ${SELECTED_SHELL}"
 
-# 1. Inicialização do cofre de credenciais e vínculo canônico com o PAM
-log_info "Configurando integração silenciosa do GNOME Keyring com o PAM..."
+# 1. Inicialização do cofre de credenciais oo7 e vínculo canônico com o PAM
+# (Fedora 45: o provedor do Secret Service é o oo7; o chaveiro 'login' é
+# criado/destravado pelo oo7-daemon via pam_oo7 no primeiro login gráfico.)
+log_info "Preparando diretório do cofre de credenciais oo7..."
 KEYRINGS_DIR="${REAL_HOME}/.local/share/keyrings"
 sudo -u "${REAL_USER}" mkdir -p "${KEYRINGS_DIR}"
 sudo chmod 700 "${KEYRINGS_DIR}"
-
-# Limpeza defensiva de chaveiros avulsos corrompidos gerados fora do PAM
-sudo -u "${REAL_USER}" rm -f "${KEYRINGS_DIR}/Default_Keyring.keyring" "${KEYRINGS_DIR}/user.keystore"
-
-# Define 'login' como o chaveiro padrão do sistema
-echo "login" | sudo -u "${REAL_USER}" tee "${KEYRINGS_DIR}/default" >/dev/null
-sudo chmod 600 "${KEYRINGS_DIR}/default"
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
-log_success "Ponteiro do chaveiro canônico 'login' configurado em ${KEYRINGS_DIR}/default."
+log_success "Diretório ${KEYRINGS_DIR} pronto para o oo7 (permissão 700, proprietário ${REAL_USER})."
+
+# 1.1 Habilitação da unidade de usuário do oo7-daemon no login
+# (Fedora 45: o destravamento automático do chaveiro 'login' exige que o
+# oo7-daemon esteja rodando dentro da sessão gráfica. O %systemd_user_post do
+# pacote tenta habilitá-lo via preset, mas em instalação mínima com Greetd/SDDM
+# isso pode não ter sido aplicado ao usuário-alvo (cf. bug Silverblue #714).
+# Habilitamos explicitamente para reproduzir o comportamento do antigo
+# gnome-keyring: logar e o navegador já encontrar o cofre destravado, sem popup.)
+log_info "Habilitando oo7-daemon.service (unidade de usuário) no login..."
+if [[ -f "/usr/lib/systemd/user/oo7-daemon.service" ]]; then
+    if sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+          systemctl --user enable oo7-daemon.service >/dev/null 2>&1; then
+        log_success "oo7-daemon.service habilitado para ${REAL_USER} (chaveiro ativo já no primeiro login)."
+    else
+        sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config/systemd/user/default.target.wants"
+        sudo -u "${REAL_USER}" ln -sfn "/usr/lib/systemd/user/oo7-daemon.service" \
+            "${REAL_HOME}/.config/systemd/user/default.target.wants/oo7-daemon.service"
+        log_success "oo7-daemon.service habilitado via symlink offline (default.target.wants)."
+    fi
+else
+    log_warn "Unidade oo7-daemon.service ausente; verifique o empacotamento do oo7 nesta release."
+fi
+
+# 1.2 ssh-agent oficial do OpenSSH via socket activation do systemd
+# (OpenSSH >= 10.0 no Fedora 45; desacoplado do provedor de segredos —
+# guarda a passphrase das chaves SSH em memória durante a sessão.)
+log_info "Habilitando ssh-agent do OpenSSH (socket activation systemd de usuário)..."
+if [[ -f "/usr/lib/systemd/user/ssh-agent.socket" ]]; then
+    # Caminho ideal: manager de usuário ativo (instalador rodando dentro da
+    # sessão do usuário). Fora dele, fallback offline: criar o symlink de
+    # 'wants' manualmente — exatamente o que o enable faria.
+    if sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+          systemctl --user enable ssh-agent.socket >/dev/null 2>&1; then
+        log_success "ssh-agent.socket habilitado para ${REAL_USER} (SSH_AUTH_SOCK via systemd)."
+    else
+        sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config/systemd/user/default.target.wants"
+        sudo -u "${REAL_USER}" ln -sfn "/usr/lib/systemd/user/ssh-agent.socket" \
+            "${REAL_HOME}/.config/systemd/user/default.target.wants/ssh-agent.socket"
+        log_success "ssh-agent.socket habilitado via symlink offline (default.target.wants)."
+    fi
+else
+    log_warn "Unidade ssh-agent.socket ausente desta release do OpenSSH; o ssh usará agente próprio ou sem agente."
+fi
 
 # 2. Configuração do Compositor Ativo e Shell
 if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia" ]]; then
@@ -468,7 +506,7 @@ if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}
     sudo systemctl set-default graphical.target
     log_success "Target gráfico e greetd.service definidos como padrão."
 
-    log_info "Assegurando integridade do PAM GNOME Keyring em /etc/pam.d/greetd..."
+    log_info "Assegurando integridade do PAM oo7 em /etc/pam.d/greetd..."
     if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
         sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
         sudo chmod 644 /etc/pam.d/greetd
@@ -481,9 +519,9 @@ else
     sudo systemctl set-default graphical.target
     log_success "Target gráfico e sddm.service definidos como padrão."
 
-    log_info "Assegurando integridade do PAM GNOME Keyring em /etc/pam.d/sddm..."
+    log_info "Assegurando integridade do PAM oo7 em /etc/pam.d/sddm..."
     if [[ -f "${SYSTEM_DIR}/pam_sddm.template" ]]; then
-        if ! grep -qF "pam_gnome_keyring.so" /etc/pam.d/sddm 2>/dev/null; then
+        if ! grep -qF "pam_oo7.so" /etc/pam.d/sddm 2>/dev/null; then
             sudo cp "${SYSTEM_DIR}/pam_sddm.template" /etc/pam.d/sddm
             sudo chmod 644 /etc/pam.d/sddm
             sudo chown root:root /etc/pam.d/sddm
@@ -512,17 +550,17 @@ fi
 
 # Teste 2: PAM do Display Manager (Checklist Final Rigoroso)
 if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" == "noctalia" ]]; then
-    if grep -qF "pam_gnome_keyring.so" /etc/pam.d/greetd; then
-        log_ok "[Checklist] Integração com pam_gnome_keyring.so confirmada em /etc/pam.d/greetd."
+    if grep -qF "pam_oo7.so" /etc/pam.d/greetd; then
+        log_ok "[Checklist] Integração com pam_oo7.so confirmada em /etc/pam.d/greetd."
     else
-        log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/greetd!"
+        log_error "[Checklist] Falha: Integração com pam_oo7.so ausente em /etc/pam.d/greetd!"
         exit 1
     fi
 elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]]; then
-    if grep -qF "pam_gnome_keyring.so" /etc/pam.d/sddm; then
-        log_ok "[Checklist] Integração com pam_gnome_keyring.so confirmada em /etc/pam.d/sddm."
+    if grep -qF "pam_oo7.so" /etc/pam.d/sddm; then
+        log_ok "[Checklist] Integração com pam_oo7.so confirmada em /etc/pam.d/sddm."
     else
-        log_error "[Checklist] Falha: Integração com pam_gnome_keyring.so ausente em /etc/pam.d/sddm!"
+        log_error "[Checklist] Falha: Integração com pam_oo7.so ausente em /etc/pam.d/sddm!"
         exit 1
     fi
 fi
@@ -612,27 +650,26 @@ if [[ "${IS_VM:-false}" == true ]]; then
     fi
 fi
 
-# Teste 5: Validação da instalação do pacote gnome-keyring-pam
-if rpm -q gnome-keyring-pam >/dev/null 2>&1; then
-    log_success "[Checklist] Pacote 'gnome-keyring-pam' confirmado instalado."
+# Teste 5: Validação da pilha oo7 (provedor oficial do Secret Service no F45)
+if rpm -q oo7-daemon pam_oo7 oo7-portal >/dev/null 2>&1; then
+    log_success "[Checklist] Pacotes 'oo7-daemon', 'pam_oo7' e 'oo7-portal' confirmados instalados."
 else
-    log_error "[Checklist] Falha crítica: Pacote 'gnome-keyring-pam' não está instalado!"
+    log_error "[Checklist] Falha crítica: pilha oo7 incompleta (oo7-daemon/pam_oo7/oo7-portal)!"
     exit 1
 fi
 
-# Teste 6: Validação do ponteiro padrão do chaveiro (${KEYRINGS_DIR}/default)
-if [[ -f "${KEYRINGS_DIR}/default" ]] && [[ "$(cat "${KEYRINGS_DIR}/default" 2>/dev/null)" == "login" ]]; then
-    DEFAULT_PERM="$(stat -c '%a' "${KEYRINGS_DIR}/default" 2>/dev/null || echo '')"
-    if [[ "$DEFAULT_PERM" == "600" ]]; then
-        log_success "[Checklist] Arquivo ${KEYRINGS_DIR}/default verificado (conteúdo 'login' e permissão 600)."
+# Teste 6: Validação da unidade e habilitação do oo7-daemon no login
+if [[ -f "${REAL_HOME}/.config/systemd/user/oo7-daemon.service" || -f "/usr/lib/systemd/user/oo7-daemon.service" ]]; then
+    log_success "[Checklist] Unidade do oo7-daemon presente no sistema."
+    if [[ -e "${REAL_HOME}/.config/systemd/user/default.target.wants/oo7-daemon.service" ]] \
+        || sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+              systemctl --user is-enabled oo7-daemon.service >/dev/null 2>&1; then
+        log_success "[Checklist] oo7-daemon.service confirmado HABILITADO: o chaveiro 'login' será destravado via pam_oo7 no primeiro login (sem popup no navegador)."
     else
-        log_warn "[Checklist] Permissão de ${KEYRINGS_DIR}/default era '${DEFAULT_PERM}'. Corrigindo para 600..."
-        sudo chmod 600 "${KEYRINGS_DIR}/default"
-        log_success "[Checklist] Permissão de ${KEYRINGS_DIR}/default ajustada para 600."
+        log_warn "[Checklist] oo7-daemon.service presente mas não confirmado habilitado; verifique o systemd user preset desta release."
     fi
 else
-    log_error "[Checklist] Falha crítica: ${KEYRINGS_DIR}/default não existe ou não contém exatamente 'login'!"
-    exit 1
+    log_warn "[Checklist] Unidade do oo7-daemon não localizada; verifique o empacotamento do oo7 nesta release."
 fi
 
 # Teste 7: Validação de permissão e propriedade da pasta keyrings

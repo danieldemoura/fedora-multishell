@@ -26,7 +26,7 @@ Instalador modular, em camadas e automatizado para transformar uma instalação 
 - **Compositores Wayland de Alta Performance:**
   - **Niri:** Scrollable tiling Wayland compositor com rolagem horizontal contínua de colunas via COPR `yalter/niri`.
   - **Umbriel:** Compositor Wayland dinâmico via Repositório Terra do Fyra Labs, com suporte à rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de exibição dinâmicos (Dwindle e Master).
-- **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dms-greeter`) com integração e desbloqueio silencioso do PAM GNOME Keyring.
+- **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dms-greeter`) com integração e desbloqueio silencioso do cofre de credenciais **oo7** (provedor oficial do Secret Service no Fedora 45, sucessor do GNOME Keyring) + `ssh-agent` do OpenSSH via socket activation do systemd.
 - **Emulador de Terminal & CLI:** [Kitty](https://sw.kovidgoyal.net/kitty/) (acelerado por GPU) + `fastfetch` (resumo de hardware).
 - **Compatibilidade X11:** `xwayland-satellite` (rootless isolado).
 - **Navegador Web:** Brave Origin (sem telemetria, IA ou criptomoedas).

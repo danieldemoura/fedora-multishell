@@ -28,7 +28,7 @@ ui_banner() {
     echo "  ██║     ███████╗██████╔╝╚██████╔╝██║  ██║██║  ██║"
     echo "  ╚═╝     ╚══════╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝"
     echo -e "${CLR_RESET}"
-    echo -e "  ${CLR_DIM}Fedora ${TARGET_FEDORA_VERSION:-44} Minimal | Pure Wayland | Out-of-the-box${CLR_RESET}"
+    echo -e "  ${CLR_DIM}Fedora ${TARGET_FEDORA_VERSION:-45} Minimal | Pure Wayland | Out-of-the-box${CLR_RESET}"
     echo ""
 }
 

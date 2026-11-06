@@ -34,8 +34,8 @@ fi
 log_info "Executando o instalador oficial do Dux Shell para o usuário ${REAL_USER}..."
 sudo -u "${REAL_USER}" bash -c "curl -fsSL https://install.duxlabs.dev | sh -s -- -c niri -t kitty -y --all-features"
 
-# 4. Auto-reparo de encapsulamento: assegurar PAM GNOME Keyring no Greetd pós-instalação Dux
-log_info "Assegurando integração do PAM GNOME Keyring no Greetd pós-instalação do Dux Shell..."
+# 4. Auto-reparo de encapsulamento: assegurar PAM oo7 no Greetd pós-instalação Dux
+log_info "Assegurando integração do PAM oo7 (Secret Service) no Greetd pós-instalação do Dux Shell..."
 if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
     sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
     sudo chmod 644 /etc/pam.d/greetd

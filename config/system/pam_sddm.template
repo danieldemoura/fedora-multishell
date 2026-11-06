@@ -1,3 +1,4 @@
-# Integração com o Gnome Keyring para desbloqueio automático de senhas no SDDM
-auth       optional    pam_gnome_keyring.so
-session    optional    pam_gnome_keyring.so auto_start
+# Integração com o oo7 (Fedora 45+) para desbloqueio automático de senhas no SDDM.
+# O pam_oo7.so não usa o argumento 'auto_start' (exclusivo do gnome-keyring).
+auth       optional    pam_oo7.so
+session    optional    pam_oo7.so

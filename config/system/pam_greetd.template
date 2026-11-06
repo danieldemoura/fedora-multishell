@@ -1,16 +1,22 @@
 #%PAM-1.0
+# Fedora 45+: oo7 (pam_oo7) substitui o GNOME Keyring como provedor do Secret
+# Service. Diferente do gnome-keyring, o pam_oo7.so NÃO aceita o argumento
+# 'auto_start' (flag exclusiva do modulo antigo): a linha 'auth' captura a
+# credencial ja verificada e a linha 'session' a repassa ao oo7-daemon via
+# socket em $XDG_RUNTIME_DIR/oo7-pam.sock, destravando o chaveiro 'login'.
+# A linha 'password ... use_authtok' realinhas o cofre quando a senha muda.
 auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth     substack     system-auth
-auth     optional     pam_gnome_keyring.so
+auth     optional     pam_oo7.so
 
 account  include      system-auth
 
 password include      system-auth
-password optional     pam_gnome_keyring.so use_authtok
+password optional     pam_oo7.so use_authtok
 
 session  required     pam_selinux.so close
 session  required     pam_loginuid.so
 session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
 session  include      system-auth
-session  optional     pam_gnome_keyring.so auto_start
+session  optional     pam_oo7.so
