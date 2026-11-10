@@ -23,7 +23,7 @@ SELECTED_SHELL="${SELECTED_INTERFACE}"
 IS_VM="${IS_VM:-false}"
 REAL_USER="$(get_real_user)"
 
-if [[ "${SELECTED_INTERFACE}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL}" =~ ^(duxshell|noctalia)$ ]]; then
+if [[ "${SELECTED_INTERFACE}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL}" =~ ^(duxshell|noctalia)$ ]] || systemctl is-enabled greetd.service >/dev/null 2>&1; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
 
     # 1. Instalação declarativa dos pacotes base do Greetd e pilha oo7 (Secret Service)

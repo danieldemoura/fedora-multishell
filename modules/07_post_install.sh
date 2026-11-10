@@ -107,9 +107,10 @@ register_wayland_session() {
     sudo mkdir -p "$target_dir"
 
     # Desativa as sessões genéricas/cruas dos compositores sem shell (niri.desktop e umbriel.desktop)
-    for raw_session in niri.desktop umbriel.desktop; do
+    # e resquícios de sessões de ambiente de terceiros (como Plasma instalado via dependência de DM)
+    for raw_session in niri.desktop umbriel.desktop plasma.desktop plasmawayland.desktop; do
         if [[ -f "${target_dir}/${raw_session}" ]]; then
-            log_info "Desativando sessão crua sem shell (${raw_session}) para exibir apenas a interface integrada..."
+            log_info "Desativando sessão crua ou externa (${raw_session}) para exibir apenas as interfaces suportadas..."
             sudo mv -f "${target_dir}/${raw_session}" "${target_dir}/${raw_session}.disabled" 2>/dev/null || true
         fi
     done
@@ -275,12 +276,19 @@ elif [[ "${SELECTED_SHELL}" == "inir" ]]; then
     fi
 
     # Isolamento de autostart: o autostart do iNiR roda exclusivamente via spawn-at-startup
-    # dentro de shells/inir.kdl. Removemos preventivamente o link global niri.service.wants
+    # dentro de shells/inir.kdl. Removemos preventivamente vínculos globais do inir.service
     # para impedir que o iNiR inicialize em segundo plano ao selecionar outras interfaces.
     SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
-    if [[ -L "${SYSTEMD_USER_DIR}/niri.service.wants/inir.service" ]]; then
-        log_info "Removendo vínculo de autostart global do inir.service para preservar isolamento de sessões..."
-        rm -f "${SYSTEMD_USER_DIR}/niri.service.wants/inir.service" 2>/dev/null || true
+    for want_dir in "${SYSTEMD_USER_DIR}/niri.service.wants" \
+                   "${SYSTEMD_USER_DIR}/graphical-session.target.wants" \
+                   "${SYSTEMD_USER_DIR}/default.target.wants"; do
+        if [[ -d "$want_dir" ]]; then
+            sudo -u "${REAL_USER}" rm -f "${want_dir}/inir.service" 2>/dev/null || true
+        fi
+    done
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+            systemctl --user disable inir.service >/dev/null 2>&1 || true
     fi
 
     # Pré-ativação declarativa da família iRiS no config.json
@@ -533,12 +541,19 @@ EOF
         ;;
 
     inir|*)
-        log_info "Configurando e ativando Display Manager para iNiR Shell (SDDM)..."
-        ACTIVE_DM="sddm"
+        # Se Greetd já estiver ativo no sistema (ex.: previamente instalado via Noctalia ou Dux Shell),
+        # preservamos o Greetd para manter a coexistência de todas as interfaces sem regressão.
+        if systemctl is-enabled greetd.service >/dev/null 2>&1; then
+            log_info "Display Manager Greetd já está ativo no sistema. Preservando Greetd como tela de login..."
+            ACTIVE_DM="greetd"
+        else
+            log_info "Configurando e ativando Display Manager para iNiR Shell (SDDM)..."
+            ACTIVE_DM="sddm"
 
-        sudo usermod -aG video,render,input sddm 2>/dev/null || true
-        sudo systemctl disable greetd.service gdm.service lightdm.service 2>/dev/null || true
-        sudo systemctl enable sddm.service
+            sudo usermod -aG video,render,input sddm 2>/dev/null || true
+            sudo systemctl disable greetd.service gdm.service lightdm.service 2>/dev/null || true
+            sudo systemctl enable sddm.service
+        fi
         ;;
 esac
 
@@ -586,10 +601,10 @@ if [[ "$ACTIVE_DM" == "greetd" ]]; then
         exit 1
     fi
 elif [[ "$ACTIVE_DM" == "sddm" ]]; then
-    if grep -qF "pam_oo7.so" /etc/pam.d/sddm && grep -qE "^[[:space:]]*auth[[:space:]]+include[[:space:]]+system-auth" /etc/pam.d/sddm; then
-        log_ok "[Checklist] Pilha PAM do SDDM íntegra (system-auth + pam_oo7.so) confirmada."
+    if grep -qF "pam_oo7.so" /etc/pam.d/sddm && grep -qF "postlogin" /etc/pam.d/sddm; then
+        log_ok "[Checklist] Pilha PAM do SDDM íntegra (postlogin/pam_systemd + pam_oo7.so) confirmada."
     else
-        log_error "[Checklist] Falha: /etc/pam.d/sddm sem pam_oo7.so ou sem 'auth include system-auth'!"
+        log_error "[Checklist] Falha: /etc/pam.d/sddm sem pam_oo7.so ou sem inclusão de 'postlogin'!"
         exit 1
     fi
 fi

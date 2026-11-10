@@ -92,7 +92,25 @@ else
     exit 1
 fi
 
-# 6. Correção de propriedade
+# 6. Isolamento de Sessões: impedir que o iNiR inicialize como serviço global de systemd
+#    (O instalador do iNiR pode habilitar inir.service via wants do systemd. No Fedora Multi-Shell,
+#     cada shell é iniciada exclusivamente via spawn-at-startup no seu KDL específico,
+#     evitando que o iNiR seja disparado em background em sessões de outras shells como Noctalia ou Dux).
+log_info "Garantindo isolamento do iNiR Shell no systemd (desativando inicialização global)..."
+SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
+for want_dir in "${SYSTEMD_USER_DIR}/niri.service.wants" \
+               "${SYSTEMD_USER_DIR}/graphical-session.target.wants" \
+               "${SYSTEMD_USER_DIR}/default.target.wants"; do
+    if [[ -d "$want_dir" ]]; then
+        sudo -u "${REAL_USER}" rm -f "${want_dir}/inir.service" 2>/dev/null || true
+    fi
+done
+if command -v systemctl >/dev/null 2>&1; then
+    sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+        systemctl --user disable inir.service >/dev/null 2>&1 || true
+fi
+
+# 7. Correção de propriedade
 log_info "Ajustando propriedade e permissões de ${INIR_DIR}..."
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${REAL_HOME}/.config/inir"
 log_success "Submódulo iNiR Shell configurado com sucesso."
