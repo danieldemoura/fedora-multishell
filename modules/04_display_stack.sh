@@ -80,8 +80,14 @@ EOF
             backup_file "$GREETD_CONFIG" true
         fi
 
-        GREETER_CMD="/usr/bin/dms-greeter"
-        [[ -x "$GREETER_CMD" ]] || GREETER_CMD="dms-greeter"
+        GREETER_BIN="/usr/bin/dms-greeter"
+        [[ -x "$GREETER_BIN" ]] || GREETER_BIN="dms-greeter"
+
+        if [[ "${IS_VM:-false}" == true ]]; then
+            GREETER_CMD="env LIBGL_ALWAYS_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 ${GREETER_BIN} --command niri"
+        else
+            GREETER_CMD="${GREETER_BIN} --command niri"
+        fi
 
         sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
 [terminal]
