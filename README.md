@@ -88,17 +88,19 @@ fedora-multishell/
 │   │   ├── sddm.conf                # Pacotes base do Display Manager SDDM
 │   │   └── umbriel.conf             # Pacotes do compositor Umbriel Nightly e portais
 │   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
-│   │   ├── niri/
-│   │   │   ├── config.kdl           # Configuração padrão de fallback do Niri
-│   │   │   └── shells/              # Configurações isoladas por Desktop Shell
-│   │   │       ├── noctalia.kdl     # Niri com Noctalia Shell (autostart noctalia)
-│   │   │       ├── inir.kdl         # Niri com iNiR Shell (autostart inir run)
-│   │   │       └── duxshell.kdl     # Niri com Dux Shell (autostart dms run)
-│   │   ├── noctalia/
-│   │   │   └── config.toml          # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
-│   │   └── umbriel/
-│   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
-│   │       └── noctalia.toml        # Include opcional intencionalmente vazio para customizações locais
+│   │   ├── compositors/             # Dotfiles dos compositores Wayland
+│   │   │   ├── niri/
+│   │   │   │   ├── config.kdl       # Configuração padrão de fallback do Niri
+│   │   │   │   └── shells/          # Configurações do Niri isoladas por Desktop Shell
+│   │   │   │       ├── noctalia.kdl # Niri com Noctalia Shell (autostart noctalia)
+│   │   │   │       ├── inir.kdl     # Niri com iNiR Shell (autostart inir run)
+│   │   │   │       └── duxshell.kdl # Niri com Dux Shell (autostart dms run)
+│   │   │   └── umbriel/
+│   │   │       ├── config.toml      # Configuração personalizada do Umbriel (atalhos, mouse, Fn)
+│   │   │       └── noctalia.toml    # Include opcional intencionalmente vazio para customizações locais
+│   │   └── interfaces/              # Dotfiles das interfaces gráficas (Desktop Shells)
+│   │       └── noctalia/
+│   │           └── config.toml      # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
 │   └── system/                      # Modelos declarativos do sistema operacional (/etc e /usr/share)
 │       ├── greetd.toml.template     # Modelo de configuração do Greetd
 │       ├── pam_greetd.template      # Modelo de autenticação PAM para o Greetd

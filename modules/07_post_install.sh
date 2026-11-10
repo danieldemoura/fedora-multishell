@@ -142,8 +142,8 @@ if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia"
     log_info "Configurando ambiente declarativo do Noctalia Shell..."
     sudo -u "${REAL_USER}" mkdir -p "${NOCTALIA_CONFIG_DIR}"
 
-    if [[ -f "${DESKTOP_DIR}/noctalia/config.toml" ]]; then
-        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/noctalia/config.toml" "${NOCTALIA_CONFIG_FILE}"
+    if [[ -f "${DESKTOP_DIR}/interfaces/noctalia/config.toml" ]]; then
+        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/interfaces/noctalia/config.toml" "${NOCTALIA_CONFIG_FILE}"
         log_info "Configuração declarativa do Noctalia copiada para ${NOCTALIA_CONFIG_FILE}."
     fi
 
@@ -161,7 +161,7 @@ if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia"
             backup_file "${UMB_CONFIG_FILE}" false
         fi
 
-        sudo -u "${REAL_USER}" cp -r "${DESKTOP_DIR}/umbriel/"* "${UMB_CONFIG_DIR}/"
+        sudo -u "${REAL_USER}" cp -r "${DESKTOP_DIR}/compositors/umbriel/"* "${UMB_CONFIG_DIR}/"
         log_info "Configurações declarativas de Umbriel copiadas para ${UMB_CONFIG_DIR}/ com sucesso."
 
         if [[ "${IS_VM:-false}" == true ]]; then
@@ -212,7 +212,7 @@ EOF
         sudo -u "${REAL_USER}" mkdir -p "${NIRI_SHELLS_DIR}"
 
         # Copia template dedicado do Noctalia
-        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/niri/shells/noctalia.kdl" "${NIRI_SHELL_FILE}"
+        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/compositors/niri/shells/noctalia.kdl" "${NIRI_SHELL_FILE}"
         apply_niri_vm_flags "${NIRI_SHELL_FILE}"
 
         # Se config.kdl principal não existir, define o do Noctalia como padrão
@@ -256,7 +256,7 @@ elif [[ "${SELECTED_SHELL}" == "inir" ]]; then
     sudo -u "${REAL_USER}" mkdir -p "${NIRI_SHELLS_DIR}"
 
     # Copia template dedicado do iNiR
-    sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/niri/shells/inir.kdl" "${NIRI_SHELL_FILE}"
+    sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/compositors/niri/shells/inir.kdl" "${NIRI_SHELL_FILE}"
     apply_niri_vm_flags "${NIRI_SHELL_FILE}"
 
     # Se config.kdl principal não existir, define o do iNiR como padrão
@@ -383,7 +383,7 @@ elif [[ "${SELECTED_INTERFACE}" == "duxshell" ]]; then
     sudo -u "${REAL_USER}" mkdir -p "${NIRI_SHELLS_DIR}"
 
     # Copia template dedicado do Dux Shell
-    sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/niri/shells/duxshell.kdl" "${NIRI_SHELL_FILE}"
+    sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/compositors/niri/shells/duxshell.kdl" "${NIRI_SHELL_FILE}"
     apply_niri_vm_flags "${NIRI_SHELL_FILE}"
 
     # Se config.kdl principal não existir, define o do Dux Shell como padrão

@@ -300,6 +300,8 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
 | Integração PAM Secret Service (`pam_oo7.so`)                  | `modules/04_display_stack.sh`   | Em todas as sessões gráficas (Greetd/SDDM)  | Previne pop-ups de desbloqueio de senhas no Brave e aplicativos de sistema.                         |
 | Prioridades XDG (`niri-portals.conf`)                         | `modules/compositors/niri.sh`   | Quando o compositor for Niri                | Define prioridades `gtk;gnome;` para ScreenCast e Screenshot sem conflitos.                         |
 | Software Rendering VM Flags                                   | `modules/07_post_install.sh`    | Quando executado em VM (`IS_VM=true`)       | Injeção defensiva de flags OpenGL de software prevenindo telas pretas no QtQuick/Wayland.           |
+| Sessões Wayland Declarativas (`*.desktop`)                    | `modules/07_post_install.sh`    | Conforme o par interface/compositor         | Provisiona entradas isoladas em `/usr/share/wayland-sessions/` para seleção na tela de login.       |
+| Alternador de Display Manager (`switch-display-manager.sh`)   | `tools/switch-display-manager.sh`| Execução manual pelo usuário pós-instalação | Comuta interativamente a tela de login ativa (SDDM, Noctalia Greeter ou Dux Greeter).              |
 
 ---
 
