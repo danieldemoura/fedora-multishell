@@ -28,7 +28,7 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
 - **Divisão Tripla da Pasta `config/`:**
   1. `config/packages/`: Manifestos declarativos `.conf` para gerenciar dependências do sistema e aplicações (DNF e Flatpak).
   2. `config/desktop/`: Configurações declarativas de interface e dotfiles do usuário aplicadas sob `~/.config/` (ex: `niri/config.kdl`, `umbriel/config.toml`).
-  3. `config/system/`: Modelos e arquivos de configuração administrativa aplicados sob `/etc/` (ex: `greetd.toml.template`, `pam_greetd.template`, `pam_sddm.template`).
+  3. `config/system/`: Modelos e arquivos de configuração administrativa aplicados sob `/etc/` e `/usr/share/` (ex: `greetd.toml.template`, `pam_greetd.template`, `pam_sddm.template`, `wayland-sessions/*.desktop`).
 - **Prevenção de Inchaço do Sistema (Anti-Bloatware):** A segregação por arquivo `.conf` especializado dentro de `config/packages/` impede que dependências pesadas de uma shell ou compositor específico (como o runtime Quickshell do iNiR ou o repositório Terra do Noctalia) poluam a base do sistema de usuários que escolheram outros ambientes.
 - **Racional Técnico e Benefícios de IaC:**
   1. _Auditabilidade e Transparência Total:_ Administradores, usuários e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.

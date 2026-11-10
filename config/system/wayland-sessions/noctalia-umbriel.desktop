@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Noctalia Shell (Umbriel)
+Comment=Noctalia Desktop Shell com compositor Umbriel
+Exec=bash -c 'exec umbriel-session --config "${HOME}/.config/umbriel/config.toml"'
+Type=Application
+DesktopNames=umbriel:noctalia
+

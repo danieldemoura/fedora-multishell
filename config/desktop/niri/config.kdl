@@ -18,9 +18,8 @@ spawn-at-startup "noctalia"
 // ==============================================================================
 input {
     keyboard {
-        xkb {
-            layout "br"
-        }
+        // O layout de teclado pode ser configurado conforme a preferência do usuário:
+        // xkb { layout "br"; }
         numlock
     }
 

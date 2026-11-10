@@ -65,6 +65,8 @@ O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Ide
 ```text
 fedora-multishell/
 ├── install.sh                       # Ponto de entrada: validações, menu interativo pt-BR e orquestrador
+├── tools/
+│   └── switch-display-manager.sh    # Utilitário interativo para alternar a tela de login (SDDM, Noctalia, Dux)
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
@@ -87,16 +89,25 @@ fedora-multishell/
 │   │   └── umbriel.conf             # Pacotes do compositor Umbriel Nightly e portais
 │   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
 │   │   ├── niri/
-│   │   │   └── config.kdl           # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
+│   │   │   ├── config.kdl           # Configuração padrão de fallback do Niri
+│   │   │   └── shells/              # Configurações isoladas por Desktop Shell
+│   │   │       ├── noctalia.kdl     # Niri com Noctalia Shell (autostart noctalia)
+│   │   │       ├── inir.kdl         # Niri com iNiR Shell (autostart inir run)
+│   │   │       └── duxshell.kdl     # Niri com Dux Shell (autostart dms run)
 │   │   ├── noctalia/
 │   │   │   └── config.toml          # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
 │   │   └── umbriel/
 │   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
 │   │       └── noctalia.toml        # Include opcional intencionalmente vazio para customizações locais
-│   └── system/                      # Modelos declarativos do sistema operacional (/etc)
+│   └── system/                      # Modelos declarativos do sistema operacional (/etc e /usr/share)
 │       ├── greetd.toml.template     # Modelo de configuração do Greetd
 │       ├── pam_greetd.template      # Modelo de autenticação PAM para o Greetd
-│       └── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       ├── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       └── wayland-sessions/        # Entradas declarativas do seletor de sessões (/usr/share/wayland-sessions)
+│           ├── noctalia-niri.desktop
+│           ├── noctalia-umbriel.desktop
+│           ├── inir-niri.desktop
+│           └── duxshell-niri.desktop
 ├── lib/
 │   ├── ui.sh                        # Renderização ANSI: banner dinâmico (TARGET_FEDORA_VERSION), caixas temáticas e prompts validados (ui_ask_choice/ui_ask_yn)
 │   ├── logger.sh                    # Registro em $XDG_STATE_HOME/fedora-multi-shell/install.log (fora de /tmp) e traps de erro
@@ -109,7 +120,7 @@ fedora-multishell/
     ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS) e integração PAM Keyring
     ├── 05_compositor.sh             # Roteador de Compositor (Padrão Strategy)
     ├── 06_desktop_interface.sh      # Roteador de Interface Gráfica (Padrão Strategy)
-    ├── 07_post_install.sh           # Autostart/config da interface, VM flags, ativação DM e validações
+    ├── 07_post_install.sh           # Configuração isolada, sessões Wayland, DM consciente e validações
     ├── compositors/
     │   ├── niri.sh                  # Niri (alacritty filtrado por nome), remoção defensiva, xwayland-satellite e portais
     │   └── umbriel.sh               # Umbriel Nightly, xwayland-satellite e portais Umbriel/GTK
@@ -129,6 +140,26 @@ fedora-multishell/
 | **Noctalia Shell**         | **Niri**           | Shell nativa em C++/Qt com painel clássico/moderno sobre o motor de rolagem horizontal contínua do Niri.                                                                          |
 | **Noctalia Shell**         | **Umbriel**        | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de janelas (Dwindle e Master). |
 | **Dux Shell (DMS)**        | **Niri** (Fixo)    | Ambiente Dux Labs com painéis Material You, dms-greeter (Greetd), danksearch, dankcalendar e terminal Kitty fixado.                                                               |
+
+### 🔀 Idempotência Cumulativa & Multi-Shell
+O instalador é **aditivo e cumulativo**: você pode reexecutar o `./install.sh` quantas vezes desejar para adicionar novos ambientes ao seu sistema sem quebrar ou sobrescrever os anteriores:
+- Instalou **Noctalia com Niri** hoje? A sessão `Noctalia Shell (Niri)` é registrada.
+- Quer testar **iNiR** semanas depois? Execute `./install.sh` novamente e escolha iNiR. A sessão `iNiR Shell (Niri)` é adicionada ao menu de login mantendo o Noctalia 100% intacto!
+- Quer experimentar **Noctalia com Umbriel**? Execute novamente e escolha Umbriel.
+
+Todas as opções instaladas aparecem no seletor da tela de login:
+- `Noctalia Shell (Niri)`
+- `Noctalia Shell (Umbriel)`
+- `iNiR Shell (Niri)`
+- `Dux Shell (Niri)`
+
+### 🖥️ Alternador de Tela de Login (Display Manager)
+Se você instalou interfaces que utilizam telas de login distintas (SDDM, Noctalia Greeter ou Dux Greeter), use o utilitário interativo a qualquer momento para alternar qual tela de login fica ativa:
+
+```bash
+./tools/switch-display-manager.sh
+```
+O utilitário detecta os gerenciadores instalados e permite comutar entre eles com apenas uma tecla!
 
 ---
 

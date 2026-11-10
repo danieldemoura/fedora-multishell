@@ -226,6 +226,10 @@ if [[ "${INSTALL_NVIDIA:-false}" == true ]] && [[ "${IS_VM:-false}" == false ]];
 fi
 
 echo -e "  Seu sistema está pronto para inicializar na interface ${CLR_BOLD}${SHELL_DESC} (${COMP_DESC})${CLR_RESET}."
+echo -e "  A nova sessão foi registrada no seletor de sessões da sua tela de login."
+echo ""
+echo -e "  ${CLR_CYAN}[DICA]${CLR_RESET} Para alternar o gerenciador de login (SDDM, Noctalia Greeter, Dux Greeter):"
+echo -e "         ${CLR_BOLD}./tools/switch-display-manager.sh${CLR_RESET}"
 echo ""
 ui_ask_yn "  Deseja reiniciar o sistema agora? [S/n]: " "s" reboot_choice
 

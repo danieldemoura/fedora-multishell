@@ -50,16 +50,27 @@ fedora-multishell/
 │   │   └── umbriel.conf             # Pacotes do compositor Umbriel Nightly e portais
 │   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
 │   │   ├── niri/
-│   │   │   └── config.kdl           # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
+│   │   │   ├── config.kdl           # Configuração padrão de fallback do Niri
+│   │   │   └── shells/              # Configurações isoladas por Desktop Shell
+│   │   │       ├── noctalia.kdl     # Niri com Noctalia Shell (autostart noctalia)
+│   │   │       ├── inir.kdl         # Niri com iNiR Shell (autostart inir run)
+│   │   │       └── duxshell.kdl     # Niri com Dux Shell (autostart dms run)
 │   │   ├── noctalia/
 │   │   │   └── config.toml          # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
 │   │   └── umbriel/
 │   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
 │   │       └── noctalia.toml        # Include opcional intencionalmente vazio para customizações locais
-│   └── system/                      # Modelos declarativos do sistema operacional (/etc)
+│   └── system/                      # Modelos declarativos do sistema operacional (/etc e /usr/share)
 │       ├── greetd.toml.template     # Modelo de configuração do Greetd
 │       ├── pam_greetd.template      # Modelo de autenticação PAM para o Greetd
-│       └── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       ├── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       └── wayland-sessions/        # Entradas declarativas do seletor de sessões (/usr/share/wayland-sessions)
+│           ├── noctalia-niri.desktop
+│           ├── noctalia-umbriel.desktop
+│           ├── inir-niri.desktop
+│           └── duxshell-niri.desktop
+├── tools/
+│   └── switch-display-manager.sh    # Utilitário interativo para alternar a tela de login (SDDM, Noctalia, Dux)
 ├── lib/
 │   ├── ui.sh                        # Renderização visual ANSI (banners limpos, caixas temáticas, prompts validados pt-BR)
 │   ├── logger.sh                    # Registro centralizado (`$XDG_STATE_HOME/fedora-multi-shell/install.log`) e tratamento de erros
@@ -229,20 +240,28 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
     - Auto-reparo imediato de encapsulamento: restaura o template `config/system/pam_greetd.template` em `/etc/pam.d/greetd` para impedir que o pipeline do instalador da Dux Labs sobrescreva a integração com o keyring.
     - Assegura permissões do usuário em `.config` e `.local`.
 
-### Módulo 07: Pós-Instalação e Validações (`07_post_install.sh`)
+### Módulo 07: Pós-Instalação, Sessões Wayland e Validações (`07_post_install.sh`)
 
 - Inicialização do cofre de credenciais PAM em `~/.local/share/keyrings/default` com conteúdo `login` (permissão `600`).
-- Configuração declarativa do compositor ativo:
+- **Arquitetura de Isolamento de Sessões Wayland (Multi-Shell Idempotente):**
+  - Cria `~/.config/niri/shells/` para isolar os pontos de entrada de cada interface gráfica sem conflitos.
   - **Se Noctalia Shell (`SELECTED_INTERFACE="noctalia"`):**
-    - Cria `~/.config/noctalia`, copia a configuração declarativa de `${DESKTOP_DIR}/noctalia/config.toml` (`config/desktop/noctalia/config.toml`) ativando o agente Polkit nativo (`polkit_agent = true`) sob `${REAL_USER}`.
-    - **Se Umbriel:** Cria `~/.config/umbriel`, copia os arquivos de `${DESKTOP_DIR}/umbriel/*` (`config/desktop/umbriel/`) para `~/.config/umbriel/`. Se `IS_VM=true`, anexa (de forma idempotente, protegida por `grep -qF`) o bloco de software rendering e desativação de cursor de hardware ao final de `config.toml`. Valida via `sudo -u "${REAL_USER}" umbriel config validate`.
-    - **Se Niri:** Cria `~/.config/niri`, copia `${DESKTOP_DIR}/niri/config.kdl` para `~/.config/niri/config.kdl`. Se `IS_VM=true`, anexa de forma idempotente o bloco `environment` de renderização por software. Valida via `sudo -u "${REAL_USER}" niri validate`.
-  - **Se iNiR Shell (`SELECTED_INTERFACE="inir"`):** Não copia nem sobrescreve arquivos com os templates do Noctalia; assegura que `~/.config/niri/config.kdl` exista e vincula a shell ao sistema de serviços do systemd de usuário (`inir service install` + wants link `niri.service.wants/inir.service` — o caminho canônico upstream, exigido pelas trocas de família de painéis em runtime como o iRiS; a injeção `spawn-at-startup "inir" "run"` fica restrita a contingência quando a unidade de usuário do Niri não está presente). Pré-ativa a família **iRiS** editando o config operativo lido pela shell em runtime (`~/.config/illogical-impulse/config.json` — caminho fixado pelo `Directories.qml`; quando ausente, é semeado a partir do default instalado em `~/.config/inir/config.json` e o iRiS é espelhado nele), aplicando `panelFamily="iris"` + painéis da família mesclados em `enabledPanels`/`knownPanels` com escrita atômica e idempotência, injeta o bloco `environment` de renderização por software se `IS_VM=true` e valida a sintaxe ao final com `niri validate`. Previne tela cinza vazia no Niri após o login.
-  - **Se Dux Shell (`SELECTED_INTERFACE="duxshell"`):** Configura autostart do DMS via injeção de `spawn-at-startup "dms" "run"` no `config.kdl` do Niri caso não esteja presente, assegura variáveis de software rendering se `IS_VM=true`, e valida via `sudo -u "${REAL_USER}" niri validate`.
+    - Cria `~/.config/noctalia`, copia a configuração declarativa de `${DESKTOP_DIR}/noctalia/config.toml` ativando o agente Polkit nativo (`polkit_agent = true`) sob `${REAL_USER}`.
+    - **Se Umbriel:** Cria `~/.config/umbriel`, copia os arquivos de `${DESKTOP_DIR}/umbriel/*` para `~/.config/umbriel/`. Se `IS_VM=true`, anexa o bloco de software rendering. Registra `noctalia-umbriel.desktop` em `/usr/share/wayland-sessions/`. Valida via `sudo -u "${REAL_USER}" umbriel config validate`.
+    - **Se Niri:** Copia `${DESKTOP_DIR}/niri/shells/noctalia.kdl` para `~/.config/niri/shells/noctalia.kdl`. Se `IS_VM=true`, anexa de forma idempotente o bloco `environment` de renderização por software. Registra `noctalia-niri.desktop` em `/usr/share/wayland-sessions/`. Valida via `sudo -u "${REAL_USER}" niri validate -c ~/.config/niri/shells/noctalia.kdl`.
+  - **Se iNiR Shell (`SELECTED_INTERFACE="inir"`):**
+    - Copia `${DESKTOP_DIR}/niri/shells/inir.kdl` para `~/.config/niri/shells/inir.kdl`.
+    - O autostart da shell roda exclusivamente via `spawn-at-startup "inir" "run"` dentro de `shells/inir.kdl`, evitando que o iNiR inicialize em background ao selecionar outras interfaces. Remove links globais órfãos em `niri.service.wants/inir.service`.
+    - Pré-ativa a família **iRiS** editando o config operativo lido pela shell em runtime (`~/.config/illogical-impulse/config.json`, semeado a partir do default instalado em `~/.config/inir/config.json`).
+    - Registra `inir-niri.desktop` em `/usr/share/wayland-sessions/`. Valida com `niri validate -c ~/.config/niri/shells/inir.kdl`.
+  - **Se Dux Shell (`SELECTED_INTERFACE="duxshell"`):**
+    - Copia `${DESKTOP_DIR}/niri/shells/duxshell.kdl` para `~/.config/niri/shells/duxshell.kdl`.
+    - Registra `duxshell-niri.desktop` em `/usr/share/wayland-sessions/`. Valida com `niri validate -c ~/.config/niri/shells/duxshell.kdl`.
+- **Ativação Consciente do Display Manager:** Detecta se já existe um Display Manager ativo no sistema (`systemctl is-enabled greetd.service` ou `sddm.service`). Se já houver um ativo, preserva-o intacto; se for a primeira instalação, ativa o padrão da interface selecionada. Assegura a integridade do PAM (`pam_oo7.so`) para o DM ativo.
+- Disponibiliza o utilitário interativo `tools/switch-display-manager.sh` para troca a quente de tela de login entre SDDM, Noctalia Greeter e Dux Greeter.
 - Execução de `xdg-user-dirs-update` e `ensure_user_ownership` recursivo em `.config` e `.local`.
-- Ativação defensiva do display manager (Greetd para Noctalia/DMS ou SDDM para iNiR) e target gráfico via `systemctl enable` (sem `--force`, que mascararia unidades inválidas).
 - Se `INSTALL_NVIDIA=true` (e não for VM), executa `sudo akmods --force`.
-- Registro do checklist de integridade no log (8 verificações finais, incluindo a presença do runtime Deno quando a interface selecionada for iNiR — a ausência é tratada como erro com `exit 1`).
+- Registro do checklist de integridade no log, incluindo a listagem completa de todas as sessões Wayland ativas em `/usr/share/wayland-sessions/`.
 
 ---
 

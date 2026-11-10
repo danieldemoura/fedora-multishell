@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=iNiR Shell (Niri)
+Comment=iNiR Shell com compositor Niri
+Exec=bash -c 'exec niri-session --config "${HOME}/.config/niri/shells/inir.kdl"'
+Type=Application
+DesktopNames=niri:inir
+
