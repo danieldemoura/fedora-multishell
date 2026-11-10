@@ -604,13 +604,6 @@ for s_desktop in /usr/share/wayland-sessions/*.desktop; do
         log_success "  • ${s_title} ($(basename "$s_desktop"))"
     fi
 done
-    if [[ "$CONFIG_OWNER" == "$REAL_USER" ]]; then
-        log_success "[Checklist] Propriedade de ${UMB_CONFIG_FILE} pertence corretamente ao usuário '${REAL_USER}'."
-    else
-        log_warn "[Checklist] Proprietário do arquivo é '${CONFIG_OWNER}'. Corrigindo permissão..."
-        ensure_user_ownership "${UMB_CONFIG_DIR}"
-    fi
-fi
 
 # Teste 4: Validação de ausência de NVIDIA em VM
 if [[ "${IS_VM:-false}" == true ]]; then
