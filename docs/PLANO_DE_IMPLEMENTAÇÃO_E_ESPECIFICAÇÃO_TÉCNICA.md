@@ -259,7 +259,7 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
   - **Se Dux Shell (`SELECTED_INTERFACE="duxshell"`):**
     - Copia `${DESKTOP_DIR}/niri/shells/duxshell.kdl` para `~/.config/niri/shells/duxshell.kdl`.
     - Registra `duxshell-niri.desktop` em `/usr/share/wayland-sessions/`. Valida com `niri validate -c ~/.config/niri/shells/duxshell.kdl`.
-- **Ativação Consciente do Display Manager:** Detecta se já existe um Display Manager ativo no sistema (`systemctl is-enabled greetd.service` ou `sddm.service`). Se já houver um ativo, preserva-o intacto; se for a primeira instalação, ativa o padrão da interface selecionada. Assegura a integridade do PAM (`pam_oo7.so`) para o DM ativo.
+- **Ativação Vinculada do Display Manager à Interface:** Ativa automaticamente o Display Manager correspondente à interface selecionada (`greetd.service` com `noctalia-greeter` para Noctalia, `greetd.service` com `dms-greeter` para Dux Shell, e `sddm.service` para iNiR), desativando concorrentes no systemd. Desativa também sessões cruas sem shell (`niri.desktop` e `umbriel.desktop`) e sessões de outras shells para apresentar exclusivamente a interface escolhida. Assegura a integridade do PAM (`pam_oo7.so`) para o DM ativo.
 - Disponibiliza o utilitário interativo `tools/switch-display-manager.sh` para troca a quente de tela de login entre SDDM, Noctalia Greeter e Dux Greeter.
 - Execução de `xdg-user-dirs-update` e `ensure_user_ownership` recursivo em `.config` e `.local`.
 - Se `INSTALL_NVIDIA=true` (e não for VM), executa `sudo akmods --force`.

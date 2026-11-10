@@ -71,6 +71,27 @@ user = "greetd"
 EOF
         fi
         log_success "Arquivo ${GREETD_CONFIG} gerado com sucesso."
+    elif [[ "${SELECTED_INTERFACE}" == "duxshell" || "${SELECTED_SHELL}" == "duxshell" ]]; then
+        log_info "Configurando /etc/greetd/config.toml para Dux Greeter (dms-greeter)..."
+        sudo mkdir -p /etc/greetd
+        GREETD_CONFIG="/etc/greetd/config.toml"
+
+        if [[ -f "$GREETD_CONFIG" ]]; then
+            backup_file "$GREETD_CONFIG" true
+        fi
+
+        GREETER_CMD="/usr/bin/dms-greeter"
+        [[ -x "$GREETER_CMD" ]] || GREETER_CMD="dms-greeter"
+
+        sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
+[terminal]
+vt = 1
+
+[default_session]
+command = "${GREETER_CMD}"
+user = "greetd"
+EOF
+        log_success "Arquivo ${GREETD_CONFIG} gerado para Dux Greeter com sucesso."
     fi
 
     # 4. Configuração defensiva do PAM (/etc/pam.d/greetd)
@@ -108,6 +129,12 @@ EOF
     sudo chmod 644 "$PAM_GREETD"
     sudo chown root:root "$PAM_GREETD"
     log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_oo7 (permissão 644)."
+
+    # 5. Ativação prioritária do serviço Greetd e desativação defensiva de concorrentes
+    log_info "Habilitando greetd.service e desativando SDDM/outros DMs concorrentes..."
+    sudo systemctl disable sddm.service gdm.service lightdm.service 2>/dev/null || true
+    sudo systemctl enable greetd.service
+    log_success "greetd.service habilitado como Display Manager ativo."
 
     log_success "Módulo 04 (Display Stack - Greetd) concluído com sucesso."
 
@@ -183,6 +210,12 @@ EOF
     fi
     sudo chmod 644 "$PAM_SDDM"
     sudo chown root:root "$PAM_SDDM"
+
+    # 4. Ativação prioritária do serviço SDDM e desativação defensiva de concorrentes
+    log_info "Habilitando sddm.service e desativando Greetd/outros DMs concorrentes..."
+    sudo systemctl disable greetd.service gdm.service lightdm.service 2>/dev/null || true
+    sudo systemctl enable sddm.service
+    log_success "sddm.service habilitado como Display Manager ativo."
 
     log_success "Módulo 04 (Display Stack - SDDM) concluído com sucesso."
 fi

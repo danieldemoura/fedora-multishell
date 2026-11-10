@@ -105,10 +105,27 @@ register_wayland_session() {
 
     log_info "Registrando sessão Wayland no sistema (${session_file})..."
     sudo mkdir -p "$target_dir"
+
+    # Desativa as sessões genéricas/cruas dos compositores sem shell (niri.desktop e umbriel.desktop)
+    for raw_session in niri.desktop umbriel.desktop; do
+        if [[ -f "${target_dir}/${raw_session}" ]]; then
+            log_info "Desativando sessão crua sem shell (${raw_session}) para exibir apenas a interface integrada..."
+            sudo mv -f "${target_dir}/${raw_session}" "${target_dir}/${raw_session}.disabled" 2>/dev/null || true
+        fi
+    done
+
+    # Remove sessões Wayland residuais de outras shells deste instalador
+    for other_session in noctalia-niri.desktop noctalia-umbriel.desktop inir-niri.desktop duxshell-niri.desktop; do
+        if [[ "${other_session}" != "${session_file}" && -f "${target_dir}/${other_session}" ]]; then
+            log_info "Removendo sessão inativa de outra interface (${other_session})..."
+            sudo rm -f "${target_dir}/${other_session}"
+        fi
+    done
+
     sudo cp "$source_desktop" "$target_desktop"
     sudo chmod 644 "$target_desktop"
     sudo chown root:root "$target_desktop"
-    log_success "Sessão '${session_file}' registrada em ${target_dir}."
+    log_success "Sessão '${session_file}' registrada com exclusividade em ${target_dir}."
 }
 
 # Aplica parâmetros de renderização por software do Niri caso o ambiente seja Máquina Virtual (IS_VM=true)
@@ -438,32 +455,76 @@ if [[ "${IS_VM:-false}" == false ]] && [[ "${INSTALL_NVIDIA:-false}" == true ]];
     log_success "Compilação do módulo NVIDIA concluída."
 fi
 
-# 5. Definição do Alvo Gráfico e Ativação Consciente do Display Manager
-ACTIVE_DM=""
-if systemctl is-enabled greetd.service >/dev/null 2>&1; then
-    ACTIVE_DM="greetd"
-elif systemctl is-enabled sddm.service >/dev/null 2>&1; then
-    ACTIVE_DM="sddm"
-fi
-
-if [[ -n "$ACTIVE_DM" ]]; then
-    log_info "Display Manager já configurado e ativo no sistema: '${ACTIVE_DM}'."
-    log_info "Preservando '${ACTIVE_DM}' como tela de login atual (idempotência aditiva)."
-    log_info "Dica: Para alternar entre SDDM, Noctalia Greeter e Dux Greeter a qualquer momento, execute: ./tools/switch-display-manager.sh"
-else
-    # Primeira instalação: ativa o Display Manager padrão da interface escolhida
-    if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(duxshell|noctalia)$ ]]; then
-        log_info "Configurando inicialização gráfica padrão (Greetd)..."
-        sudo systemctl disable gdm lightdm sddm 2>/dev/null || true
-        sudo systemctl enable greetd.service
+# 5. Definição do Alvo Gráfico e Ativação do Display Manager conforme a Interface Escolhida
+case "${SELECTED_INTERFACE}" in
+    noctalia)
+        log_info "Configurando e ativando Display Manager para Noctalia Shell (Greetd / Noctalia Greeter)..."
         ACTIVE_DM="greetd"
-    else
-        log_info "Configurando inicialização gráfica padrão (SDDM)..."
-        sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
-        sudo systemctl enable sddm.service
+
+        # Garante configuração correta do greeter no /etc/greetd/config.toml
+        sudo mkdir -p /etc/greetd
+        GREETD_CONFIG="/etc/greetd/config.toml"
+        if [[ "${IS_VM:-false}" == true ]]; then
+            GREETER_CMD="env LIBGL_ALWAYS_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 /usr/bin/noctalia-greeter-session"
+        else
+            GREETER_CMD="/usr/bin/noctalia-greeter-session"
+        fi
+        GREETD_TEMPLATE="${SYSTEM_DIR}/greetd.toml.template"
+        if [[ -f "$GREETD_TEMPLATE" ]]; then
+            sed "s|__GREETD_COMMAND__|${GREETER_CMD}|g" "$GREETD_TEMPLATE" | sudo tee "$GREETD_CONFIG" >/dev/null
+        else
+            sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
+[terminal]
+vt = 1
+
+[default_session]
+command = "${GREETER_CMD}"
+user = "greetd"
+EOF
+        fi
+
+        sudo usermod -aG video,render,input greetd 2>/dev/null || true
+        if command -v noctalia-greeter >/dev/null 2>&1; then
+            sudo mkdir -p /var/lib/noctalia-greeter
+            sudo chown -R greetd:greetd /var/lib/noctalia-greeter 2>/dev/null || true
+            sudo noctalia-greeter passwordless-sync enable "${REAL_USER}" 2>/dev/null || true
+        fi
+
+        sudo systemctl disable sddm.service gdm.service lightdm.service 2>/dev/null || true
+        sudo systemctl enable greetd.service
+        ;;
+
+    duxshell)
+        log_info "Configurando e ativando Display Manager para Dux Shell (Greetd / Dux Greeter)..."
+        ACTIVE_DM="greetd"
+
+        sudo mkdir -p /etc/greetd
+        GREETD_CONFIG="/etc/greetd/config.toml"
+        GREETER_CMD="/usr/bin/dms-greeter"
+        [[ -x "$GREETER_CMD" ]] || GREETER_CMD="dms-greeter"
+        sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
+[terminal]
+vt = 1
+
+[default_session]
+command = "${GREETER_CMD}"
+user = "greetd"
+EOF
+
+        sudo usermod -aG video,render,input greetd 2>/dev/null || true
+        sudo systemctl disable sddm.service gdm.service lightdm.service 2>/dev/null || true
+        sudo systemctl enable greetd.service
+        ;;
+
+    inir|*)
+        log_info "Configurando e ativando Display Manager para iNiR Shell (SDDM)..."
         ACTIVE_DM="sddm"
-    fi
-fi
+
+        sudo usermod -aG video,render,input sddm 2>/dev/null || true
+        sudo systemctl disable greetd.service gdm.service lightdm.service 2>/dev/null || true
+        sudo systemctl enable sddm.service
+        ;;
+esac
 
 # Assegura a integridade do PAM para o Display Manager ativo
 if [[ "$ACTIVE_DM" == "greetd" && -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
