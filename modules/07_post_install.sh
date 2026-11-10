@@ -681,7 +681,8 @@ for s_desktop in /usr/share/wayland-sessions/*.desktop; do
         s_exec="$(grep -E '^Exec=' "$s_desktop" 2>/dev/null | head -n1 | cut -d= -f2- || echo '')"
         # Extrai o primeiro binário do comando Exec (ignora wrappers de shell comuns)
         bin_to_check=""
-        if [[ "$s_exec" =~ ^bash\ -c\ [\'\"]export[[:space:]]+[^;]+;\ exec[[:space:]]+([^[:space:]\'\"]+) ]]; then
+        session_regex='^bash -c ['"'"'"]export [^;]+; exec ([^[:space:]'"'"'"]+)'
+        if [[ "$s_exec" =~ $session_regex ]]; then
             bin_to_check="${BASH_REMATCH[1]}"
         elif [[ "$s_exec" =~ ^bash\ -c\ [\'\"]exec\ ([^[:space:]]+) ]]; then
             bin_to_check="${BASH_REMATCH[1]}"
