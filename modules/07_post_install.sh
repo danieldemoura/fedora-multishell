@@ -655,7 +655,27 @@ log_info "[Checklist] Sessões Wayland registradas no sistema (/usr/share/waylan
 for s_desktop in /usr/share/wayland-sessions/*.desktop; do
     if [[ -f "$s_desktop" ]]; then
         s_title="$(grep -E '^Name=' "$s_desktop" 2>/dev/null | head -n1 | cut -d= -f2- || echo 'Sessão')"
-        log_success "  • ${s_title} ($(basename "$s_desktop"))"
+        s_exec="$(grep -E '^Exec=' "$s_desktop" 2>/dev/null | head -n1 | cut -d= -f2- || echo '')"
+        # Extrai o primeiro binário do comando Exec (ignora wrappers de shell comuns)
+        bin_to_check=""
+        if [[ "$s_exec" =~ ^bash\ -c\ [\'\"]exec\ ([^[:space:]]+) ]]; then
+            bin_to_check="${BASH_REMATCH[1]}"
+        elif [[ "$s_exec" =~ ^bash\ -c\ [\'\"]([^[:space:]]+) ]]; then
+            bin_to_check="${BASH_REMATCH[1]}"
+        else
+            bin_to_check="$(echo "$s_exec" | awk '{print $1}')"
+        fi
+
+        if [[ -n "$bin_to_check" ]]; then
+            if command -v "$bin_to_check" >/dev/null 2>&1 || [[ -x "$bin_to_check" ]]; then
+                log_success "  • ${s_title} ($(basename "$s_desktop")) -> Binário validado: '${bin_to_check}'"
+            else
+                log_error "[Checklist] Falha crítica na sessão $(basename "$s_desktop"): binário executável '${bin_to_check}' não encontrado no sistema!"
+                exit 1
+            fi
+        else
+            log_warn "  • ${s_title} ($(basename "$s_desktop")) -> Não foi possível determinar o binário executável de: ${s_exec}"
+        fi
     fi
 done
 
