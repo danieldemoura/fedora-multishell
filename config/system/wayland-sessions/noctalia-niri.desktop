@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Noctalia Shell (Niri)
 Comment=Noctalia Desktop Shell com compositor Niri
-Exec=bash -c 'exec niri-session --config "${HOME}/.config/niri/shells/noctalia.kdl"'
+Exec=bash -c 'export NIRI_CONFIG="${HOME}/.config/niri/shells/noctalia.kdl"; exec niri-session'
 Type=Application
 DesktopNames=niri:noctalia
 

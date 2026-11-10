@@ -43,7 +43,26 @@ if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
     sudo chown root:root /etc/pam.d/greetd
 fi
 
-# 5. Assegurar posse e permissões estritas para o usuário real
+# 5. Isolamento de Sessões: impedir que o Dux Shell inicialize como serviço global de systemd
+#    (O instalador da Dux habilita dms.service via niri.service.wants ou graphical-session.target.wants.
+#     No Fedora Multi-Shell, cada shell é iniciada exclusivamente via spawn-at-startup no seu KDL
+#     específico, evitando que o Dux Shell seja disparado em sessões de outras shells como Noctalia ou iNiR).
+log_info "Garantindo isolamento do Dux Shell no systemd (desativando inicialização global não intencional)..."
+SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
+for want_dir in "${SYSTEMD_USER_DIR}/niri.service.wants" \
+               "${SYSTEMD_USER_DIR}/graphical-session.target.wants" \
+               "${SYSTEMD_USER_DIR}/default.target.wants"; do
+    if [[ -d "$want_dir" ]]; then
+        sudo -u "${REAL_USER}" rm -f "${want_dir}/dms.service" "${want_dir}/dux.service" 2>/dev/null || true
+    fi
+done
+# Desabilita o serviço dms no systemctl --user de forma defensiva se o daemon de usuário estiver acessível
+if command -v systemctl >/dev/null 2>&1; then
+    sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+        systemctl --user disable dms.service dux.service >/dev/null 2>&1 || true
+fi
+
+# 6. Assegurar posse e permissões estritas para o usuário real
 log_info "Garantindo propriedade das pastas de configuração e dados para ${REAL_USER}..."
 ensure_user_ownership "${REAL_HOME}/.config"
 ensure_user_ownership "${REAL_HOME}/.local"

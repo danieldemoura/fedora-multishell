@@ -404,6 +404,22 @@ elif [[ "${SELECTED_INTERFACE}" == "duxshell" ]]; then
     # Registra a sessão Wayland para Dux Shell no Niri
     register_wayland_session "duxshell-niri.desktop"
 
+    # Isolamento de autostart: o autostart do Dux Shell roda via spawn-at-startup
+    # dentro de shells/duxshell.kdl. Removemos preventivamente o link global niri.service.wants
+    # ou graphical-session.target.wants para impedir que o dms inicialize em segundo plano ao selecionar outras interfaces.
+    SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
+    for want_dir in "${SYSTEMD_USER_DIR}/niri.service.wants" \
+                   "${SYSTEMD_USER_DIR}/graphical-session.target.wants" \
+                   "${SYSTEMD_USER_DIR}/default.target.wants"; do
+        if [[ -d "$want_dir" ]]; then
+            sudo -u "${REAL_USER}" rm -f "${want_dir}/dms.service" "${want_dir}/dux.service" 2>/dev/null || true
+        fi
+    done
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+            systemctl --user disable dms.service dux.service >/dev/null 2>&1 || true
+    fi
+
     # Validação oficial do Niri para o Dux Shell
     log_info "Validando configuração do Niri para o Dux Shell (niri validate -c)..."
     if command -v niri >/dev/null 2>&1; then
@@ -665,7 +681,9 @@ for s_desktop in /usr/share/wayland-sessions/*.desktop; do
         s_exec="$(grep -E '^Exec=' "$s_desktop" 2>/dev/null | head -n1 | cut -d= -f2- || echo '')"
         # Extrai o primeiro binário do comando Exec (ignora wrappers de shell comuns)
         bin_to_check=""
-        if [[ "$s_exec" =~ ^bash\ -c\ [\'\"]exec\ ([^[:space:]]+) ]]; then
+        if [[ "$s_exec" =~ ^bash\ -c\ [\'\"]export[[:space:]]+[^;]+;\ exec[[:space:]]+([^[:space:]\'\"]+) ]]; then
+            bin_to_check="${BASH_REMATCH[1]}"
+        elif [[ "$s_exec" =~ ^bash\ -c\ [\'\"]exec\ ([^[:space:]]+) ]]; then
             bin_to_check="${BASH_REMATCH[1]}"
         elif [[ "$s_exec" =~ ^bash\ -c\ [\'\"]([^[:space:]]+) ]]; then
             bin_to_check="${BASH_REMATCH[1]}"
