@@ -114,18 +114,11 @@ register_wayland_session() {
         fi
     done
 
-    # Remove sessões Wayland residuais de outras shells deste instalador
-    for other_session in noctalia-niri.desktop noctalia-umbriel.desktop inir-niri.desktop duxshell-niri.desktop; do
-        if [[ "${other_session}" != "${session_file}" && -f "${target_dir}/${other_session}" ]]; then
-            log_info "Removendo sessão inativa de outra interface (${other_session})..."
-            sudo rm -f "${target_dir}/${other_session}"
-        fi
-    done
-
+    # Registra ou atualiza a sessão Wayland declarativa (permitindo coexistência acumulativa de múltiplas interfaces)
     sudo cp "$source_desktop" "$target_desktop"
     sudo chmod 644 "$target_desktop"
     sudo chown root:root "$target_desktop"
-    log_success "Sessão '${session_file}' registrada com exclusividade em ${target_dir}."
+    log_success "Sessão '${session_file}' registrada com sucesso em ${target_dir}."
 }
 
 # Aplica parâmetros de renderização por software do Niri caso o ambiente seja Máquina Virtual (IS_VM=true)
