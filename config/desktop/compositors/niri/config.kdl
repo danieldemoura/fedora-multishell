@@ -97,6 +97,13 @@ window-rule {
 }
 
 window-rule {
+    match app-id="^xwaylandvideobridge$"
+    open-floating true
+    default-floating-position x=-100 y=-100
+    opacity 0.0
+}
+
+window-rule {
     match title="^(Picture-in-Picture|Picture in picture)$"
     open-floating true
     default-floating-position x=20 y=20 relative-to="bottom-right"

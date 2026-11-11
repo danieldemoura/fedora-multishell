@@ -115,6 +115,14 @@ register_wayland_session() {
         fi
     done
 
+    # Desativa xwaylandvideobridge do autostart XDG para evitar janela preta/tiled no Niri
+    for xwb in /etc/xdg/autostart/*xwaylandvideobridge*.desktop; do
+        if [[ -f "$xwb" ]]; then
+            log_info "Desativando $(basename "$xwb") do autostart para evitar janela preta no Niri..."
+            sudo mv -f "$xwb" "${xwb}.disabled" 2>/dev/null || true
+        fi
+    done
+
     # Registra ou atualiza a sessão Wayland declarativa (permitindo coexistência acumulativa de múltiplas interfaces)
     sudo cp "$source_desktop" "$target_desktop"
     sudo chmod 644 "$target_desktop"
@@ -142,6 +150,30 @@ EOF
             log_info "Flags de VM já presentes em $(basename "$target_file")."
         fi
     fi
+}
+
+# Instala launcher de sessão Wayland em /usr/local/bin garantindo que NIRI_CONFIG
+# seja propagado para o systemd --user e niri.service leia o KDL isolado correto.
+install_niri_session_wrapper() {
+    local shell_name="$1"
+    local wrapper_path="/usr/local/bin/${shell_name}-niri-session"
+
+    log_info "Instalando launcher de sessão Wayland em ${wrapper_path}..."
+    sudo tee "$wrapper_path" >/dev/null <<EOF
+#!/usr/bin/env bash
+set -e
+export NIRI_CONFIG="\${HOME}/.config/niri/shells/${shell_name}.kdl"
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user set-environment NIRI_CONFIG="\${NIRI_CONFIG}" 2>/dev/null || true
+fi
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd NIRI_CONFIG 2>/dev/null || true
+fi
+exec /usr/bin/niri-session
+EOF
+    sudo chmod 755 "$wrapper_path"
+    sudo chown root:root "$wrapper_path"
+    log_success "Launcher '${wrapper_path}' instalado com sucesso."
 }
 
 # 2.1 Configuração do Compositor Ativo e Shell
@@ -231,7 +263,8 @@ EOF
             sudo -u "${REAL_USER}" cp "${NIRI_SHELL_FILE}" "${NIRI_CONFIG_FILE}"
         fi
 
-        # Registra a sessão Wayland para Noctalia no Niri
+        # Registra o launcher de sessão e a entrada Wayland para Noctalia no Niri
+        install_niri_session_wrapper "noctalia"
         register_wayland_session "noctalia-niri.desktop"
 
         # Validação do arquivo da shell
@@ -365,7 +398,8 @@ PYEOF
         log_warn "Nenhum config.json do iNiR encontrado (illogical-impulse nem inir) — pré-ativação do iRiS ignorada."
     fi
 
-    # Registra a sessão Wayland para iNiR no Niri
+    # Registra o launcher de sessão e a entrada Wayland para iNiR no Niri
+    install_niri_session_wrapper "inir"
     register_wayland_session "inir-niri.desktop"
 
     # Validação oficial do Niri para iNiR
@@ -409,7 +443,8 @@ elif [[ "${SELECTED_INTERFACE}" == "duxshell" ]]; then
         sudo -u "${REAL_USER}" cp "${NIRI_SHELL_FILE}" "${NIRI_CONFIG_FILE}"
     fi
 
-    # Registra a sessão Wayland para Dux Shell no Niri
+    # Registra o launcher de sessão e a entrada Wayland para Dux Shell no Niri
+    install_niri_session_wrapper "duxshell"
     register_wayland_session "duxshell-niri.desktop"
 
     # Isolamento de autostart: o autostart do Dux Shell roda via spawn-at-startup

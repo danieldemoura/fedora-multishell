@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Dux Shell (Niri)
 Comment=Dux Shell (DMS) com compositor Niri
-Exec=bash -c 'export NIRI_CONFIG="${HOME}/.config/niri/shells/duxshell.kdl"; exec niri-session'
+Exec=duxshell-niri-session
 Type=Application
 DesktopNames=niri:duxshell
 

@@ -257,10 +257,11 @@ Componentes declarativos da pilha de login leve Greetd:
 
 Componentes declarativos da pilha de login SDDM:
 
-| Pacote    | Função e Justificativa Técnica                                                              |
-| :-------- | :------------------------------------------------------------------------------------------ |
-| `sddm`    | Display Manager oficial baseado em QML e Wayland.                                           |
-| `pam_oo7` | Módulo PAM (`pam_oo7.so`) para desbloqueio automático do cofre de credenciais oo7 no login. |
+| Pacote                 | Função e Justificativa Técnica                                                                                                                                                                                             |
+| :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sddm`                 | Display Manager oficial baseado em QML e Wayland.                                                                                                                                                                          |
+| `sddm-wayland-generic` | Backend genérico Wayland para o greeter do SDDM. Satisfaz a dependência virtual `sddm-greeter-displayserver` impedindo que o DNF puxe o pacote `sddm-wayland-plasma` e todo o ambiente de desktop KDE Plasma por padrão. |
+| `pam_oo7`              | Módulo PAM (`pam_oo7.so`) para desbloqueio automático do cofre de credenciais oo7 no login.                                                                                                                                |
 
 ---
 
@@ -331,6 +332,8 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
 - **Componentes e Runtimes Provisionados:**
   - **Runtime Deno Oficial:** O executável nativo do `deno` é obtido via release oficial do GitHub (`denoland/deno`), com alvo de arquitetura detectado por `uname -m` (x86_64/aarch64) e **verificação de integridade via checksum SHA-256** publicado na própria release antes da instalação em `/usr/local/bin/deno`, sustentando os daemons JavaScript/TypeScript do shell.
   - **Widgets e Setup iNiR:** Compilação e linking dos componentes visuais executado via `./setup install -y` diretamente sob a sessão do usuário real.
+  - **Tema Customizado do SDDM:** Durante o setup do iNiR, um tema QML customizado de tela de login (com relógio grande translúcido e identidade visual Material You) é instalado e ativado no SDDM.
+  - **Tratamento do `xwaylandvideobridge`:** Utilitário frequentemente puxado durante a resolução de integrações Qt/KDE do iNiR para prover compatibilidade de captura de tela em aplicativos X11. Como o Niri é um compositor tiling e trataria a janela invisível do bridge como uma janela tiled comum (gerando um retângulo preto opaco na tela), o instalador aplica regras estritas (`window-rule { match app-id="^xwaylandvideobridge$" open-floating true opacity 0.0 }`) e desativa seu autostart XDG em `/etc/xdg/autostart/`.
 
 ---
 
