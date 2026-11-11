@@ -155,11 +155,18 @@ if [[ "${SELECTED_SHELL:-}" == "noctalia" || "${SELECTED_INTERFACE:-}" == "nocta
     fi
 fi
 
-# Se a interface escolhida for Dux Shell: ativa o COPR avengemedia/danklinux
-# (Os COPRs novos duxlabs/dux e duxlabs/dms ainda não estão prontos para produção,
-# conforme aviso oficial na página dos repositórios — manter avengemedia até o 2.0.1)
+# Se a interface escolhida for Dux Shell: ativa os COPRs oficiais duxlabs/dms e duxlabs/dux-repo
 if [[ "${SELECTED_INTERFACE:-}" == "duxshell" || "${SELECTED_SHELL:-}" == "duxshell" ]]; then
-    enable_copr_repo "avengemedia/danklinux" "avengemedia:danklinux"
+    log_info "Removendo repositório legado e configurando repositórios oficiais da Dux Labs (DMS 2.x)..."
+    
+    # Remove completamente o repositório legado avengemedia/danklinux
+    sudo dnf copr remove -y avengemedia/danklinux 2>/dev/null || true
+    sudo rm -f /etc/yum.repos.d/*avengemedia*danklinux*.repo 2>/dev/null || true
+
+    # Habilita exclusivamente os repositórios oficiais atuais
+    sudo dnf copr enable -y duxlabs/dms
+    sudo dnf copr enable -y duxlabs/dux-repo
+    log_success "Repositório legado removido e duxlabs/dms + duxlabs/dux-repo habilitados com sucesso."
 fi
 
 # 4. Instalação do Repositório Brave Software

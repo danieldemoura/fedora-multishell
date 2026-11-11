@@ -218,14 +218,14 @@ Pacotes nativos da interface desktop Noctalia e sua tela de login:
 
 ### 7. Desktop Shell Dux Shell / DMS (`config/packages/duxshell.conf`)
 
-Pacotes oficiais da suite Dux Shell via COPR `avengemedia/danklinux`:
+Pacotes oficiais da suite Dux Shell 2.x via COPRs `duxlabs/dms` e `duxlabs/dux-repo`:
 
-| Pacote         | Função e Justificativa Técnica                                                                                          |
-| :------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| `dms`          | Núcleo oficial da interface gráfica Dux Shell, widgets integrados e barra dinâmica *Dank Island*.                      |
-| `dms-greeter`  | Tela de login e autenticação gráfica sobre o Greetd com integração ao ecossistema visual Dux.                           |
-| `danksearch`   | Daemon de indexação e motor de busca em tempo real integrado ao lançador de aplicações.                                |
-| `dankcalendar` | Módulo e daemon de calendário com sincronização de eventos.                                                             |
+| Pacote        | Função e Justificativa Técnica                                                                                          |
+| :------------ | :---------------------------------------------------------------------------------------------------------------------- |
+| `dms`         | Núcleo oficial da interface gráfica Dux Shell, widgets integrados e barra dinâmica *Dank Island*.                      |
+| `dux-greeter` | Tela de login e autenticação gráfica sobre o Greetd com integração ao ecossistema visual Dux.                           |
+| `dsearch`     | Daemon e utilitário de indexação e motor de busca em tempo real integrado ao lançador de aplicações.                   |
+| `dcal`        | Módulo e daemon de calendário com sincronização de eventos.                                                             |
 
 ---
 
@@ -326,14 +326,14 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
 
 ### 1. Dux Shell (DMS) — Integração IaC Declarativa
 
-- **Origem:** Repositório oficial COPR `avengemedia/danklinux`.
+- **Origem:** Repositórios oficiais COPR `duxlabs/dms` e `duxlabs/dux-repo`.
 - **Script do Instalador:** `modules/interfaces/duxshell.sh`
 - **Manifesto Declarativo:** `config/packages/duxshell.conf`
 - **Componentes Provisionados via DNF:**
   - `dms`: Núcleo da interface Dux Shell e barra _Dank Island_.
-  - `dms-greeter`: Tela de login e autenticação gráfica sobre o `greetd` (produto "Dux Greeter").
-  - `danksearch`: Daemon de indexação de arquivos ultrarrápido integrado ao lançador de aplicações (produto "Dux Search").
-  - `dankcalendar`: Módulo de sincronização e exibição de calendário de eventos (produto "Dux Calendar").
+  - `dux-greeter`: Tela de login e autenticação gráfica sobre o `greetd` (produto "Dux Greeter").
+  - `dsearch`: Utilitário e daemon de indexação de arquivos ultrarrápido integrado ao lançador de aplicações (produto "Dux Search").
+  - `dcal`: Módulo de sincronização e exibição de calendário de eventos (produto "Dux Calendar").
 - **Blindagem de Segurança:** A antiga invocação remota `curl -fsSL https://install.duxlabs.dev | sh` foi eliminada, substituída por provisionamento IaC nativo via DNF e reparo defensivo de permissões no PAM Greetd (`644`, `root:root`).
 
 ### 2. iNiR Desktop Shell

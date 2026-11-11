@@ -89,7 +89,7 @@ O instalador `fedora-multishell` foi integralmente blindado contra vetores clás
 
 1. **Eliminação Absoluta de Invocação Remota `curl | sh`:**
    - A invocação remota e não-auditável da Dux Labs foi completamente removida de `modules/interfaces/duxshell.sh`.
-   - Todos os pacotes da suite (`dms`, `dms-greeter`, `danksearch`, `dankcalendar`) são declarados formalmente no manifesto auditável `config/packages/duxshell.conf` e instalados sob controle rigoroso do gerenciador DNF.
+   - Todos os pacotes da suite (`dms`, `dux-greeter`, `dsearch`, `dcal`) são declarados formalmente no manifesto auditável `config/packages/duxshell.conf` e instalados sob controle rigoroso do gerenciador DNF.
 2. **Resolução Semântica Dinâmica de Releases Git:**
    - O submódulo `modules/interfaces/inir.sh` rejeita expressamente commits instáveis ou não testados da branch `main`.
    - Utiliza a rotina `security_checkout_latest_release` (`git tag -l --sort=-v:refname "v*" | head -n 1`), garantindo que apenas releases semânticas estáveis e assinadas pelos mantenedores sejam compiladas no sistema.

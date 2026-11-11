@@ -22,11 +22,11 @@ Instalador modular, em camadas e automatizado para transformar uma instalação 
 - **Interfaces Gráficas (Desktop Interfaces):**
   - **iNiR Shell:** Interface moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You via COPR `errornointernet/quickshell` (utiliza exclusivamente o compositor Niri). O instalador detecta e compila dinamicamente a última release oficial lançada.
   - **Noctalia Shell:** Interface gráfica desktop nativa em C++/Qt via pacote nativo Fedora (permite escolher entre o compositor Niri ou Umbriel).
-  - **Dux Shell / DMS (Dux Labs):** Interface gráfica e ambiente completo da Dux Labs (a antiga DankLinux/DankMaterialShell, renomeada no release 2.0) via pacotes oficiais declarativos em `config/packages/duxshell.conf` e COPR `avengemedia/danklinux` (utiliza Niri, terminal Kitty, `dms-greeter`, `danksearch` e `dankcalendar`).
+  - **Dux Shell / DMS (Dux Labs):** Interface gráfica e ambiente completo da Dux Labs (a antiga DankLinux/DankMaterialShell, renomeada no release 2.0) via pacotes oficiais declarativos em `config/packages/duxshell.conf` e COPRs oficiais `duxlabs/dms` e `duxlabs/dux-repo` (utiliza Niri, terminal Kitty, `dux-greeter`, `dsearch` e `dcal`).
 - **Compositores Wayland de Alta Performance:**
   - **Niri:** Scrollable tiling Wayland compositor com rolagem horizontal contínua de colunas via COPR `yalter/niri`.
   - **Umbriel:** Compositor Wayland dinâmico via Repositório Terra do Fyra Labs, com suporte à rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de exibição dinâmicos (Dwindle e Master).
-- **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dms-greeter`) com integração e desbloqueio silencioso do cofre de credenciais **oo7** (provedor oficial do Secret Service no Fedora 45, sucessor do GNOME Keyring) + `ssh-agent` do OpenSSH via socket activation do systemd.
+- **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dux-greeter`) com integração e desbloqueio silencioso do cofre de credenciais **oo7** (provedor oficial do Secret Service no Fedora 45, sucessor do GNOME Keyring) + `ssh-agent` do OpenSSH via socket activation do systemd.
 - **Emulador de Terminal & CLI:** [Kitty](https://sw.kovidgoyal.net/kitty/) (acelerado por GPU) + `fastfetch` (resumo de hardware).
 - **Compatibilidade X11:** `xwayland-satellite` (rootless isolado).
 - **Navegador Web:** Brave Origin (sem telemetria, IA ou criptomoedas).
@@ -79,7 +79,7 @@ fedora-multishell/
 │   │   ├── apps.conf                # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
 │   │   ├── base.conf                # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
 │   │   ├── brave.conf               # Manifesto de instalação do navegador Brave Browser
-│   │   ├── duxshell.conf            # Pacotes oficiais do Dux Shell / DMS (dms, dms-greeter, danksearch)
+│   │   ├── duxshell.conf            # Pacotes oficiais do Dux Shell / DMS 2.x (dms, dux-greeter, dsearch, dcal)
 │   │   ├── flatpak.conf             # Lista declarativa de aplicativos Flatpak do Flathub (com overrides)
 │   │   ├── greetd.conf              # Daemons base do Display Manager Greetd
 │   │   ├── inir.conf                # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
@@ -144,7 +144,7 @@ fedora-multishell/
 | **iNiR Shell**             | **Niri** (Fixo)    | Estética moderna com cores dinâmicas Material You, widgets e rolagem horizontal de janelas contínua.                                                                              |
 | **Noctalia Shell**         | **Niri**           | Shell nativa em C++/Qt com painel clássico/moderno sobre o motor de rolagem horizontal contínua do Niri.                                                                          |
 | **Noctalia Shell**         | **Umbriel**        | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de janelas (Dwindle e Master). |
-| **Dux Shell (DMS)**        | **Niri** (Fixo)    | Ambiente Dux Labs com painéis Material You, dms-greeter (Greetd), danksearch, dankcalendar e terminal Kitty fixado.                                                               |
+| **Dux Shell (DMS)**        | **Niri** (Fixo)    | Ambiente Dux Labs com painéis Material You, dux-greeter (Greetd), dsearch, dcal e terminal Kitty fixado.                                                                           |
 
 ### 🔀 Idempotência Cumulativa & Multi-Shell
 O instalador é **aditivo e cumulativo**: você pode reexecutar o `./install.sh` quantas vezes desejar para adicionar novos ambientes ao seu sistema sem quebrar ou sobrescrever os anteriores:
@@ -288,7 +288,7 @@ O instalador conta com um menu interativo sem poluição visual:
 | :---------------------------------------------------------------------------- | :---------------------------------------------------------------- |
 | <kbd>Super</kbd> + <kbd>T</kbd>                                               | Abre o Terminal GPU (`kitty`)                                     |
 | <kbd>Super</kbd> + <kbd>Q</kbd>                                               | Fecha a janela em foco                                            |
-| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd>                            | Lança o menu de aplicativos / busca (`danksearch`)                |
+| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd>                            | Lança o menu de aplicativos / busca (`dsearch`)                   |
 | <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima no compositor Niri               |
 | <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd>             | Move a coluna atual para a esquerda / direita                     |
 | Controles DMS / Niri                                                          | Gestão de painéis, notificações e widgets integrados do Dux Shell |

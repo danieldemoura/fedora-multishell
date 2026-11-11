@@ -10,8 +10,8 @@
 - **Desktop Shells / Interfaces Suportadas:**
   - **iNiR Shell** (`snowarch/inir` via `quickshell`): Shell moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You. Utiliza exclusivamente o compositor Niri.
   - **Noctalia Shell** (`noctalia` via pacote nativo Fedora): Interface gráfica desktop nativa em C++/Qt. Permite utilizar tanto o compositor Niri quanto o compositor Umbriel.
-  - **Dux Shell / DMS** (pacotes oficiais declarativos via COPR `avengemedia/danklinux`): Ambiente completo da Dux Labs (ex-DankLinux/DankMaterialShell, renomeado no release 2.0) sobre Niri com terminal Kitty, dms-greeter, danksearch e dankcalendar.
-- **Display Manager:** **SDDM** (`sddm` nativo com integração e desbloqueio do PAM oo7) ou **Greetd** (`noctalia-greeter` / `dms-greeter`).
+  - **Dux Shell / DMS** (pacotes oficiais declarativos via COPRs `duxlabs/dms` e `duxlabs/dux-repo`): Ambiente completo da Dux Labs (ex-DankLinux/DankMaterialShell, renomeado no release 2.0) sobre Niri com terminal Kitty, dux-greeter, dsearch e dcal.
+- **Display Manager:** **SDDM** (`sddm` nativo com integração e desbloqueio do PAM oo7) ou **Greetd** (`noctalia-greeter` / `dux-greeter`).
 
 **Público-Alvo:** Desenvolvedor / Modelo de IA Gerador de Código  
 **Versão Base Alvo:** Fedora 45 (x86_64)
@@ -40,7 +40,7 @@ fedora-multishell/
 │   │   ├── apps.conf                # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
 │   │   ├── base.conf                # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
 │   │   ├── brave.conf               # Manifesto de instalação do navegador Brave Browser
-│   │   ├── duxshell.conf            # Pacotes oficiais do Dux Shell / DMS (dms, dms-greeter, danksearch)
+│   │   ├── duxshell.conf            # Pacotes oficiais do Dux Shell / DMS 2.x (dms, dux-greeter, dsearch, dcal)
 │   │   ├── flatpak.conf             # Lista declarativa de aplicativos Flatpak do Flathub
 │   │   ├── greetd.conf              # Daemons base do Display Manager Greetd
 │   │   ├── inir.conf                # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
@@ -117,7 +117,7 @@ O instalador suporta as seguintes combinações completas de ambiente gráfico:
 | **iNiR Shell**      | **Niri** (Fixo)    | COPR `yalter/niri`<br>COPR `errornointernet/quickshell` | Shell moderna inspirada em Material You rodando sobre Niri com rolagem horizontal infinita de colunas e janelas.                                                          |
 | **Noctalia Shell**  | **Niri**           | COPR `yalter/niri`<br>Repositório Terra (Fyra Labs)     | Shell nativa em C++/Qt sobre Niri, aliando a estética de desktop tradicional/moderna à rolagem horizontal contínua de janelas e tela de login com Noctalia Greeter.       |
 | **Noctalia Shell**  | **Umbriel**        | Repositório Terra (Fyra Labs)                           | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com suporte a rolagem contínua (horizontal e vertical) e múltiplos modos de janelas (Dwindle e Master). |
-| **Dux Shell (DMS)** | **Niri** (Fixo)    | COPR `yalter/niri`<br>COPR `avengemedia/danklinux`      | Ambiente completo Dux Labs sobre Niri com terminal Kitty acelerado por GPU, dms-greeter (Greetd), danksearch e dankcalendar.                                              |
+| **Dux Shell (DMS)** | **Niri** (Fixo)    | COPR `yalter/niri`<br>COPRs `duxlabs/dms` e `duxlabs/dux-repo` | Ambiente completo Dux Labs sobre Niri com terminal Kitty acelerado por GPU, dux-greeter (Greetd), dsearch e dcal.                                                        |
 
 ---
 
@@ -181,7 +181,7 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
   - Se `SELECTED_COMPOSITOR == "niri"`: ativa COPR `yalter/niri`.
   - Se `SELECTED_SHELL == "inir"`: ativa COPR `errornointernet/quickshell`.
   - Se `SELECTED_SHELL == "noctalia"`: ativa o repositório Terra do Fyra Labs (`terra-release` e `terra-gpg-keys`, necessário para `noctalia-greeter` e `umbriel-nightly`).
-  - Se `SELECTED_INTERFACE == "duxshell"`: ativa o repositório COPR `avengemedia/danklinux` (repos oficiais da Dux Labs; os COPRs `duxlabs/*` ainda não estão prontos para produção).
+  - Se `SELECTED_INTERFACE == "duxshell"`: ativa os repositórios oficiais COPR `duxlabs/dms` e `duxlabs/dux-repo` da Dux Labs (removendo o repositório legado `avengemedia/danklinux`).
 - Atualização e sincronização via `dnf upgrade --refresh -y`.
 
 ### Módulo 01: Infraestrutura de Hardware e Áudio (`01_system_hardware.sh`)
