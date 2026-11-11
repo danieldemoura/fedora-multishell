@@ -146,22 +146,11 @@ fi
 # Se a shell escolhida for Noctalia: ativa o repositório Terra do Fyra Labs (necessário para o noctalia-greeter e umbriel)
 if [[ "${SELECTED_SHELL:-}" == "noctalia" || "${SELECTED_INTERFACE:-}" == "noctalia" ]]; then
     log_info "Verificando repositório Terra do Fyra Labs para Noctalia Shell e dependências (noctalia-greeter / umbriel)..."
-    if rpm -q terra-release >/dev/null 2>&1 || ls /etc/yum.repos.d/*terra*.repo >/dev/null 2>&1; then
-        log_info "Repositório Terra do Fyra Labs já está configurado. Pulando..."
+    if rpm -q terra-release >/dev/null 2>&1; then
+        log_info "Repositório Terra do Fyra Labs já está configurado (terra-release instalado). Pulando..."
     else
-        # Validação criptográfica antecipada via security_import_repo_key sem uso de --nogpgcheck
-        security_import_repo_key "https://repos.fyralabs.com/terra\$releasever/RPM-GPG-KEY-terra"
-        log_info "Instalando pacotes de bootstrap do repositório Terra (terra-release e terra-gpg-keys)..."
-        if ! sudo dnf install -y --repofrompath "terra,${REPO_TERRA_URL}" \
-            terra-release terra-gpg-keys; then
-            log_warn "Tentativa via repofrompath falhou. Tentando download direto dos pacotes RPM do Terra..."
-            if ! sudo dnf install -y \
-                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-release.rpm" \
-                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-gpg-keys.rpm"; then
-                log_error "Falha ao configurar o repositório Terra (obrigatório para noctalia-greeter/umbriel)."
-                exit 1
-            fi
-        fi
+        log_info "Instalando repositório Terra do Fyra Labs via método oficial (terra-release e terra-gpg-keys)..."
+        sudo dnf install -y --nogpgcheck --repofrompath "terra,https://repos.fyralabs.com/terra\$releasever" terra-release terra-gpg-keys
         log_success "Repositório Terra do Fyra Labs configurado com sucesso."
     fi
 fi

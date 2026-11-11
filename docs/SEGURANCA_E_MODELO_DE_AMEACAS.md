@@ -94,8 +94,8 @@ O instalador `fedora-multishell` foi integralmente blindado contra vetores clás
    - O submódulo `modules/interfaces/inir.sh` rejeita expressamente commits instáveis ou não testados da branch `main`.
    - Utiliza a rotina `security_checkout_latest_release` (`git tag -l --sort=-v:refname "v*" | head -n 1`), garantindo que apenas releases semânticas estáveis e assinadas pelos mantenedores sejam compiladas no sistema.
 3. **Validação Criptográfica de Repositórios Externos:**
-   - A flag permissiva `--nogpgcheck` foi 100% eliminada do instalador.
-   - Chaves públicas de assinatura GPG de repositórios externos (Terra / Fyra Labs e RPM Fusion) são importadas e validadas defensivamente via `rpm --import` antes de qualquer transação de pacotes.
+   - Para repositórios que distribuem chaves avulsas (como RPM Fusion), as chaves públicas de assinatura GPG são importadas e validadas defensivamente via `rpm --import` antes de qualquer transação.
+   - Para o repositório Terra (Fyra Labs), adota-se o método oficial com `--nogpgcheck` estritamente circunscrito ao bootstrap de `terra-release` e `terra-gpg-keys` via `--repofrompath`, visto que a chave pública oficial é distribuída exclusivamente empacotada no `terra-gpg-keys`. Uma vez instaladas as chaves, todas as instalações subsequentes de pacotes são verificadas normalmente.
 4. **Sudo Keep-Alive em Memória (Sem `NOPASSWD` em Disco):**
    - O antigo método de gravar um arquivo temporário em `/etc/sudoers.d/99-fedora-installer-temp` foi descontinuado.
    - O instalador executa a rotina `security_init_sudo_keepalive`, que valida as credenciais uma única vez com `sudo -v` e mantém o timestamp renovado na memória do kernel a cada 50 segundos, atrelado estritamente ao PID pai (`$$`). Ao finalizar ou sofrer interrupção (sinais `EXIT`, `INT`, `TERM`), o loop é encerrado automaticamente sem deixar privilégios abertos no disco.
