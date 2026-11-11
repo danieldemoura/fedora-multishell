@@ -106,7 +106,46 @@ else
     exit 1
 fi
 
-# 6. Isolamento de Sessões: impedir que o iNiR inicialize como serviço global de systemd
+# 6. Saneamento de Pacotes, Eliminação de Bloatware e Otimização de RAM
+log_info "Removendo utilitários redundantes e daemons de segundo plano instalados pelo iNiR..."
+sudo dnf remove -y \
+    gnome-keyring \
+    xwaylandvideobridge \
+    kf6-baloo \
+    easyeffects \
+    blueman \
+    plasma-systemsettings \
+    systemsettings \
+    plasma-systemmonitor \
+    ksysguard \
+    2>/dev/null || true
+
+# Desativação e mascaramento de serviços residuais no systemd do usuário
+log_info "Mascarando serviços residuais de segundo plano no systemd do usuário..."
+sudo -u "${REAL_USER}" systemctl --user mask \
+    kde-baloo.service \
+    gnome-keyring-daemon.service \
+    gnome-keyring-daemon.socket \
+    2>/dev/null || true
+
+# Ocultar aplicativos utilitários mantidos por dependência visual (Kvantum e Qt6ct)
+log_info "Ocultando ferramentas gráficas de configuração estética do menu de aplicativos..."
+user_apps_dir="${REAL_HOME}/.local/share/applications"
+mkdir -p "${user_apps_dir}"
+
+for app in kvantummanager qt6ct; do
+    app_src="/usr/share/applications/${app}.desktop"
+    app_dst="${user_apps_dir}/${app}.desktop"
+    if [[ -f "$app_src" ]]; then
+        cp -f "$app_src" "$app_dst"
+        if ! grep -qF "NoDisplay=true" "$app_dst"; then
+            echo "NoDisplay=true" >> "$app_dst"
+        fi
+    fi
+done
+ensure_user_ownership "${user_apps_dir}"
+
+# 7. Isolamento de Sessões: impedir que o iNiR inicialize como serviço global de systemd
 #    (O instalador do iNiR pode habilitar inir.service via wants do systemd. No Fedora Multi-Shell,
 #     cada shell é iniciada exclusivamente via spawn-at-startup no seu KDL específico,
 #     evitando que o iNiR seja disparado em background em sessões de outras shells como Noctalia ou Dux).
@@ -124,7 +163,7 @@ if command -v systemctl >/dev/null 2>&1; then
         systemctl --user disable inir.service >/dev/null 2>&1 || true
 fi
 
-# 7. Correção de propriedade
+# 8. Correção de propriedade
 log_info "Ajustando propriedade e permissões de ${INIR_DIR}..."
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${REAL_HOME}/.config/inir"
 log_success "Submódulo iNiR Shell configurado com sucesso."

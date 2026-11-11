@@ -493,6 +493,55 @@ elif [[ "${SELECTED_INTERFACE}" == "duxshell" ]]; then
     fi
 fi
 
+# ==============================================================================
+# Sincronização Cumulativa e Proteção Multi-Shell do Niri
+# ==============================================================================
+log_info "Verificando integridade das sessões Wayland declaradas..."
+shells_target_dir="${REAL_HOME}/.config/niri/shells"
+mkdir -p "${shells_target_dir}"
+
+# 1. Se a sessão Noctalia (Niri) existir ou estiver sendo instalada, restaura seu KDL
+if [[ -f "/usr/share/wayland-sessions/noctalia-niri.desktop" || "${SELECTED_INTERFACE}" == "noctalia" ]]; then
+    if [[ -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/noctalia.kdl" ]]; then
+        cp -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/noctalia.kdl" "${shells_target_dir}/noctalia.kdl"
+    fi
+fi
+
+# 2. Se a sessão Dux Shell existir ou estiver sendo instalada, restaura seu KDL
+if [[ -f "/usr/share/wayland-sessions/duxshell-niri.desktop" || "${SELECTED_INTERFACE}" == "duxshell" ]]; then
+    if [[ -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/duxshell.kdl" ]]; then
+        cp -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/duxshell.kdl" "${shells_target_dir}/duxshell.kdl"
+    fi
+fi
+
+# 3. Se a sessão iNiR existir ou estiver sendo instalada, restaura seu KDL
+if [[ -f "/usr/share/wayland-sessions/inir-niri.desktop" || "${SELECTED_INTERFACE}" == "inir" ]]; then
+    if [[ -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/inir.kdl" ]]; then
+        cp -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/inir.kdl" "${shells_target_dir}/inir.kdl"
+    fi
+fi
+
+# Injeta flags de VM em todos os KDLs restaurados caso seja ambiente virtual
+if [[ "${IS_VM:-false}" == "true" ]]; then
+    for kdl in "${shells_target_dir}"/*.kdl; do
+        if [[ -f "$kdl" ]] && ! grep -qF "LIBGL_ALWAYS_SOFTWARE" "$kdl"; then
+            cat << 'EOF' >> "$kdl"
+
+environment {
+    LIBGL_ALWAYS_SOFTWARE "1"
+    WLR_NO_HARDWARE_CURSORS "1"
+}
+
+cursor {
+    hardware-cursor false
+}
+EOF
+        fi
+    done
+fi
+
+ensure_user_ownership "${REAL_HOME}/.config/niri"
+
 # Garante permissões estritas para o usuário real
 ensure_user_ownership "${REAL_HOME}/.config"
 ensure_user_ownership "${REAL_HOME}/.local"

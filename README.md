@@ -15,7 +15,7 @@
 
 > 📋 **Documento de Arquitetura Base:** Todo o projeto foi planejado e executado com base no [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md). Esse arquivo contém todas as diretrizes de arquitetura em camadas, tratamento defensivo do PAM/Keyring, suporte a máquinas virtuais e decisões de projeto utilizadas pela IA para construir o instalador.
 >
-> Consulte o [Catálogo de Pacotes e Dependências](docs/CATALOGO_DE_PACOTES.md) para ver a listagem completa e detalhada de tudo o que é provisionado pelo sistema, as [Diretrizes de Arquitetura e Boas Práticas](docs/DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md) para as regras de programação defensiva e o guia [Segurança e Modelo de Ameaças](docs/SEGURANCA_E_MODELO_DE_AMEACAS.md) para a análise formal de integridade e gestão de privilégios.
+> Consulte o [Catálogo de Pacotes e Dependências](docs/CATALOGO_DE_PACOTES.md) para ver a listagem completa e detalhada de tudo o que é provisionado pelo sistema, as [Modificações e Otimizações do iNiR](docs/MODIFICACOES_E_OTIMIZACOES_INIR.md) para o guia de economia de memória e componentes opcionais, as [Diretrizes de Arquitetura e Boas Práticas](docs/DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md) para as regras de programação defensiva e o guia [Segurança e Modelo de Ameaças](docs/SEGURANCA_E_MODELO_DE_AMEACAS.md) para a análise formal de integridade e gestão de privilégios.
 
 Instalador modular, em camadas e automatizado para transformar uma instalação mínima do **Fedora Everything Netinstall** em uma workstation gráfica moderna com suporte à seleção exclusiva de **Interface Gráfica (Desktop Shell)** e **Compositor Wayland**:
 
@@ -70,6 +70,7 @@ fedora-multishell/
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
+│   ├── MODIFICACOES_E_OTIMIZACOES_INIR.md # Otimizações de RAM, saneamento e blindagem do iNiR
 │   ├── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
 │   ├── SEGURANCA_E_MODELO_DE_AMEACAS.md # Modelo formal de ameaças, PAM oo7 e análise RPM vs Flatpak
 │   └── preview/                     # Capturas de prévia visual das Desktop Shells (iNiR, Noctalia)
