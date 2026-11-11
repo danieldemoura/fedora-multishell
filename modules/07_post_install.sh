@@ -531,10 +531,6 @@ environment {
     LIBGL_ALWAYS_SOFTWARE "1"
     WLR_NO_HARDWARE_CURSORS "1"
 }
-
-cursor {
-    hardware-cursor false
-}
 EOF
         fi
     done

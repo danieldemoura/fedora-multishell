@@ -26,7 +26,7 @@ Como consequência, ao tentar logar posteriormente na sessão do Noctalia (`noct
 Para blindar a arquitetura contra exclusões destrutivas, o **Módulo 07** executa uma rotina mandatória de sincronização cumulativa e auto-reparo após a execução de qualquer interface:
 1. Inspeciona as sessões declaradas em `/usr/share/wayland-sessions/` (`noctalia-niri.desktop`, `duxshell-niri.desktop`, `inir-niri.desktop`) e a interface selecionada em tempo de execução.
 2. Restaura atomicamente os KDLs declarativos correspondentes a partir de `config/desktop/compositors/niri/shells/` para `~/.config/niri/shells/`.
-3. Caso o ambiente detectado seja uma Máquina Virtual (`IS_VM=true`), reinsere defensivamente os parâmetros de renderização por software (`LIBGL_ALWAYS_SOFTWARE=1`, `WLR_NO_HARDWARE_CURSORS=1` e `hardware-cursor false`) com proteção de idempotência.
+3. Caso o ambiente detectado seja uma Máquina Virtual (`IS_VM=true`), reinsere defensivamente os parâmetros de renderização por software (`LIBGL_ALWAYS_SOFTWARE=1` e `WLR_NO_HARDWARE_CURSORS=1`) com proteção de idempotência.
 4. Garante as permissões e posse de `~/.config/niri` para o usuário real.
 
 Desta forma, independentemente da ordem em que as interfaces forem instaladas ou reinstaladas, nenhuma sessão Wayland perde sua integridade funcional.
