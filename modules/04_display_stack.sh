@@ -118,18 +118,23 @@ auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth     substack     password-auth
 auth     optional     pam_oo7.so
 -auth    optional     pam_kwallet5.so
+-auth    optional     pam_kwallet.so
+auth     include      postlogin
 
+account  required     pam_nologin.so
 account  include      password-auth
 
 password include      password-auth
+password optional     pam_oo7.so use_authtok
 
 session  required     pam_selinux.so close
 session  required     pam_loginuid.so
 session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
+session  required     pam_namespace.so
 session  include      password-auth
 session  optional     pam_oo7.so
--session optional     pam_kwallet5.so auto_start
+session  include      postlogin
 EOF
     fi
     sudo chmod 644 "$PAM_GREETD"
@@ -198,18 +203,23 @@ auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth     substack     password-auth
 auth     optional     pam_oo7.so
 -auth    optional     pam_kwallet5.so
+-auth    optional     pam_kwallet.so
+auth     include      postlogin
 
+account  required     pam_nologin.so
 account  include      password-auth
 
 password include      password-auth
+password optional     pam_oo7.so use_authtok
 
 session  required     pam_selinux.so close
 session  required     pam_loginuid.so
 session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
+session  required     pam_namespace.so
 session  include      password-auth
 session  optional     pam_oo7.so
--session optional     pam_kwallet5.so auto_start
+session  include      postlogin
 EOF
         fi
         log_success "Arquivo ${PAM_SDDM} criado com suporte ao pam_oo7."

@@ -44,6 +44,16 @@ KEYRINGS_DIR="${REAL_HOME}/.local/share/keyrings"
 sudo -u "${REAL_USER}" mkdir -p "${KEYRINGS_DIR}"
 sudo chmod 700 "${KEYRINGS_DIR}"
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
+
+# Remove stubs vazios legados ou chaveiros 'login.keyring' corrompidos que causam
+# o fallback para o prompt 'Unlock Keyring' do gcr/oo7 no boot
+for legacy_corrupt in "${KEYRINGS_DIR}/login.keyring" "${KEYRINGS_DIR}/default"; do
+    if [[ -f "$legacy_corrupt" && ! -s "$legacy_corrupt" ]]; then
+        log_info "Removendo arquivo vazio legado (${legacy_corrupt}) para permitir criação limpa do cofre oo7..."
+        sudo -u "${REAL_USER}" rm -f "$legacy_corrupt"
+    fi
+done
+
 log_success "Diretório ${KEYRINGS_DIR} pronto para o oo7 (permissão 700, proprietário ${REAL_USER})."
 
 # 1.1 Habilitação da unidade de usuário do oo7-daemon no login
@@ -51,8 +61,7 @@ log_success "Diretório ${KEYRINGS_DIR} pronto para o oo7 (permissão 700, propr
 # oo7-daemon esteja rodando dentro da sessão gráfica. O %systemd_user_post do
 # pacote tenta habilitá-lo via preset, mas em instalação mínima com Greetd/SDDM
 # isso pode não ter sido aplicado ao usuário-alvo (cf. bug Silverblue #714).
-# Habilitamos explicitamente para reproduzir o comportamento do antigo
-# gnome-keyring: logar e o navegador já encontrar o cofre destravado, sem popup.)
+# Habilitamos explicitamente para garantir que o cofre seja destravado via pam_oo7.)
 log_info "Habilitando oo7-daemon.service (unidade de usuário) no login..."
 if [[ -f "/usr/lib/systemd/user/oo7-daemon.service" ]]; then
     if sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
@@ -60,9 +69,12 @@ if [[ -f "/usr/lib/systemd/user/oo7-daemon.service" ]]; then
         log_success "oo7-daemon.service habilitado para ${REAL_USER} (chaveiro ativo já no primeiro login)."
     else
         sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config/systemd/user/default.target.wants"
+        sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config/systemd/user/graphical-session.target.wants"
         sudo -u "${REAL_USER}" ln -sfn "/usr/lib/systemd/user/oo7-daemon.service" \
             "${REAL_HOME}/.config/systemd/user/default.target.wants/oo7-daemon.service"
-        log_success "oo7-daemon.service habilitado via symlink offline (default.target.wants)."
+        sudo -u "${REAL_USER}" ln -sfn "/usr/lib/systemd/user/oo7-daemon.service" \
+            "${REAL_HOME}/.config/systemd/user/graphical-session.target.wants/oo7-daemon.service"
+        log_success "oo7-daemon.service habilitado via symlink offline (default & graphical-session targets)."
     fi
 else
     log_warn "Unidade oo7-daemon.service ausente; verifique o empacotamento do oo7 nesta release."
@@ -630,10 +642,10 @@ fi
 
 # Teste 2: PAM do Display Manager Ativo
 if [[ "$ACTIVE_DM" == "greetd" ]]; then
-    if grep -qF "pam_oo7.so" /etc/pam.d/greetd; then
-        log_ok "[Checklist] Integração com pam_oo7.so confirmada em /etc/pam.d/greetd."
+    if grep -qF "pam_oo7.so" /etc/pam.d/greetd && grep -qF "postlogin" /etc/pam.d/greetd; then
+        log_ok "[Checklist] Pilha PAM do Greetd íntegra (postlogin/pam_systemd + pam_oo7.so) confirmada."
     else
-        log_error "[Checklist] Falha: Integração com pam_oo7.so ausente em /etc/pam.d/greetd!"
+        log_error "[Checklist] Falha: /etc/pam.d/greetd sem pam_oo7.so ou sem inclusão de 'postlogin'!"
         exit 1
     fi
 elif [[ "$ACTIVE_DM" == "sddm" ]]; then
