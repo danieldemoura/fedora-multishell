@@ -38,31 +38,21 @@ log_info "Configurações ativas -> Compositor: ${SELECTED_COMPOSITOR} | Shell: 
 
 # 1. Inicialização do cofre de credenciais oo7 e vínculo canônico com o PAM
 # (Fedora 45: o provedor do Secret Service é o oo7; o chaveiro 'login' é
-# criado/destravado pelo oo7-daemon via pam_oo7 no primeiro login gráfico.)
-log_info "Preparando diretório do cofre de credenciais oo7..."
+# criado/destravado pelo oo7-daemon via pam_oo7 com auto_start no login gráfico.)
+log_info "Assegurando permissões restritas no diretório do cofre de credenciais..."
 KEYRINGS_DIR="${REAL_HOME}/.local/share/keyrings"
 sudo -u "${REAL_USER}" mkdir -p "${KEYRINGS_DIR}"
 sudo chmod 700 "${KEYRINGS_DIR}"
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
 
-# Remove stubs vazios legados ou chaveiros 'login.keyring' corrompidos que causam
-# o fallback para o prompt 'Unlock Keyring' do gcr/oo7 no boot
-for legacy_corrupt in "${KEYRINGS_DIR}/login.keyring" "${KEYRINGS_DIR}/default"; do
-    if [[ -f "$legacy_corrupt" && ! -s "$legacy_corrupt" ]]; then
-        log_info "Removendo arquivo vazio legado (${legacy_corrupt}) para permitir criação limpa do cofre oo7..."
-        sudo -u "${REAL_USER}" rm -f "$legacy_corrupt"
-    fi
-done
-
 log_success "Diretório ${KEYRINGS_DIR} pronto para o oo7 (permissão 700, proprietário ${REAL_USER})."
 
 # 1.1 Habilitação da unidade de usuário do oo7-daemon no login
 # (Fedora 45: o destravamento automático do chaveiro 'login' exige que o
-# oo7-daemon esteja rodando dentro da sessão gráfica. O %systemd_user_post do
-# pacote tenta habilitá-lo via preset, mas em instalação mínima com Greetd/SDDM
-# isso pode não ter sido aplicado ao usuário-alvo (cf. bug Silverblue #714).
-# Habilitamos explicitamente para garantir que o cofre seja destravado via pam_oo7.)
+# oo7-daemon esteja rodando e com socket ativo dentro da sessão gráfica.
+# Habilitamos formalmente para garantir que o cofre seja destravado via pam_oo7.)
 log_info "Habilitando oo7-daemon.service (unidade de usuário) no login..."
+sudo -u "${REAL_USER}" systemctl --user enable oo7-daemon.service 2>/dev/null || true
 if [[ -f "/usr/lib/systemd/user/oo7-daemon.service" ]]; then
     if sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
           systemctl --user enable oo7-daemon.service >/dev/null 2>&1; then

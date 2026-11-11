@@ -133,7 +133,7 @@ session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
 session  required     pam_namespace.so
 session  include      password-auth
-session  optional     pam_oo7.so
+session  optional     pam_oo7.so auto_start
 session  include      postlogin
 EOF
     fi
@@ -181,7 +181,7 @@ else
                 }
                 /^session/ && !sess_added {
                     print
-                    print "session    optional    pam_oo7.so"
+                    print "session    optional    pam_oo7.so auto_start"
                     sess_added=1
                     next
                 }
@@ -218,7 +218,7 @@ session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
 session  required     pam_namespace.so
 session  include      password-auth
-session  optional     pam_oo7.so
+session  optional     pam_oo7.so auto_start
 session  include      postlogin
 EOF
         fi

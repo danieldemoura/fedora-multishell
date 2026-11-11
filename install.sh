@@ -16,6 +16,8 @@ source "${INSTALLER_ROOT}/lib/ui.sh"
 source "${INSTALLER_ROOT}/lib/logger.sh"
 # shellcheck source=lib/utils.sh
 source "${INSTALLER_ROOT}/lib/utils.sh"
+# shellcheck source=lib/security.sh
+source "${INSTALLER_ROOT}/lib/security.sh"
 
 # 1. Validação de Execução (Não permitir execução direta como root)
 check_not_root
@@ -42,11 +44,12 @@ if [[ "${FEDORA_VER}" != "${TARGET_FEDORA_VERSION}" ]]; then
     fi
 fi
 
-log_info "Verificando privilégios administrativos (sudo)..."
-if ! sudo -v; then
-    log_error "Falha ao obter privilégios de sudo. O usuário atual deve pertencer ao grupo wheel."
-    exit 1
-fi
+# 5. Inicialização de Segurança e Privilégios Administrativos
+# Remove preventivamente qualquer resquício órfão de regras NOPASSWD em /etc/sudoers.d/
+security_cleanup_sudoers_temp
+
+# Inicia o keepalive do sudo em memória (sem persistir arquivos permissivos em disco)
+security_init_sudo_keepalive
 
 REAL_USER="$(get_real_user)"
 if [[ -z "${REAL_USER}" ]]; then
@@ -54,32 +57,7 @@ if [[ -z "${REAL_USER}" ]]; then
     exit 1
 fi
 
-SUDOERS_TEMP="/etc/sudoers.d/99-fedora-installer-temp"
-SUDOERS_BUILD_TMP=""
-
-# Regra de sudoers temporária:
-# - Drop-in órfão de execução anterior morta por SIGKILL/queda é removido antes;
-# - A regra é validada sintaticamente com visudo -cf antes de entrar em /etc;
-# - O trap (EXIT HUP INT TERM) autodestrói a regra no encerramento.
-if sudo test -f "${SUDOERS_TEMP}"; then
-    log_warn "Removendo regra temporária de sudoers órfã de uma instalação anterior."
-    sudo rm -f "${SUDOERS_TEMP}"
-fi
-
-trap 'cleanup_installer' EXIT HUP INT TERM
-
-log_info "Habilitando privilégios temporários sem senha para a instalação..."
-SUDOERS_BUILD_TMP="$(mktemp)"
-printf '%s ALL=(ALL) NOPASSWD: ALL\n' "${REAL_USER}" > "${SUDOERS_BUILD_TMP}"
-if ! sudo visudo -cf "${SUDOERS_BUILD_TMP}" >/dev/null 2>&1; then
-    log_error "Regra de sudoers temporária inválida gerada para o usuário '${REAL_USER}'. Abortando."
-    exit 1
-fi
-sudo install -m 0440 -o root -g root "${SUDOERS_BUILD_TMP}" "${SUDOERS_TEMP}"
-rm -f "${SUDOERS_BUILD_TMP}"
-SUDOERS_BUILD_TMP=""
-
-# 5. Menu Interativo - Pergunta 1: Seleção de Ambiente
+# 6. Menu Interativo - Pergunta 1: Seleção de Ambiente
 ui_section_header "SELEÇÃO DO AMBIENTE DE INSTALAÇÃO"
 echo "  [1] Máquina Física (Bare Metal / Notebook / PC)"
 echo "  [2] Máquina Virtual (VMware / VirtualBox / QEMU-KVM)"

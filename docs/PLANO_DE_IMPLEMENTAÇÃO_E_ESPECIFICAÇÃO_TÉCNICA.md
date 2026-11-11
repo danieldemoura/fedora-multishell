@@ -10,7 +10,7 @@
 - **Desktop Shells / Interfaces Suportadas:**
   - **iNiR Shell** (`snowarch/inir` via `quickshell`): Shell moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You. Utiliza exclusivamente o compositor Niri.
   - **Noctalia Shell** (`noctalia` via pacote nativo Fedora): Interface gráfica desktop nativa em C++/Qt. Permite utilizar tanto o compositor Niri quanto o compositor Umbriel.
-  - **Dux Shell / DMS** (instalador oficial `install.duxlabs.dev` via COPR `avengemedia/danklinux`): Ambiente completo da Dux Labs (ex-DankLinux/DankMaterialShell, renomeado no release 2.0) sobre Niri com terminal Kitty, dms-greeter, danksearch e dankcalendar.
+  - **Dux Shell / DMS** (pacotes oficiais declarativos via COPR `avengemedia/danklinux`): Ambiente completo da Dux Labs (ex-DankLinux/DankMaterialShell, renomeado no release 2.0) sobre Niri com terminal Kitty, dms-greeter, danksearch e dankcalendar.
 - **Display Manager:** **SDDM** (`sddm` nativo com integração e desbloqueio do PAM oo7) ou **Greetd** (`noctalia-greeter` / `dms-greeter`).
 
 **Público-Alvo:** Desenvolvedor / Modelo de IA Gerador de Código  
@@ -32,13 +32,15 @@ fedora-multishell/
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
-│   └── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
+│   ├── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
+│   └── SEGURANCA_E_MODELO_DE_AMEACAS.md # Modelo formal de ameaças, PAM oo7 e análise RPM vs Flatpak
 ├── config/
 │   ├── settings.conf                # Variáveis globais (repositórios, versões, flags de ambiente)
 │   ├── packages/                    # Manifestos declarativos de pacotes (DNF / Flatpak)
 │   │   ├── apps.conf                # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
 │   │   ├── base.conf                # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
 │   │   ├── brave.conf               # Manifesto de instalação do navegador Brave Browser
+│   │   ├── duxshell.conf            # Pacotes oficiais do Dux Shell / DMS (dms, dms-greeter, danksearch)
 │   │   ├── flatpak.conf             # Lista declarativa de aplicativos Flatpak do Flathub
 │   │   ├── greetd.conf              # Daemons base do Display Manager Greetd
 │   │   ├── inir.conf                # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
@@ -76,13 +78,14 @@ fedora-multishell/
 ├── lib/
 │   ├── ui.sh                        # Renderização visual ANSI (banners limpos, caixas temáticas, prompts validados pt-BR)
 │   ├── logger.sh                    # Registro centralizado (`$XDG_STATE_HOME/fedora-multi-shell/install.log`) e tratamento de erros
-│   └── utils.sh                     # Utilitários (checagem de não-root, permissões seguras, install_packages_from_conf, cleanup do sudoers)
+│   ├── security.sh                  # Módulo de segurança: sudo keepalive em memória, importação de chaves GPG e checkout de releases Git
+│   └── utils.sh                     # Utilitários (checagem de não-root, permissões seguras, install_packages_from_conf, cleanup)
 └── modules/
-    ├── 00_repos.sh                  # Repositórios universais (RPM Fusion, Brave, Flathub) e condicionais (COPRs, Terra, Dux Labs)
+    ├── 00_repos.sh                  # Repositórios universais (RPM Fusion, Brave, Flathub) e condicionais (COPRs, Terra, Dux Labs) com importação GPG
     ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, rede e energia (Tuned)
     ├── 02_gpu_drivers.sh            # Drivers gráficos (Mesa aberto via mesa.conf ou NVIDIA com akmods e RTD3)
     ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin, Flatpaks e Loja GNOME
-    ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS), hardware e PAM Keyring
+    ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS), hardware e PAM Keyring (auto_start)
     ├── 05_compositor.sh             # Roteador/Dispatcher de Compositor Wayland (Padrão Strategy)
     ├── 06_desktop_interface.sh      # Roteador/Dispatcher de Interface Gráfica (Padrão Strategy)
     ├── 07_post_install.sh           # Autostart/config da interface, VM flags, validação de configs e ativação do DM
@@ -90,9 +93,9 @@ fedora-multishell/
     │   ├── niri.sh                  # Submódulo: Niri, xwayland-satellite, portais GNOME/GTK e niri-portals.conf
     │   └── umbriel.sh               # Submódulo: Umbriel Nightly, xwayland-satellite e portais Umbriel/GTK
     └── interfaces/
-        ├── inir.sh                  # Submódulo: Deno (/usr/local/bin, sha256), clone, ./setup install -y
+        ├── inir.sh                  # Submódulo: Deno (/usr/local/bin, sha256), clone, checkout da última release oficial, ./setup install -y
         ├── noctalia.sh              # Submódulo: Instalação declarativa de 'noctalia' e 'noctalia-greeter'
-        └── duxshell.sh              # Submódulo: Instalador oficial headless do Dux Shell (DMS)
+        └── duxshell.sh              # Submódulo: Instalação declarativa via duxshell.conf e isolamento systemd
 ```
 
 ### 1.2 Regras Estritas de Programação Shell

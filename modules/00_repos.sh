@@ -17,6 +17,8 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 [[ -f "${INSTALLER_ROOT}/lib/logger.sh" ]] && source "${INSTALLER_ROOT}/lib/logger.sh"
 # shellcheck source=../lib/utils.sh
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
+# shellcheck source=../lib/security.sh
+[[ -f "${INSTALLER_ROOT}/lib/security.sh" ]] && source "${INSTALLER_ROOT}/lib/security.sh"
 
 ui_section_header "MÓDULO 00: CONFIGURAÇÃO DE REPOSITÓRIOS"
 
@@ -99,15 +101,10 @@ else
        fetch_rpm_with_fallback "$RF_NONFREE" \
          "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" \
          "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"; then
-        # O --nogpgcheck abaixo é restrito ao bootstrap dos pacotes -release do
-        # RPM Fusion (ovo-e-galinha da chave GPG): a chave de assinatura deles só
-        # passa a existir no sistema DEPOIS que esses pacotes são instalados. No
-        # Fedora 45+ a verificação de assinatura RPM passou a ser obrigatória por
-        # padrão (RPM 6.1), o que faria este `dnf install -y` abortar em modo não
-        # interativo. São os mesmos dois RPMs oficiais baixados acima por HTTPS de
-        # rpmfusion.org; toda instalação posterior do RPM Fusion é assinada e
-        # verificada normalmente (as chaves entram com esses release pacotes).
-        sudo dnf install -y --nogpgcheck "$RF_FREE" "$RF_NONFREE"
+        # Importa a chave GPG do RPM Fusion Free e Nonfree antes de instalar os pacotes de release
+        security_import_repo_key "https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-free-fedora-${FEDORA_VER}" 2>/dev/null || true
+        security_import_repo_key "https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-nonfree-fedora-${FEDORA_VER}" 2>/dev/null || true
+        sudo dnf install -y "$RF_FREE" "$RF_NONFREE"
         log_success "RPM Fusion configurado com sucesso."
     else
         log_error "Falha ao baixar os release RPMs do RPM Fusion (servidor-mestre e roleta de mirrors inacessíveis)."
@@ -152,13 +149,10 @@ if [[ "${SELECTED_SHELL:-}" == "noctalia" || "${SELECTED_INTERFACE:-}" == "nocta
     if rpm -q terra-release >/dev/null 2>&1 || ls /etc/yum.repos.d/*terra*.repo >/dev/null 2>&1; then
         log_info "Repositório Terra do Fyra Labs já está configurado. Pulando..."
     else
-        # O --nogpgcheck abaixo é o bootstrap OFICIAL documentado pela Fyra Labs
-        # (https://docs.terrapkg.com/usage/installing): necessário apenas para
-        # instalar terra-release/terra-gpg-keys (ovo-e-galinha da chave GPG).
-        # Ele é estritamente restrito a esses dois pacotes; toda instalação
-        # posterior do Terra é assinada e verificada normalmente.
+        # Validação criptográfica antecipada via security_import_repo_key sem uso de --nogpgcheck
+        security_import_repo_key "https://repos.fyralabs.com/terra\$releasever/RPM-GPG-KEY-terra"
         log_info "Instalando pacotes de bootstrap do repositório Terra (terra-release e terra-gpg-keys)..."
-        if ! sudo dnf install -y --nogpgcheck --repofrompath "terra,${REPO_TERRA_URL}" \
+        if ! sudo dnf install -y --repofrompath "terra,${REPO_TERRA_URL}" \
             terra-release terra-gpg-keys; then
             log_warn "Tentativa via repofrompath falhou. Tentando download direto dos pacotes RPM do Terra..."
             if ! sudo dnf install -y \

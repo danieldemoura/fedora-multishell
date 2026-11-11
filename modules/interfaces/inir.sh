@@ -61,11 +61,13 @@ else
     log_info "Runtime Deno já detectado no sistema: $(deno --version | head -n1)"
 fi
 
+log_info "Provisionando iNiR Shell sob o usuário real..."
+
 # 3. Renovação antecipada do sudo
 log_info "Renovando timestamp administrativo do sudo..."
 sudo -v
 
-# 4. Clonagem do repositório do iNiR
+# 4. Clonagem do repositório do iNiR e checkout dinâmico da última release estável
 INIR_DIR="${REAL_HOME}/.config/inir"
 if [[ ! -d "${INIR_DIR}" ]]; then
     log_info "Clonando repositório do iNiR em ${INIR_DIR}..."
@@ -75,6 +77,18 @@ if [[ ! -d "${INIR_DIR}" ]]; then
 else
     log_info "Diretório do iNiR já existente em ${INIR_DIR}. Prosseguindo..."
 fi
+
+# Detecta dinamicamente a tag de release mais recente lançada no GitHub e faz o checkout seguro
+sudo -u "${REAL_USER}" bash -c "
+    cd '${REAL_HOME}/.config/inir'
+    latest_tag=\$(git tag -l --sort=-v:refname 'v*' | head -n 1)
+    if [[ -n \"\${latest_tag}\" ]]; then
+        echo \"[iNiR] Selecionando versão oficial mais recente: \${latest_tag}\"
+        git checkout \"\${latest_tag}\"
+    else
+        echo '[iNiR] Nenhuma tag de release encontrada. Mantendo branch padrão.'
+    fi
+"
 
 # 5. Execução não-interativa sob usuário real
 if [[ -f "${INIR_DIR}/setup" ]]; then

@@ -22,12 +22,13 @@ A arquitetura do instalador opera sob rigorosa transparência técnica, modulari
    - [Aplicações Flatpak do Flathub (`config/packages/flatpak.conf`)](#4-aplicações-flatpak-do-flathub-configpackagesflatpakconf)
    - [Desktop Shell iNiR (`config/packages/inir.conf`)](#5-desktop-shell-inir-configpackagesinirconf)
    - [Desktop Shell Noctalia (`config/packages/noctalia.conf`)](#6-desktop-shell-noctalia-configpackagesnoctaliaconf)
-   - [Compositor Niri (`config/packages/niri.conf`)](#7-compositor-niri-configpackagesniriconf)
-   - [Compositor Umbriel (`config/packages/umbriel.conf`)](#8-compositor-umbriel-configpackagesumbrielconf)
-   - [Display Manager Greetd (`config/packages/greetd.conf`)](#9-display-manager-greetd-configpackagesgreetdconf)
-   - [Display Manager SDDM (`config/packages/sddm.conf`)](#10-display-manager-sddm-configpackagessddmconf)
-   - [Navegador Brave Browser (`config/packages/brave.conf`)](#11-navegador-brave-browser-configpackagesbraveconf)
-   - [Pilha Gráfica Aberta Mesa (`config/packages/mesa.conf`)](#12-pilha-gráfica-aberta-mesa-configpackagesmesaconf)
+   - [Desktop Shell Dux Shell / DMS (`config/packages/duxshell.conf`)](#7-desktop-shell-dux-shell--dms-configpackagesduxshellconf)
+   - [Compositor Niri (`config/packages/niri.conf`)](#8-compositor-niri-configpackagesniriconf)
+   - [Compositor Umbriel (`config/packages/umbriel.conf`)](#9-compositor-umbriel-configpackagesumbrielconf)
+   - [Display Manager Greetd (`config/packages/greetd.conf`)](#10-display-manager-greetd-configpackagesgreetdconf)
+   - [Display Manager SDDM (`config/packages/sddm.conf`)](#11-display-manager-sddm-configpackagessddmconf)
+   - [Navegador Brave Browser (`config/packages/brave.conf`)](#12-navegador-brave-browser-configpackagesbraveconf)
+   - [Pilha Gráfica Aberta Mesa (`config/packages/mesa.conf`)](#13-pilha-gráfica-aberta-mesa-configpackagesmesaconf)
 3. [Categoria B: Serviços e Portais Dinâmicos](#-categoria-b-serviços-e-portais-dinâmicos)
 4. [Categoria C: Ecossistemas e Componentes de Scripts de Terceiros](#-categoria-c-ecossistemas-e-componentes-de-scripts-de-terceiros)
 5. [Guia de Contribuição: Como Sugerir Novos Pacotes](#-guia-de-contribuição-como-sugerir-novos-pacotes)
@@ -215,7 +216,20 @@ Pacotes nativos da interface desktop Noctalia e sua tela de login:
 
 ---
 
-### 7. Compositor Niri (`config/packages/niri.conf`)
+### 7. Desktop Shell Dux Shell / DMS (`config/packages/duxshell.conf`)
+
+Pacotes oficiais da suite Dux Shell via COPR `avengemedia/danklinux`:
+
+| Pacote         | Função e Justificativa Técnica                                                                                          |
+| :------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| `dms`          | Núcleo oficial da interface gráfica Dux Shell, widgets integrados e barra dinâmica *Dank Island*.                      |
+| `dms-greeter`  | Tela de login e autenticação gráfica sobre o Greetd com integração ao ecossistema visual Dux.                           |
+| `danksearch`   | Daemon de indexação e motor de busca em tempo real integrado ao lançador de aplicações.                                |
+| `dankcalendar` | Módulo e daemon de calendário com sincronização de eventos.                                                             |
+
+---
+
+### 8. Compositor Niri (`config/packages/niri.conf`)
 
 Componentes declarativos do compositor Wayland Niri:
 
@@ -228,7 +242,7 @@ Componentes declarativos do compositor Wayland Niri:
 
 ---
 
-### 8. Compositor Umbriel (`config/packages/umbriel.conf`)
+### 9. Compositor Umbriel (`config/packages/umbriel.conf`)
 
 Dependências exclusivas para o provisionamento do compositor Wayland dinâmico Umbriel:
 
@@ -241,7 +255,7 @@ Dependências exclusivas para o provisionamento do compositor Wayland dinâmico 
 
 ---
 
-### 9. Display Manager Greetd (`config/packages/greetd.conf`)
+### 10. Display Manager Greetd (`config/packages/greetd.conf`)
 
 Componentes declarativos da pilha de login leve Greetd:
 
@@ -253,7 +267,7 @@ Componentes declarativos da pilha de login leve Greetd:
 
 ---
 
-### 10. Display Manager SDDM (`config/packages/sddm.conf`)
+### 11. Display Manager SDDM (`config/packages/sddm.conf`)
 
 Componentes declarativos da pilha de login SDDM:
 
@@ -265,7 +279,7 @@ Componentes declarativos da pilha de login SDDM:
 
 ---
 
-### 11. Navegador Brave Browser (`config/packages/brave.conf`)
+### 12. Navegador Brave Browser (`config/packages/brave.conf`)
 
 Manifesto de instalação declarativa do navegador web principal:
 
@@ -275,7 +289,7 @@ Manifesto de instalação declarativa do navegador web principal:
 
 ---
 
-### 12. Pilha Gráfica Aberta Mesa (`config/packages/mesa.conf`)
+### 13. Pilha Gráfica Aberta Mesa (`config/packages/mesa.conf`)
 
 Aceleração gráfica aberta (Intel/AMD/Nouveau) provisionada pelo Módulo 02. Em Máquinas Virtuais, a instalação é restrita à base DRI/Vulkan com `--exclude=switcheroo-control --exclude=mesa-va-drivers-freeworld`:
 
@@ -308,30 +322,28 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
 ## 🌐 Categoria C: Ecossistemas e Componentes de Scripts de Terceiros
 
 > ⚠️ **Aviso de Transparência de Arquitetura:**
-> Os componentes abaixo **NÃO** constam nos arquivos `.conf` da pasta `config/` como pacotes RPM do sistema base. Eles são provisionados e mantidos diretamente pelos pipelines e scripts oficiais de seus criadores upstream:
+> Os componentes abaixo envolvem compilação dinâmica e runtimes upstream oficiais de seus criadores:
 
-### 1. Dux Shell (DMS) — anteriormente DankLinux / DankMaterialShell
+### 1. Dux Shell (DMS) — Integração IaC Declarativa
 
-- **Origem:** Instalador oficial não-interativo via pipeline HTTPS (URL nova do rebrand 2.0 da Dux Labs):
-  ```bash
-  curl -fsSL https://install.duxlabs.dev | sh -s -- -c niri -t kitty -y --all-features
-  ```
+- **Origem:** Repositório oficial COPR `avengemedia/danklinux`.
 - **Script do Instalador:** `modules/interfaces/duxshell.sh`
-- **Componentes Provisionados pelo instalador da Dux Labs (binário `dankinstall`):**
+- **Manifesto Declarativo:** `config/packages/duxshell.conf`
+- **Componentes Provisionados via DNF:**
   - `dms`: Núcleo da interface Dux Shell e barra _Dank Island_.
   - `dms-greeter`: Tela de login e autenticação gráfica sobre o `greetd` (produto "Dux Greeter").
   - `danksearch`: Daemon de indexação de arquivos ultrarrápido integrado ao lançador de aplicações (produto "Dux Search").
   - `dankcalendar`: Módulo de sincronização e exibição de calendário de eventos (produto "Dux Calendar").
-
-> ℹ️ **Nota de nomenclatura (release 2.0):** A suíte foi renomeada para **Dux Labs** e o shell para **Dux Shell**, mas os nomes de pacotes RPM/binários permanecem `dms`, `dms-greeter`, `danksearch` e `dankcalendar` — e o repositório Fedora ativo continua o COPR `avengemedia/danklinux`, pois os COPRs `duxlabs/*` ainda não estão prontos para produção segundo o aviso oficial dos mantenedores.
+- **Blindagem de Segurança:** A antiga invocação remota `curl -fsSL https://install.duxlabs.dev | sh` foi eliminada, substituída por provisionamento IaC nativo via DNF e reparo defensivo de permissões no PAM Greetd (`644`, `root:root`).
 
 ### 2. iNiR Desktop Shell
 
 - **Origem:** Repositório oficial Git `snowarch/inir` clonado em `~/.config/inir`.
 - **Script do Instalador:** `modules/interfaces/inir.sh`
+- **Seleção Dinâmica de Versão Estável:** Detecta e faz checkout da última tag de release semântica oficial (`git tag -l --sort=-v:refname "v*" | head -n 1`), impedindo quebras acidentais causadas pela branch de desenvolvimento `main`.
 - **Componentes e Runtimes Provisionados:**
   - **Runtime Deno Oficial:** O executável nativo do `deno` é obtido via release oficial do GitHub (`denoland/deno`), com alvo de arquitetura detectado por `uname -m` (x86_64/aarch64) e **verificação de integridade via checksum SHA-256** publicado na própria release antes da instalação em `/usr/local/bin/deno`, sustentando os daemons JavaScript/TypeScript do shell.
-  - **Widgets e Setup iNiR:** Compilação e linking dos componentes visuais executado via `./setup install -y` diretamente sob a sessão do usuário real.
+  - **Widgets e Setup iNiR:** Compilação e linking dos componentes visuais executado via `./setup install -y` diretamente sob a sessão do usuário real (`sudo -u "${REAL_USER}"`).
   - **Tema Customizado do SDDM:** Durante o setup do iNiR, um tema QML customizado de tela de login (com relógio grande translúcido e identidade visual Material You) é instalado e ativado no SDDM.
   - **Tratamento do `xwaylandvideobridge`:** Utilitário frequentemente puxado durante a resolução de integrações Qt/KDE do iNiR para prover compatibilidade de captura de tela em aplicativos X11. Como o Niri é um compositor tiling e trataria a janela invisível do bridge como uma janela tiled comum (gerando um retângulo preto ou azul opaco na tela), o instalador aplica regras estritas (`window-rule { match app-id=r#"(?i).*xwaylandvideobridge.*"# open-floating true default-floating-position x=-500 y=-500 relative-to="top-left" opacity 0.0 }`) e desativa seu autostart XDG em `/etc/xdg/autostart/` e `~/.config/autostart/`.
 
