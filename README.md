@@ -36,6 +36,28 @@ Instalador modular, em camadas e automatizado para transformar uma instalação 
 
 ---
 
+## 📑 Sumário
+
+- [Prévia Visual das Interfaces](#-prévia-visual-das-interfaces)
+  - [iNiR Shell](#inir-shell)
+  - [Noctalia Shell](#noctalia-shell)
+- [Arquitetura em Camadas (Layered Architecture)](#arquitetura)
+- [Matriz de Combinações Suportadas](#-matriz-de-combinações-suportadas)
+  - [Idempotência Cumulativa & Multi-Shell](#-idempotência-cumulativa--multi-shell)
+  - [Alternador de Tela de Login (Display Manager)](#-alternador-de-tela-de-login-display-manager)
+- [Guia de Instalação Passo a Passo](#-guia-de-instalação-passo-a-passo)
+  - [1. Preparação da Mídia (Fedora Everything Netinstall)](#1-preparação-da-mídia-fedora-everything-netinstall)
+  - [2. Executando o Instalador](#2-executando-o-instalador)
+- [Interface CLI Padronizada (pt-BR)](#-interface-cli-padronizada-pt-br)
+- [Tabela Formal de Decisões de Engenharia Defensiva](#decisoes-defensivas)
+- [Segurança, Gestão de Senhas e Isolamento de Aplicações](#seguranca-senhas)
+- [Atalhos de Teclado Nativos e Controle](#atalhos)
+  - [Niri](#niri)
+  - [Umbriel](#umbriel)
+  - [Dux Shell (DMS)](#dux-shell-dms)
+
+---
+
 ## 📸 Prévia Visual das Interfaces
 
 Amostras reais do visual de cada **Desktop Shell** (Fedora Linux 44), para você escolher com base no estilo de cada interface antes de instalar:
@@ -58,6 +80,7 @@ Painel de **Acesso Rápido** (Quick Access) com widgets de sistema, mídia, ener
 
 ---
 
+<a id="arquitetura"></a>
 ## 🏗️ Arquitetura em Camadas (Layered Architecture)
 
 O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Idempotência**, **Infraestrutura como Código (IaC)** e **Padrão Strategy** para despachar submódulos de compositores e interfaces gráficas. Os pacotes de usuário (fontes, terminal Kitty e codecs) são instalados no Módulo 03, garantindo ambiente pronto antes de subir a stack visual:
@@ -211,6 +234,7 @@ O instalador conta com um menu interativo sem poluição visual:
 
 ---
 
+<a id="decisoes-defensivas"></a>
 ## 🛡️ Tabela Formal de Decisões de Engenharia Defensiva
 
 | Decisão Arquitetural / Defensiva                                                  | Justificativa Técnica e Prevenção de Falhas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -233,6 +257,7 @@ O instalador conta com um menu interativo sem poluição visual:
 
 ---
 
+<a id="seguranca-senhas"></a>
 ## 🛡️ Segurança, Gestão de Senhas e Isolamento de Aplicações
 
 > [!IMPORTANT]
@@ -255,6 +280,7 @@ O instalador conta com um menu interativo sem poluição visual:
 
 ---
 
+<a id="atalhos"></a>
 ## ⌨️ Atalhos de Teclado Nativos e Controle
 
 ### Niri
