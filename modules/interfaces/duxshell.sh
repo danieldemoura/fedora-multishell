@@ -11,7 +11,10 @@ REAL_HOME="$(get_real_user_home)"
 log_info "Iniciando provisionamento do Dux Shell (DMS)..."
 
 # 1. Instalação declarativa dos pacotes oficiais via duxlabs/dms e duxlabs/dux-repo
-log_info "Instalando ou atualizando Dux Shell para a versão mais recente..."
+log_info "Removendo versões legadas com nomes antigos do DankMaterialShell (1.x) para evitar conflitos..."
+sudo dnf remove -y DankMaterialShell dms-greeter danksearch dankcalendar 2>/dev/null || true
+
+log_info "Instalando a suíte moderna Dux Shell (DMS 2.x)..."
 install_packages_from_conf "${PACKAGES_DIR}/duxshell.conf"
 sudo dnf upgrade --refresh -y dms dux-greeter dsearch dcal 2>/dev/null || true
 

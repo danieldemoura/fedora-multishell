@@ -335,6 +335,7 @@ Os itens desta seção não são pacotes avulsos com nomes fixos em scripts proc
   - `dsearch`: Utilitário e daemon de indexação de arquivos ultrarrápido integrado ao lançador de aplicações (produto "Dux Search").
   - `dcal`: Módulo de sincronização e exibição de calendário de eventos (produto "Dux Calendar").
 - **Blindagem de Segurança:** A antiga invocação remota `curl -fsSL https://install.duxlabs.dev | sh` foi eliminada, substituída por provisionamento IaC nativo via DNF e reparo defensivo de permissões no PAM Greetd (`644`, `root:root`).
+- **Resolução Defensiva de Conflitos de Transição:** Antes de aplicar o manifesto 2.x, o instalador expurga pacotes legados da versão 1.x (`DankMaterialShell`, `dms-greeter`, `danksearch`, `dankcalendar`) para impedir colisões de arquivos no DNF causadas pela renomeação do projeto pela Dux Labs.
 
 ### 2. iNiR Desktop Shell
 
