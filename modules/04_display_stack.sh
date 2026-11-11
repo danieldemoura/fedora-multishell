@@ -72,6 +72,17 @@ EOF
         fi
         log_success "Arquivo ${GREETD_CONFIG} gerado com sucesso."
     elif [[ "${SELECTED_INTERFACE}" == "duxshell" || "${SELECTED_SHELL}" == "duxshell" ]]; then
+        log_info "Configurando diretório de cache e persistência para dms-greeter..."
+        sudo mkdir -p /var/cache/dms-greeter
+        sudo chown -R greetd:greetd /var/cache/dms-greeter
+        sudo chmod 775 /var/cache/dms-greeter
+        sudo restorecon -Rv /var/cache/dms-greeter 2>/dev/null || true
+
+        # Persistência via systemd-tmpfiles para sobreviver a limpezas de /var/cache
+        if [[ -f "${SYSTEM_DIR}/dms-greeter-tmpfiles.conf" ]]; then
+            sudo install -m 0644 -o root -g root "${SYSTEM_DIR}/dms-greeter-tmpfiles.conf" /etc/tmpfiles.d/dms-greeter.conf
+        fi
+
         log_info "Configurando /etc/greetd/config.toml para Dux Greeter (dms-greeter)..."
         sudo mkdir -p /etc/greetd
         GREETD_CONFIG="/etc/greetd/config.toml"
