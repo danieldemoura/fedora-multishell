@@ -115,10 +115,11 @@ register_wayland_session() {
         fi
     done
 
-    # Desativa xwaylandvideobridge do autostart XDG para evitar janela preta/tiled no Niri
-    for xwb in /etc/xdg/autostart/*xwaylandvideobridge*.desktop; do
+    # Desativa xwaylandvideobridge do autostart XDG e do usuário para evitar janela fantasma/tiled/azul no Niri
+    for xwb in /etc/xdg/autostart/*xwaylandvideobridge*.desktop \
+               "${REAL_HOME}/.config/autostart/"*xwaylandvideobridge*.desktop; do
         if [[ -f "$xwb" ]]; then
-            log_info "Desativando $(basename "$xwb") do autostart para evitar janela preta no Niri..."
+            log_info "Desativando $(basename "$xwb") do autostart para evitar janela de captura no Niri..."
             sudo mv -f "$xwb" "${xwb}.disabled" 2>/dev/null || true
         fi
     done

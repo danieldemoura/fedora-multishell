@@ -74,6 +74,13 @@ layout {
 // }
 
 // ==============================================================================
+// Popups e Overlays do Niri
+// ==============================================================================
+hotkey-overlay {
+    skip-at-startup
+}
+
+// ==============================================================================
 // Regras de janela
 // ==============================================================================
 
@@ -97,9 +104,10 @@ window-rule {
 }
 
 window-rule {
-    match app-id="^xwaylandvideobridge$"
+    match app-id=r#"(?i).*xwaylandvideobridge.*"#
+    match title=r#"(?i).*xwaylandvideobridge.*"#
     open-floating true
-    default-floating-position x=-100 y=-100
+    default-floating-position x=-500 y=-500 relative-to="top-left"
     opacity 0.0
 }
 
