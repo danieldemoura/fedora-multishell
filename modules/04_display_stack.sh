@@ -23,7 +23,7 @@ SELECTED_SHELL="${SELECTED_INTERFACE}"
 IS_VM="${IS_VM:-false}"
 REAL_USER="$(get_real_user)"
 
-if [[ "${SELECTED_INTERFACE}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL}" =~ ^(duxshell|noctalia)$ ]]; then
+if [[ "${SELECTED_INTERFACE}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL}" =~ ^(duxshell|noctalia)$ ]] || systemctl is-enabled greetd.service >/dev/null 2>&1; then
     ui_section_header "MÓDULO 04: PILHA DO DISPLAY MANAGER E LOGIN (GREETD)"
 
     # 1. Instalação declarativa dos pacotes base do Greetd e pilha oo7 (Secret Service)
@@ -71,6 +71,44 @@ user = "greetd"
 EOF
         fi
         log_success "Arquivo ${GREETD_CONFIG} gerado com sucesso."
+    elif [[ "${SELECTED_INTERFACE}" == "duxshell" || "${SELECTED_SHELL}" == "duxshell" ]]; then
+        log_info "Configurando diretório de cache e persistência para dms-greeter..."
+        sudo mkdir -p /var/cache/dms-greeter
+        sudo chown -R greetd:greetd /var/cache/dms-greeter
+        sudo chmod 775 /var/cache/dms-greeter
+        sudo restorecon -Rv /var/cache/dms-greeter 2>/dev/null || true
+
+        # Persistência via systemd-tmpfiles para sobreviver a limpezas de /var/cache
+        if [[ -f "${SYSTEM_DIR}/dms-greeter-tmpfiles.conf" ]]; then
+            sudo install -m 0644 -o root -g root "${SYSTEM_DIR}/dms-greeter-tmpfiles.conf" /etc/tmpfiles.d/dms-greeter.conf
+        fi
+
+        log_info "Configurando /etc/greetd/config.toml para Dux Greeter (dms-greeter)..."
+        sudo mkdir -p /etc/greetd
+        GREETD_CONFIG="/etc/greetd/config.toml"
+
+        if [[ -f "$GREETD_CONFIG" ]]; then
+            backup_file "$GREETD_CONFIG" true
+        fi
+
+        GREETER_BIN="/usr/bin/dms-greeter"
+        [[ -x "$GREETER_BIN" ]] || GREETER_BIN="dms-greeter"
+
+        if [[ "${IS_VM:-false}" == true ]]; then
+            GREETER_CMD="env LIBGL_ALWAYS_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 ${GREETER_BIN} --command niri"
+        else
+            GREETER_CMD="${GREETER_BIN} --command niri"
+        fi
+
+        sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
+[terminal]
+vt = 1
+
+[default_session]
+command = "${GREETER_CMD}"
+user = "greetd"
+EOF
+        log_success "Arquivo ${GREETD_CONFIG} gerado para Dux Greeter com sucesso."
     fi
 
     # 4. Configuração defensiva do PAM (/etc/pam.d/greetd)
@@ -91,23 +129,34 @@ auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth     substack     password-auth
 auth     optional     pam_oo7.so
 -auth    optional     pam_kwallet5.so
+-auth    optional     pam_kwallet.so
+auth     include      postlogin
 
+account  required     pam_nologin.so
 account  include      password-auth
 
 password include      password-auth
+password optional     pam_oo7.so use_authtok
 
 session  required     pam_selinux.so close
 session  required     pam_loginuid.so
 session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
+session  required     pam_namespace.so
 session  include      password-auth
-session  optional     pam_oo7.so
--session optional     pam_kwallet5.so auto_start
+session  optional     pam_oo7.so auto_start
+session  include      postlogin
 EOF
     fi
     sudo chmod 644 "$PAM_GREETD"
     sudo chown root:root "$PAM_GREETD"
     log_success "Arquivo ${PAM_GREETD} configurado com suporte ao pam_oo7 (permissão 644)."
+
+    # 5. Ativação prioritária do serviço Greetd e desativação defensiva de concorrentes
+    log_info "Habilitando greetd.service e desativando SDDM/outros DMs concorrentes..."
+    sudo systemctl disable sddm.service gdm.service lightdm.service 2>/dev/null || true
+    sudo systemctl enable greetd.service
+    log_success "greetd.service habilitado como Display Manager ativo."
 
     log_success "Módulo 04 (Display Stack - Greetd) concluído com sucesso."
 
@@ -143,7 +192,7 @@ else
                 }
                 /^session/ && !sess_added {
                     print
-                    print "session    optional    pam_oo7.so"
+                    print "session    optional    pam_oo7.so auto_start"
                     sess_added=1
                     next
                 }
@@ -165,24 +214,35 @@ auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
 auth     substack     password-auth
 auth     optional     pam_oo7.so
 -auth    optional     pam_kwallet5.so
+-auth    optional     pam_kwallet.so
+auth     include      postlogin
 
+account  required     pam_nologin.so
 account  include      password-auth
 
 password include      password-auth
+password optional     pam_oo7.so use_authtok
 
 session  required     pam_selinux.so close
 session  required     pam_loginuid.so
 session  required     pam_selinux.so open
 session  optional     pam_keyinit.so force revoke
+session  required     pam_namespace.so
 session  include      password-auth
-session  optional     pam_oo7.so
--session optional     pam_kwallet5.so auto_start
+session  optional     pam_oo7.so auto_start
+session  include      postlogin
 EOF
         fi
         log_success "Arquivo ${PAM_SDDM} criado com suporte ao pam_oo7."
     fi
     sudo chmod 644 "$PAM_SDDM"
     sudo chown root:root "$PAM_SDDM"
+
+    # 4. Ativação prioritária do serviço SDDM e desativação defensiva de concorrentes
+    log_info "Habilitando sddm.service e desativando Greetd/outros DMs concorrentes..."
+    sudo systemctl disable greetd.service gdm.service lightdm.service 2>/dev/null || true
+    sudo systemctl enable sddm.service
+    log_success "sddm.service habilitado como Display Manager ativo."
 
     log_success "Módulo 04 (Display Stack - SDDM) concluído com sucesso."
 fi

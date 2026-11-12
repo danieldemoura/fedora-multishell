@@ -106,7 +106,7 @@ saturation = 1.1
 # Enable NumLock when a physical keyboard connects.
 # https://docs.noctalia.dev/umbriel/input/
 [input.keyboard]
-layout = "br"
+# layout = "br"
 numlock_toggle = true
 
 # Focus can follow the pointer across tiled, floating, and pinned windows.

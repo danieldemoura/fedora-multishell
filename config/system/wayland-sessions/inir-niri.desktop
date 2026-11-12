@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=iNiR Shell (Niri)
+Comment=iNiR Shell com compositor Niri
+Exec=inir-niri-session
+Type=Application
+DesktopNames=niri:inir
+

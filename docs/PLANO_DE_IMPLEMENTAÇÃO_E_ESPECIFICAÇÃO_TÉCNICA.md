@@ -10,8 +10,8 @@
 - **Desktop Shells / Interfaces Suportadas:**
   - **iNiR Shell** (`snowarch/inir` via `quickshell`): Shell moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You. Utiliza exclusivamente o compositor Niri.
   - **Noctalia Shell** (`noctalia` via pacote nativo Fedora): Interface gráfica desktop nativa em C++/Qt. Permite utilizar tanto o compositor Niri quanto o compositor Umbriel.
-  - **Dux Shell / DMS** (instalador oficial `install.duxlabs.dev` via COPR `avengemedia/danklinux`): Ambiente completo da Dux Labs (ex-DankLinux/DankMaterialShell, renomeado no release 2.0) sobre Niri com terminal Kitty, dms-greeter, danksearch e dankcalendar.
-- **Display Manager:** **SDDM** (`sddm` nativo com integração e desbloqueio do PAM oo7) ou **Greetd** (`noctalia-greeter` / `dms-greeter`).
+  - **Dux Shell / DMS** (pacotes oficiais declarativos via COPRs `duxlabs/dms` e `duxlabs/dux-repo`): Ambiente completo da Dux Labs (ex-DankLinux/DankMaterialShell, renomeado no release 2.0) sobre Niri com terminal Kitty, dux-greeter, dsearch e dcal.
+- **Display Manager:** **SDDM** (`sddm` nativo com integração e desbloqueio do PAM oo7) ou **Greetd** (`noctalia-greeter` / `dux-greeter`).
 
 **Público-Alvo:** Desenvolvedor / Modelo de IA Gerador de Código  
 **Versão Base Alvo:** Fedora 45 (x86_64)
@@ -32,13 +32,15 @@ fedora-multishell/
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
-│   └── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
+│   ├── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
+│   └── SEGURANCA_E_MODELO_DE_AMEACAS.md # Modelo formal de ameaças, PAM oo7 e análise RPM vs Flatpak
 ├── config/
 │   ├── settings.conf                # Variáveis globais (repositórios, versões, flags de ambiente)
 │   ├── packages/                    # Manifestos declarativos de pacotes (DNF / Flatpak)
 │   │   ├── apps.conf                # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
 │   │   ├── base.conf                # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
 │   │   ├── brave.conf               # Manifesto de instalação do navegador Brave Browser
+│   │   ├── duxshell.conf            # Pacotes oficiais do Dux Shell / DMS 2.x (dms, dux-greeter, dsearch, dcal)
 │   │   ├── flatpak.conf             # Lista declarativa de aplicativos Flatpak do Flathub
 │   │   ├── greetd.conf              # Daemons base do Display Manager Greetd
 │   │   ├── inir.conf                # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
@@ -49,27 +51,41 @@ fedora-multishell/
 │   │   ├── sddm.conf                # Pacotes base do Display Manager SDDM
 │   │   └── umbriel.conf             # Pacotes do compositor Umbriel Nightly e portais
 │   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
-│   │   ├── niri/
-│   │   │   └── config.kdl           # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
-│   │   ├── noctalia/
-│   │   │   └── config.toml          # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
-│   │   └── umbriel/
-│   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
-│   │       └── noctalia.toml        # Include opcional intencionalmente vazio para customizações locais
-│   └── system/                      # Modelos declarativos do sistema operacional (/etc)
+│   │   ├── compositors/             # Dotfiles dos compositores Wayland
+│   │   │   ├── niri/
+│   │   │   │   ├── config.kdl       # Configuração padrão de fallback do Niri
+│   │   │   │   └── shells/          # Configurações do Niri isoladas por Desktop Shell
+│   │   │   │       ├── noctalia.kdl # Niri com Noctalia Shell (autostart noctalia)
+│   │   │   │       ├── inir.kdl     # Niri com iNiR Shell (autostart inir run)
+│   │   │   │       └── duxshell.kdl # Niri com Dux Shell (autostart dms run)
+│   │   │   └── umbriel/
+│   │   │       ├── config.toml      # Configuração personalizada do Umbriel (atalhos, mouse, Fn)
+│   │   │       └── noctalia.toml    # Include opcional intencionalmente vazio para customizações locais
+│   │   └── interfaces/              # Dotfiles das interfaces gráficas (Desktop Shells)
+│   │       └── noctalia/
+│   │           └── config.toml      # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
+│   └── system/                      # Modelos declarativos do sistema operacional (/etc e /usr/share)
 │       ├── greetd.toml.template     # Modelo de configuração do Greetd
 │       ├── pam_greetd.template      # Modelo de autenticação PAM para o Greetd
-│       └── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       ├── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       └── wayland-sessions/        # Entradas declarativas do seletor de sessões (/usr/share/wayland-sessions)
+│           ├── noctalia-niri.desktop
+│           ├── noctalia-umbriel.desktop
+│           ├── inir-niri.desktop
+│           └── duxshell-niri.desktop
+├── tools/
+│   └── switch-display-manager.sh    # Utilitário interativo para alternar a tela de login (SDDM, Noctalia, Dux)
 ├── lib/
 │   ├── ui.sh                        # Renderização visual ANSI (banners limpos, caixas temáticas, prompts validados pt-BR)
 │   ├── logger.sh                    # Registro centralizado (`$XDG_STATE_HOME/fedora-multi-shell/install.log`) e tratamento de erros
-│   └── utils.sh                     # Utilitários (checagem de não-root, permissões seguras, install_packages_from_conf, cleanup do sudoers)
+│   ├── security.sh                  # Módulo de segurança: sudo keepalive em memória, importação de chaves GPG e checkout de releases Git
+│   └── utils.sh                     # Utilitários (checagem de não-root, permissões seguras, install_packages_from_conf, cleanup)
 └── modules/
-    ├── 00_repos.sh                  # Repositórios universais (RPM Fusion, Brave, Flathub) e condicionais (COPRs, Terra, Dux Labs)
+    ├── 00_repos.sh                  # Repositórios universais (RPM Fusion, Brave, Flathub) e condicionais (COPRs, Terra, Dux Labs) com importação GPG
     ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, rede e energia (Tuned)
     ├── 02_gpu_drivers.sh            # Drivers gráficos (Mesa aberto via mesa.conf ou NVIDIA com akmods e RTD3)
     ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin, Flatpaks e Loja GNOME
-    ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS), hardware e PAM Keyring
+    ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS), hardware e PAM Keyring (auto_start)
     ├── 05_compositor.sh             # Roteador/Dispatcher de Compositor Wayland (Padrão Strategy)
     ├── 06_desktop_interface.sh      # Roteador/Dispatcher de Interface Gráfica (Padrão Strategy)
     ├── 07_post_install.sh           # Autostart/config da interface, VM flags, validação de configs e ativação do DM
@@ -77,9 +93,9 @@ fedora-multishell/
     │   ├── niri.sh                  # Submódulo: Niri, xwayland-satellite, portais GNOME/GTK e niri-portals.conf
     │   └── umbriel.sh               # Submódulo: Umbriel Nightly, xwayland-satellite e portais Umbriel/GTK
     └── interfaces/
-        ├── inir.sh                  # Submódulo: Deno (/usr/local/bin, sha256), clone, ./setup install -y
+        ├── inir.sh                  # Submódulo: Deno (/usr/local/bin, sha256), clone, checkout da última release oficial, ./setup install -y
         ├── noctalia.sh              # Submódulo: Instalação declarativa de 'noctalia' e 'noctalia-greeter'
-        └── duxshell.sh              # Submódulo: Instalador oficial headless do Dux Shell (DMS)
+        └── duxshell.sh              # Submódulo: Instalação declarativa via duxshell.conf e isolamento systemd
 ```
 
 ### 1.2 Regras Estritas de Programação Shell
@@ -101,7 +117,7 @@ O instalador suporta as seguintes combinações completas de ambiente gráfico:
 | **iNiR Shell**      | **Niri** (Fixo)    | COPR `yalter/niri`<br>COPR `errornointernet/quickshell` | Shell moderna inspirada em Material You rodando sobre Niri com rolagem horizontal infinita de colunas e janelas.                                                          |
 | **Noctalia Shell**  | **Niri**           | COPR `yalter/niri`<br>Repositório Terra (Fyra Labs)     | Shell nativa em C++/Qt sobre Niri, aliando a estética de desktop tradicional/moderna à rolagem horizontal contínua de janelas e tela de login com Noctalia Greeter.       |
 | **Noctalia Shell**  | **Umbriel**        | Repositório Terra (Fyra Labs)                           | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com suporte a rolagem contínua (horizontal e vertical) e múltiplos modos de janelas (Dwindle e Master). |
-| **Dux Shell (DMS)** | **Niri** (Fixo)    | COPR `yalter/niri`<br>COPR `avengemedia/danklinux`      | Ambiente completo Dux Labs sobre Niri com terminal Kitty acelerado por GPU, dms-greeter (Greetd), danksearch e dankcalendar.                                              |
+| **Dux Shell (DMS)** | **Niri** (Fixo)    | COPR `yalter/niri`<br>COPRs `duxlabs/dms` e `duxlabs/dux-repo` | Ambiente completo Dux Labs sobre Niri com terminal Kitty acelerado por GPU, dux-greeter (Greetd), dsearch e dcal.                                                        |
 
 ---
 
@@ -165,7 +181,7 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
   - Se `SELECTED_COMPOSITOR == "niri"`: ativa COPR `yalter/niri`.
   - Se `SELECTED_SHELL == "inir"`: ativa COPR `errornointernet/quickshell`.
   - Se `SELECTED_SHELL == "noctalia"`: ativa o repositório Terra do Fyra Labs (`terra-release` e `terra-gpg-keys`, necessário para `noctalia-greeter` e `umbriel-nightly`).
-  - Se `SELECTED_INTERFACE == "duxshell"`: ativa o repositório COPR `avengemedia/danklinux` (repos oficiais da Dux Labs; os COPRs `duxlabs/*` ainda não estão prontos para produção).
+  - Se `SELECTED_INTERFACE == "duxshell"`: ativa os repositórios oficiais COPR `duxlabs/dms` e `duxlabs/dux-repo` da Dux Labs (removendo o repositório legado `avengemedia/danklinux`).
 - Atualização e sincronização via `dnf upgrade --refresh -y`.
 
 ### Módulo 01: Infraestrutura de Hardware e Áudio (`01_system_hardware.sh`)
@@ -201,9 +217,9 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
   - Configuração do `/etc/greetd/config.toml` (com flags defensivas de software rendering para VM se aplicável).
   - Configuração de integração PAM em `/etc/pam.d/greetd` com `pam_oo7.so` para desbloqueio silencioso do cofre de senhas no login.
 - **Se padrão (`sddm` / `inir`):**
-  - Instalação declarativa via `install_packages_from_conf "${PACKAGES_DIR}/sddm.conf"`.
+  - Instalação declarativa via `install_packages_from_conf "${PACKAGES_DIR}/sddm.conf"`, utilizando o backend `sddm-wayland-generic` para satisfazer a dependência de greeter sem puxar o desktop KDE Plasma nem o KWin.
   - Atribuição dos grupos de hardware `video,render,input` ao usuário `sddm`.
-  - Configuração de integração PAM em `/etc/pam.d/sddm` com `pam_oo7.so` para desbloqueio silencioso do cofre de senhas no login (injeção via `awk` lida o arquivo vivo — não o `.bak` — e escrita atômica por arquivo temporário + `mv`).
+  - Configuração de integração PAM em `/etc/pam.d/sddm` a partir de `config/system/pam_sddm.template` contendo a cadeia oficial completa (`postlogin` com `pam_systemd.so`, `pam_selinux.so` e `pam_oo7.so`), garantindo que o `systemd-logind` crie a sessão e libere o acesso ao DRM/GPU sem fechamento abrupto pós-autenticação.
 
 ### Módulo 05: Roteador de Compositor Wayland (`05_compositor.sh`)
 
@@ -229,20 +245,31 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
     - Auto-reparo imediato de encapsulamento: restaura o template `config/system/pam_greetd.template` em `/etc/pam.d/greetd` para impedir que o pipeline do instalador da Dux Labs sobrescreva a integração com o keyring.
     - Assegura permissões do usuário em `.config` e `.local`.
 
-### Módulo 07: Pós-Instalação e Validações (`07_post_install.sh`)
+### Módulo 07: Pós-Instalação, Sessões Wayland e Validações (`07_post_install.sh`)
 
 - Inicialização do cofre de credenciais PAM em `~/.local/share/keyrings/default` com conteúdo `login` (permissão `600`).
-- Configuração declarativa do compositor ativo:
+- **Arquitetura de Isolamento de Sessões Wayland (Multi-Shell Idempotente):**
+  - Cria `~/.config/niri/shells/` para isolar os pontos de entrada de cada interface gráfica sem conflitos.
+  - **Blindagem e Sincronização Cumulativa do Niri contra o `rsync --delete` do iNiR:** O instalador upstream do iNiR executa uma sincronização destrutiva (`rsync --delete`) sobre `~/.config/niri/`, apagando os arquivos `shells/noctalia.kdl` e `shells/duxshell.kdl` previamente provisionados. O Módulo 07 implementa uma rotina pós-execução que audita as sessões registradas em `/usr/share/wayland-sessions/` e restaura atomicamente todos os KDLs correspondentes a partir de `config/desktop/compositors/niri/shells/`, reinjetando flags de VM quando aplicável. Isso impede que o Niri caia no fallback genérico do Fedora (`/etc/niri/config.kdl` com Waybar) e assegura que nenhuma sessão fique órfã.
+  - **Lançadores Dedicados em `/usr/local/bin` (`install_niri_session_wrapper`):** Em vez de cadeias complexas e frágeis de `bash -c 'export NIRI_CONFIG=...; exec niri-session'` dentro de arquivos `.desktop`, o instalador provisiona executáveis dedicados (`/usr/local/bin/noctalia-niri-session`, `duxshell-niri-session` e `inir-niri-session`). Esses scripts injetam explicitamente `NIRI_CONFIG` no daemon do systemd de usuário (`systemctl --user set-environment` e `dbus-update-activation-environment`) antes de invocar o `niri-session`. Isso garante que a unidade `niri.service` do systemd carregue o arquivo de configuração específico da shell escolhida, eliminando a queda acidental na configuração de fábrica do Fedora (`/etc/niri/config.kdl` com Waybar) e prevenindo falhas de interpretação de aspas pelos Display Managers.
+  - **Tratamento e Supressão da Janela Fantasma do `xwaylandvideobridge`:** O utilitário `xwaylandvideobridge` (puxado por dependências Qt/KDE do iNiR para screen-sharing no XWayland) cria por padrão uma janela invisível que o algoritmo de tiling do Niri captura como uma coluna preta/azul opaca na tela. O Módulo 07 aplica regras estritas em todos os templates KDL (`window-rule { match app-id=r#"(?i).*xwaylandvideobridge.*"# open-floating true default-floating-position x=-500 y=-500 relative-to="top-left" opacity 0.0 }`), suprime o overlay de atalhos (`hotkey-overlay { skip-at-startup; }`) e desativa o lançador em `/etc/xdg/autostart/*xwaylandvideobridge*.desktop.disabled` e `~/.config/autostart/*xwaylandvideobridge*.desktop.disabled`.
   - **Se Noctalia Shell (`SELECTED_INTERFACE="noctalia"`):**
-    - Cria `~/.config/noctalia`, copia a configuração declarativa de `${DESKTOP_DIR}/noctalia/config.toml` (`config/desktop/noctalia/config.toml`) ativando o agente Polkit nativo (`polkit_agent = true`) sob `${REAL_USER}`.
-    - **Se Umbriel:** Cria `~/.config/umbriel`, copia os arquivos de `${DESKTOP_DIR}/umbriel/*` (`config/desktop/umbriel/`) para `~/.config/umbriel/`. Se `IS_VM=true`, anexa (de forma idempotente, protegida por `grep -qF`) o bloco de software rendering e desativação de cursor de hardware ao final de `config.toml`. Valida via `sudo -u "${REAL_USER}" umbriel config validate`.
-    - **Se Niri:** Cria `~/.config/niri`, copia `${DESKTOP_DIR}/niri/config.kdl` para `~/.config/niri/config.kdl`. Se `IS_VM=true`, anexa de forma idempotente o bloco `environment` de renderização por software. Valida via `sudo -u "${REAL_USER}" niri validate`.
-  - **Se iNiR Shell (`SELECTED_INTERFACE="inir"`):** Não copia nem sobrescreve arquivos com os templates do Noctalia; assegura que `~/.config/niri/config.kdl` exista e vincula a shell ao sistema de serviços do systemd de usuário (`inir service install` + wants link `niri.service.wants/inir.service` — o caminho canônico upstream, exigido pelas trocas de família de painéis em runtime como o iRiS; a injeção `spawn-at-startup "inir" "run"` fica restrita a contingência quando a unidade de usuário do Niri não está presente). Pré-ativa a família **iRiS** editando o config operativo lido pela shell em runtime (`~/.config/illogical-impulse/config.json` — caminho fixado pelo `Directories.qml`; quando ausente, é semeado a partir do default instalado em `~/.config/inir/config.json` e o iRiS é espelhado nele), aplicando `panelFamily="iris"` + painéis da família mesclados em `enabledPanels`/`knownPanels` com escrita atômica e idempotência, injeta o bloco `environment` de renderização por software se `IS_VM=true` e valida a sintaxe ao final com `niri validate`. Previne tela cinza vazia no Niri após o login.
-  - **Se Dux Shell (`SELECTED_INTERFACE="duxshell"`):** Configura autostart do DMS via injeção de `spawn-at-startup "dms" "run"` no `config.kdl` do Niri caso não esteja presente, assegura variáveis de software rendering se `IS_VM=true`, e valida via `sudo -u "${REAL_USER}" niri validate`.
+    - Cria `~/.config/noctalia`, copia a configuração declarativa de `${DESKTOP_DIR}/noctalia/config.toml` ativando o agente Polkit nativo (`polkit_agent = true`) sob `${REAL_USER}`.
+    - **Se Umbriel:** Cria `~/.config/umbriel`, copia os arquivos de `${DESKTOP_DIR}/umbriel/*` para `~/.config/umbriel/`. Se `IS_VM=true`, anexa o bloco de software rendering. Registra `noctalia-umbriel.desktop` em `/usr/share/wayland-sessions/`. Valida via `sudo -u "${REAL_USER}" umbriel config validate`.
+    - **Se Niri:** Copia `${DESKTOP_DIR}/niri/shells/noctalia.kdl` para `~/.config/niri/shells/noctalia.kdl`. Se `IS_VM=true`, anexa de forma idempotente o bloco `environment` de renderização por software. Registra o launcher `noctalia-niri-session` e o arquivo `noctalia-niri.desktop` em `/usr/share/wayland-sessions/`. Valida via `sudo -u "${REAL_USER}" niri validate -c ~/.config/niri/shells/noctalia.kdl`.
+  - **Se iNiR Shell (`SELECTED_INTERFACE="inir"`):**
+    - Copia `${DESKTOP_DIR}/niri/shells/inir.kdl` para `~/.config/niri/shells/inir.kdl`.
+    - O autostart da shell roda exclusivamente via `spawn-at-startup "inir" "run"` dentro de `shells/inir.kdl`. Remove preventivamente vínculos órfãos de `inir.service` em todos os targets de usuário do systemd (`niri.service.wants`, `graphical-session.target.wants` e `default.target.wants`) e executa `systemctl --user disable inir.service`, garantindo isolamento total para que o iNiR não seja executado em segundo plano ao selecionar outras interfaces.
+    - Pré-ativa a família **iRiS** editando o config operativo lido pela shell em runtime (`~/.config/illogical-impulse/config.json`, semeado a partir do default instalado em `~/.config/inir/config.json`).
+    - Registra o launcher `inir-niri-session` e a sessão `inir-niri.desktop` em `/usr/share/wayland-sessions/`. Valida com `niri validate -c ~/.config/niri/shells/inir.kdl`.
+  - **Se Dux Shell (`SELECTED_INTERFACE="duxshell"`):**
+    - Copia `${DESKTOP_DIR}/niri/shells/duxshell.kdl` para `~/.config/niri/shells/duxshell.kdl`.
+    - Registra o launcher `duxshell-niri-session` e a sessão `duxshell-niri.desktop` em `/usr/share/wayland-sessions/`. Valida com `niri validate -c ~/.config/niri/shells/duxshell.kdl`.
+- **Ativação Vinculada e Preservação Inteligente do Display Manager:** Ativa automaticamente o Display Manager correspondente à interface selecionada, preservando de forma consciente o `greetd.service` caso já esteja ativo no sistema (evitando regressões caso o usuário instale múltiplas shells consecutivamente). Desativa sessões cruas sem shell (`niri.desktop` e `umbriel.desktop`), bem como resquícios indesejados de desktop de terceiros (`plasma.desktop` e `plasmawayland.desktop`), mantendo a coexistência limpa e acumulativa das interfaces declaradas em `/usr/share/wayland-sessions/`. Assegura a integridade do PAM (`pam_oo7.so` e `postlogin` / `pam_systemd.so`) para o DM ativo.
+- Disponibiliza o utilitário interativo `tools/switch-display-manager.sh` para troca a quente de tela de login entre SDDM, Noctalia Greeter e Dux Greeter.
 - Execução de `xdg-user-dirs-update` e `ensure_user_ownership` recursivo em `.config` e `.local`.
-- Ativação defensiva do display manager (Greetd para Noctalia/DMS ou SDDM para iNiR) e target gráfico via `systemctl enable` (sem `--force`, que mascararia unidades inválidas).
 - Se `INSTALL_NVIDIA=true` (e não for VM), executa `sudo akmods --force`.
-- Registro do checklist de integridade no log (8 verificações finais, incluindo a presença do runtime Deno quando a interface selecionada for iNiR — a ausência é tratada como erro com `exit 1`).
+- Registro do checklist de integridade no log, incluindo a listagem completa de todas as sessões Wayland ativas em `/usr/share/wayland-sessions/`.
 
 ---
 
@@ -269,6 +296,13 @@ Nenhum módulo executa comandos `dnf install` com listas de pacotes fixos (hardc
 | **Validação de entrada e verificação de versão alvo**                                   | Os menus nunca interpretam silenciosamente entradas inválidas: `ui_ask_choice`/`ui_ask_yn` rejeitam e reperguntam fora do conjunto válido. A release do Fedora detectada em runtime (`rpm -E %fedora`) é comparada com `TARGET_FEDORA_VERSION` (`config/settings.conf`), tornando a suposição de versão "Fedora 45" verificável em vez de implícita.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Resiliência de Mirrors no Bootstrap (mestre direto + fastestmirror + retentativas)**  | O `mirrors.rpmfusion.org` faz steering geográfico via MirrorManager: se o mirror designado para a região do usuário estiver morto, todas as requisições caem no mesmo mirror inacessível (caso real: Brasil → mirror grego caído). O Módulo 00 agora: (1) habilita `fastestmirror` no DNF para priorizar o mirror de menor latência real; (2) baixa os release RPMs do RPM Fusion primeiro do servidor-mestre direto `download1.rpmfusion.org` (sem roleta), com retentativas na roleta e alternância IPv4 como fallback, instalando do arquivo local na Home do usuário; (3) pula o bootstrap se o RPM Fusion já estiver configurado (idempotência).                                                                                                                                                                                                                                                                                  |
 | **Migração GNOME Keyring → oo7 e ssh-agent via systemd (Fedora 45)**                    | A Change system-wide "oo7 Secrets Service Provider" do Fedora 45 substitui o GNOME Keyring como provedor oficial do `org.freedesktop.secrets` (mesma API D-Bus; `libsecret` e as shells continuam inalteradas). O instalador adota `oo7-daemon` + `oo7-portal` (exigido condicionalmente pelo daemon no empacotamento GA; a ausência dele quebrava a migração no Beta) + `pam_oo7` nos manifests e nos templates PAM (`pam_oo7.so`, incluindo `use_authtok` no greetd). O oo7 NÃO fornece ssh-agent (papel que no GNOME Keyring era apenas um wrapper do OpenSSH): o agente SSH passa a ser o `ssh-agent` oficial do OpenSSH ≥ 10 via socket activation (`ssh-agent.socket` habilitado no Módulo 07, com fallback offline por symlink em `default.target.wants`), desacoplado do provedor de segredos. O ponteiro legado `keyrings/default` (exclusivo do gnome-keyring) foi removido; o oo7 gerencia o chaveiro `login` internamente. |
+| **Lançadores Dedicados em `/usr/local/bin` (`install_niri_session_wrapper`)**            | O script upstream `niri-session` inicia o compositor delegando para o systemd (`systemctl --user --wait start niri.service`). Como daemons de usuário do systemd não herdam variáveis de subshells descartáveis de arquivos `.desktop` (`bash -c 'export NIRI_CONFIG=...'`), o `niri` caía no config de fábrica (`/etc/niri/config.kdl` com Waybar). Os wrappers dedicados provisionados em `/usr/local/bin/{noctalia,duxshell,inir}-niri-session` injetam `NIRI_CONFIG` explicitamente no systemd (`systemctl --user set-environment` e `dbus-update-activation-environment`) antes de invocar o `niri-session`, garantindo que cada shell carregue rigorosamente o seu KDL isolado e eliminando incompatibilidades de aspas entre diferentes Display Managers. |
+| **Pilha PAM Completa para SDDM (`postlogin`, `pam_systemd.so` e `pam_selinux.so`)**     | A ausência da cadeia `session include postlogin` no `/etc/pam.d/sddm` impedia o acionamento do `pam_systemd.so`, fazendo com que o `systemd-logind` não registrasse a sessão gráfica para o usuário no VT, negando permissões de assento (`seat0`) e de acesso direto ao hardware de vídeo (`/dev/dri/card*`). Tanto o Niri quanto o Umbriel abortavam imediatamente por falta de acesso DRM, resultando em tela preta e retorno instantâneo ao login. O template `config/system/pam_sddm.template` reestabelece a cadeia oficial do Fedora com `postlogin`, `pam_selinux.so` e `pam_loginuid.so`. |
+| **Prevenção de Inchaço do KDE Plasma no SDDM (`sddm-wayland-generic`)**                  | No Fedora, o pacote `sddm` requer a dependência virtual `sddm-greeter-displayserver`. Sem especificação explícita, o DNF puxa por padrão `sddm-wayland-plasma`, que instala inadvertidamente a suíte completa do KDE Plasma (`plasma-workspace`, `kwin`, etc.) e polui a lista de sessões. A adição declarativa de `sddm-wayland-generic` em `config/packages/sddm.conf` viabiliza o greeter Wayland nativo do SDDM sem dependências do ambiente Plasma. |
+| **Supressão de Janela Fantasma Tiled do `xwaylandvideobridge` e Overlay Niri**       | Puxado por dependências Qt/KDE durante o setup de shells avançadas, o `xwaylandvideobridge` cria uma janela oculta para captura de vídeo em apps legados X11. Como o Niri é um compositor tiling puro, essa janela era capturada como uma coluna preta/azul gigante dividindo o espaço da tela. O instalador blinda o ambiente através de `window-rule { match app-id=r#"(?i).*xwaylandvideobridge.*"# open-floating true default-floating-position x=-500 y=-500 relative-to="top-left" opacity 0.0 }` em todos os KDLs, oculta o popup de boas-vindas do Niri via `hotkey-overlay { skip-at-startup; }` e desativa preventivamente seu `.desktop` em `/etc/xdg/autostart/` e `~/.config/autostart/`. |
+| **Isolamento de Autostart de Terceiros no Systemd de Usuário (`inir.service`)**          | Scripts upstream (como o setup do iNiR) podem criar symlinks automáticos em `graphical-session.target.wants` ou `default.target.wants`. Sem isolamento, a interface seria disparada em segundo plano mesmo quando o usuário fizesse login em outras shells (como Noctalia ou Dux). O instalador limpa esses links e desativa o serviço de usuário, delegando a inicialização unicamente ao bloco `spawn-at-startup` do KDL correspondente. |
+| **Proteção Multi-Shell Cumulativa contra `rsync --delete` do iNiR**                     | O script `./setup install -y` do iNiR executa sincronização destrutiva sobre `~/.config/niri/`, deletando `shells/noctalia.kdl` e `shells/duxshell.kdl`. A rotina no Módulo 07 audita `/usr/share/wayland-sessions/` e reconstrói atomicamente todos os KDLs declarados, preservando a capacidade de alternar entre shells no Display Manager sem cair no fallback genérico do Fedora. |
+| **Saneamento de Daemons e Redução de RAM do iNiR (~2 GB → ~700 MB idle)**              | O instalador do iNiR puxa dezenas de dependências opcionais pesadas. A remoção cirúrgica de `kf6-baloo`, `easyeffects`, `xwaylandvideobridge`, `gnome-keyring`, `blueman` e suíte KDE de monitoramento, aliada ao mascaramento de unidades systemd, economiza mais de 1,2 GB de memória RAM em repouso e mantém a integridade do `oo7-daemon`. |
 
 ---
 

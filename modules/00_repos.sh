@@ -17,6 +17,8 @@ INSTALLER_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 [[ -f "${INSTALLER_ROOT}/lib/logger.sh" ]] && source "${INSTALLER_ROOT}/lib/logger.sh"
 # shellcheck source=../lib/utils.sh
 [[ -f "${INSTALLER_ROOT}/lib/utils.sh" ]] && source "${INSTALLER_ROOT}/lib/utils.sh"
+# shellcheck source=../lib/security.sh
+[[ -f "${INSTALLER_ROOT}/lib/security.sh" ]] && source "${INSTALLER_ROOT}/lib/security.sh"
 
 ui_section_header "MÓDULO 00: CONFIGURAÇÃO DE REPOSITÓRIOS"
 
@@ -99,15 +101,10 @@ else
        fetch_rpm_with_fallback "$RF_NONFREE" \
          "https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm" \
          "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VER}.noarch.rpm"; then
-        # O --nogpgcheck abaixo é restrito ao bootstrap dos pacotes -release do
-        # RPM Fusion (ovo-e-galinha da chave GPG): a chave de assinatura deles só
-        # passa a existir no sistema DEPOIS que esses pacotes são instalados. No
-        # Fedora 45+ a verificação de assinatura RPM passou a ser obrigatória por
-        # padrão (RPM 6.1), o que faria este `dnf install -y` abortar em modo não
-        # interativo. São os mesmos dois RPMs oficiais baixados acima por HTTPS de
-        # rpmfusion.org; toda instalação posterior do RPM Fusion é assinada e
-        # verificada normalmente (as chaves entram com esses release pacotes).
-        sudo dnf install -y --nogpgcheck "$RF_FREE" "$RF_NONFREE"
+        # Importa a chave GPG do RPM Fusion Free e Nonfree antes de instalar os pacotes de release
+        security_import_repo_key "https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-free-fedora-${FEDORA_VER}" 2>/dev/null || true
+        security_import_repo_key "https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-nonfree-fedora-${FEDORA_VER}" 2>/dev/null || true
+        sudo dnf install -y "$RF_FREE" "$RF_NONFREE"
         log_success "RPM Fusion configurado com sucesso."
     else
         log_error "Falha ao baixar os release RPMs do RPM Fusion (servidor-mestre e roleta de mirrors inacessíveis)."
@@ -149,34 +146,27 @@ fi
 # Se a shell escolhida for Noctalia: ativa o repositório Terra do Fyra Labs (necessário para o noctalia-greeter e umbriel)
 if [[ "${SELECTED_SHELL:-}" == "noctalia" || "${SELECTED_INTERFACE:-}" == "noctalia" ]]; then
     log_info "Verificando repositório Terra do Fyra Labs para Noctalia Shell e dependências (noctalia-greeter / umbriel)..."
-    if rpm -q terra-release >/dev/null 2>&1 || ls /etc/yum.repos.d/*terra*.repo >/dev/null 2>&1; then
-        log_info "Repositório Terra do Fyra Labs já está configurado. Pulando..."
+    if rpm -q terra-release >/dev/null 2>&1; then
+        log_info "Repositório Terra do Fyra Labs já está configurado (terra-release instalado). Pulando..."
     else
-        # O --nogpgcheck abaixo é o bootstrap OFICIAL documentado pela Fyra Labs
-        # (https://docs.terrapkg.com/usage/installing): necessário apenas para
-        # instalar terra-release/terra-gpg-keys (ovo-e-galinha da chave GPG).
-        # Ele é estritamente restrito a esses dois pacotes; toda instalação
-        # posterior do Terra é assinada e verificada normalmente.
-        log_info "Instalando pacotes de bootstrap do repositório Terra (terra-release e terra-gpg-keys)..."
-        if ! sudo dnf install -y --nogpgcheck --repofrompath "terra,${REPO_TERRA_URL}" \
-            terra-release terra-gpg-keys; then
-            log_warn "Tentativa via repofrompath falhou. Tentando download direto dos pacotes RPM do Terra..."
-            if ! sudo dnf install -y \
-                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-release.rpm" \
-                "https://repos.fyralabs.com/terra${FEDORA_VER}/terra-gpg-keys.rpm"; then
-                log_error "Falha ao configurar o repositório Terra (obrigatório para noctalia-greeter/umbriel)."
-                exit 1
-            fi
-        fi
+        log_info "Instalando repositório Terra do Fyra Labs via método oficial (terra-release e terra-gpg-keys)..."
+        sudo dnf install -y --nogpgcheck --repofrompath "terra,https://repos.fyralabs.com/terra\$releasever" terra-release terra-gpg-keys
         log_success "Repositório Terra do Fyra Labs configurado com sucesso."
     fi
 fi
 
-# Se a interface escolhida for Dux Shell: ativa o COPR avengemedia/danklinux
-# (Os COPRs novos duxlabs/dux e duxlabs/dms ainda não estão prontos para produção,
-# conforme aviso oficial na página dos repositórios — manter avengemedia até o 2.0.1)
+# Se a interface escolhida for Dux Shell: ativa os COPRs oficiais duxlabs/dms e duxlabs/dux-repo
 if [[ "${SELECTED_INTERFACE:-}" == "duxshell" || "${SELECTED_SHELL:-}" == "duxshell" ]]; then
-    enable_copr_repo "avengemedia/danklinux" "avengemedia:danklinux"
+    log_info "Removendo repositório legado e configurando repositórios oficiais da Dux Labs (DMS 2.x)..."
+    
+    # Remove completamente o repositório legado avengemedia/danklinux
+    sudo dnf copr remove -y avengemedia/danklinux 2>/dev/null || true
+    sudo rm -f /etc/yum.repos.d/*avengemedia*danklinux*.repo 2>/dev/null || true
+
+    # Habilita exclusivamente os repositórios oficiais atuais
+    sudo dnf copr enable -y duxlabs/dms
+    sudo dnf copr enable -y duxlabs/dux-repo
+    log_success "Repositório legado removido e duxlabs/dms + duxlabs/dux-repo habilitados com sucesso."
 fi
 
 # 4. Instalação do Repositório Brave Software

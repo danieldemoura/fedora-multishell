@@ -28,6 +28,7 @@ SELECTED_INTERFACE="${SELECTED_INTERFACE:-${SELECTED_SHELL:-inir}}"
 SELECTED_SHELL="${SELECTED_INTERFACE}"
 
 NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
+NIRI_SHELLS_DIR="${NIRI_CONFIG_DIR}/shells"
 NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
 UMB_CONFIG_DIR="${REAL_HOME}/.config/umbriel"
 UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
@@ -37,31 +38,33 @@ log_info "Configurações ativas -> Compositor: ${SELECTED_COMPOSITOR} | Shell: 
 
 # 1. Inicialização do cofre de credenciais oo7 e vínculo canônico com o PAM
 # (Fedora 45: o provedor do Secret Service é o oo7; o chaveiro 'login' é
-# criado/destravado pelo oo7-daemon via pam_oo7 no primeiro login gráfico.)
-log_info "Preparando diretório do cofre de credenciais oo7..."
+# criado/destravado pelo oo7-daemon via pam_oo7 com auto_start no login gráfico.)
+log_info "Assegurando permissões restritas no diretório do cofre de credenciais..."
 KEYRINGS_DIR="${REAL_HOME}/.local/share/keyrings"
 sudo -u "${REAL_USER}" mkdir -p "${KEYRINGS_DIR}"
 sudo chmod 700 "${KEYRINGS_DIR}"
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${KEYRINGS_DIR}"
+
 log_success "Diretório ${KEYRINGS_DIR} pronto para o oo7 (permissão 700, proprietário ${REAL_USER})."
 
 # 1.1 Habilitação da unidade de usuário do oo7-daemon no login
 # (Fedora 45: o destravamento automático do chaveiro 'login' exige que o
-# oo7-daemon esteja rodando dentro da sessão gráfica. O %systemd_user_post do
-# pacote tenta habilitá-lo via preset, mas em instalação mínima com Greetd/SDDM
-# isso pode não ter sido aplicado ao usuário-alvo (cf. bug Silverblue #714).
-# Habilitamos explicitamente para reproduzir o comportamento do antigo
-# gnome-keyring: logar e o navegador já encontrar o cofre destravado, sem popup.)
+# oo7-daemon esteja rodando e com socket ativo dentro da sessão gráfica.
+# Habilitamos formalmente para garantir que o cofre seja destravado via pam_oo7.)
 log_info "Habilitando oo7-daemon.service (unidade de usuário) no login..."
+sudo -u "${REAL_USER}" systemctl --user enable oo7-daemon.service 2>/dev/null || true
 if [[ -f "/usr/lib/systemd/user/oo7-daemon.service" ]]; then
     if sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
           systemctl --user enable oo7-daemon.service >/dev/null 2>&1; then
         log_success "oo7-daemon.service habilitado para ${REAL_USER} (chaveiro ativo já no primeiro login)."
     else
         sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config/systemd/user/default.target.wants"
+        sudo -u "${REAL_USER}" mkdir -p "${REAL_HOME}/.config/systemd/user/graphical-session.target.wants"
         sudo -u "${REAL_USER}" ln -sfn "/usr/lib/systemd/user/oo7-daemon.service" \
             "${REAL_HOME}/.config/systemd/user/default.target.wants/oo7-daemon.service"
-        log_success "oo7-daemon.service habilitado via symlink offline (default.target.wants)."
+        sudo -u "${REAL_USER}" ln -sfn "/usr/lib/systemd/user/oo7-daemon.service" \
+            "${REAL_HOME}/.config/systemd/user/graphical-session.target.wants/oo7-daemon.service"
+        log_success "oo7-daemon.service habilitado via symlink offline (default & graphical-session targets)."
     fi
 else
     log_warn "Unidade oo7-daemon.service ausente; verifique o empacotamento do oo7 nesta release."
@@ -88,23 +91,111 @@ else
     log_warn "Unidade ssh-agent.socket ausente desta release do OpenSSH; o ssh usará agente próprio ou sem agente."
 fi
 
-# 2. Configuração do Compositor Ativo e Shell
+# 2. Funções Auxiliares de Sessão Wayland e Configurações Declarativas
+
+# Registra uma sessão Wayland em /usr/share/wayland-sessions a partir de config/system/wayland-sessions
+register_wayland_session() {
+    local session_file="$1"
+    local source_desktop="${SYSTEM_DIR}/wayland-sessions/${session_file}"
+    local target_dir="/usr/share/wayland-sessions"
+    local target_desktop="${target_dir}/${session_file}"
+
+    if [[ ! -f "$source_desktop" ]]; then
+        log_error "Modelo de sessão Wayland não encontrado: ${source_desktop}"
+        return 1
+    fi
+
+    log_info "Registrando sessão Wayland no sistema (${session_file})..."
+    sudo mkdir -p "$target_dir"
+
+    # Desativa as sessões genéricas/cruas dos compositores sem shell (niri.desktop e umbriel.desktop)
+    # e resquícios de sessões de ambiente de terceiros (como Plasma instalado via dependência de DM)
+    for raw_session in niri.desktop umbriel.desktop plasma.desktop plasmawayland.desktop; do
+        if [[ -f "${target_dir}/${raw_session}" ]]; then
+            log_info "Desativando sessão crua ou externa (${raw_session}) para exibir apenas as interfaces suportadas..."
+            sudo mv -f "${target_dir}/${raw_session}" "${target_dir}/${raw_session}.disabled" 2>/dev/null || true
+        fi
+    done
+
+    # Desativa xwaylandvideobridge do autostart XDG e do usuário para evitar janela fantasma/tiled/azul no Niri
+    for xwb in /etc/xdg/autostart/*xwaylandvideobridge*.desktop \
+               "${REAL_HOME}/.config/autostart/"*xwaylandvideobridge*.desktop; do
+        if [[ -f "$xwb" ]]; then
+            log_info "Desativando $(basename "$xwb") do autostart para evitar janela de captura no Niri..."
+            sudo mv -f "$xwb" "${xwb}.disabled" 2>/dev/null || true
+        fi
+    done
+
+    # Registra ou atualiza a sessão Wayland declarativa (permitindo coexistência acumulativa de múltiplas interfaces)
+    sudo cp "$source_desktop" "$target_desktop"
+    sudo chmod 644 "$target_desktop"
+    sudo chown root:root "$target_desktop"
+    log_success "Sessão '${session_file}' registrada com sucesso em ${target_dir}."
+}
+
+# Aplica parâmetros de renderização por software do Niri caso o ambiente seja Máquina Virtual (IS_VM=true)
+apply_niri_vm_flags() {
+    local target_file="$1"
+    if [[ "${IS_VM:-false}" == true && -f "$target_file" ]]; then
+        if ! grep -qF 'LIBGL_ALWAYS_SOFTWARE' "$target_file"; then
+            log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software em $(basename "$target_file")..."
+            sudo -u "${REAL_USER}" tee -a "$target_file" >/dev/null <<'EOF'
+
+// =============================================================================
+// Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
+environment {
+    LIBGL_ALWAYS_SOFTWARE "1"
+    WLR_NO_HARDWARE_CURSORS "1"
+}
+EOF
+            log_success "Flags de VM anexadas dinamicamente ao final de $(basename "$target_file")."
+        else
+            log_info "Flags de VM já presentes em $(basename "$target_file")."
+        fi
+    fi
+}
+
+# Instala launcher de sessão Wayland em /usr/local/bin garantindo que NIRI_CONFIG
+# seja propagado para o systemd --user e niri.service leia o KDL isolado correto.
+install_niri_session_wrapper() {
+    local shell_name="$1"
+    local wrapper_path="/usr/local/bin/${shell_name}-niri-session"
+
+    log_info "Instalando launcher de sessão Wayland em ${wrapper_path}..."
+    sudo tee "$wrapper_path" >/dev/null <<EOF
+#!/usr/bin/env bash
+set -e
+export NIRI_CONFIG="\${HOME}/.config/niri/shells/${shell_name}.kdl"
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user set-environment NIRI_CONFIG="\${NIRI_CONFIG}" 2>/dev/null || true
+fi
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd NIRI_CONFIG 2>/dev/null || true
+fi
+exec /usr/bin/niri-session
+EOF
+    sudo chmod 755 "$wrapper_path"
+    sudo chown root:root "$wrapper_path"
+    log_success "Launcher '${wrapper_path}' instalado com sucesso."
+}
+
+# 2.1 Configuração do Compositor Ativo e Shell
 if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia" ]]; then
-    # 2.1 Configuração Declarativa do Noctalia Shell
+    # Configuração Declarativa do Noctalia Shell
     NOCTALIA_CONFIG_DIR="${REAL_HOME}/.config/noctalia"
     NOCTALIA_CONFIG_FILE="${NOCTALIA_CONFIG_DIR}/config.toml"
 
     log_info "Configurando ambiente declarativo do Noctalia Shell..."
     sudo -u "${REAL_USER}" mkdir -p "${NOCTALIA_CONFIG_DIR}"
 
-    if [[ -f "${DESKTOP_DIR}/noctalia/config.toml" ]]; then
-        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/noctalia/config.toml" "${NOCTALIA_CONFIG_FILE}"
+    if [[ -f "${DESKTOP_DIR}/interfaces/noctalia/config.toml" ]]; then
+        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/interfaces/noctalia/config.toml" "${NOCTALIA_CONFIG_FILE}"
         log_info "Configuração declarativa do Noctalia copiada para ${NOCTALIA_CONFIG_FILE}."
     fi
 
     ensure_user_ownership "${REAL_HOME}/.config"
 
-    # 2.2 Configuração do Compositor Ativo para Noctalia
+    # Configuração do Compositor Ativo para Noctalia
     if [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
         UMB_CONFIG_DIR="${REAL_HOME}/.config/umbriel"
         UMB_CONFIG_FILE="${UMB_CONFIG_DIR}/config.toml"
@@ -112,16 +203,13 @@ if [[ "${SELECTED_INTERFACE}" == "noctalia" || "${SELECTED_SHELL}" == "noctalia"
         log_info "Configurando ambiente do Umbriel para Noctalia a partir dos templates declarativos..."
         sudo -u "${REAL_USER}" mkdir -p "${UMB_CONFIG_DIR}"
 
-        # Backup de config anterior se existir
         if [[ -f "${UMB_CONFIG_FILE}" ]]; then
             backup_file "${UMB_CONFIG_FILE}" false
         fi
 
-        # Copia todos os arquivos declarativos de config/desktop/umbriel/* para ~/.config/umbriel/
-        sudo -u "${REAL_USER}" cp -r "${DESKTOP_DIR}/umbriel/"* "${UMB_CONFIG_DIR}/"
+        sudo -u "${REAL_USER}" cp -r "${DESKTOP_DIR}/compositors/umbriel/"* "${UMB_CONFIG_DIR}/"
         log_info "Configurações declarativas de Umbriel copiadas para ${UMB_CONFIG_DIR}/ com sucesso."
 
-        # Injeção Dinâmica para VM: apenas se IS_VM=true (idempotente por guard de grep)
         if [[ "${IS_VM:-false}" == true ]]; then
             if ! grep -qF 'LIBGL_ALWAYS_SOFTWARE' "${UMB_CONFIG_FILE}"; then
                 log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Umbriel..."
@@ -142,6 +230,9 @@ EOF
             fi
         fi
 
+        # Registra a sessão Wayland para Noctalia no Umbriel
+        register_wayland_session "noctalia-umbriel.desktop"
+
         # Validação do arquivo final
         log_info "Executando validador oficial do Umbriel (umbriel config validate)..."
         if command -v umbriel >/dev/null 2>&1; then
@@ -161,45 +252,29 @@ EOF
         fi
 
     elif [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
-        NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
-        NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
+        NIRI_SHELL_FILE="${NIRI_SHELLS_DIR}/noctalia.kdl"
 
-        log_info "Configurando ambiente do Niri para Noctalia a partir dos templates declarativos..."
-        sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
+        log_info "Configurando ambiente isolado do Niri para Noctalia..."
+        sudo -u "${REAL_USER}" mkdir -p "${NIRI_SHELLS_DIR}"
 
-        # Backup de config anterior se existir
-        if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
-            backup_file "${NIRI_CONFIG_FILE}" false
+        # Copia template dedicado do Noctalia
+        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/compositors/niri/shells/noctalia.kdl" "${NIRI_SHELL_FILE}"
+        apply_niri_vm_flags "${NIRI_SHELL_FILE}"
+
+        # Se config.kdl principal não existir, define o do Noctalia como padrão
+        if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
+            sudo -u "${REAL_USER}" cp "${NIRI_SHELL_FILE}" "${NIRI_CONFIG_FILE}"
         fi
 
-        # Copia configuração declarativa config/desktop/niri/config.kdl
-        sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/niri/config.kdl" "${NIRI_CONFIG_FILE}"
-        log_info "Configuração declarativa do Niri copiada para ${NIRI_CONFIG_FILE}."
+        # Registra o launcher de sessão e a entrada Wayland para Noctalia no Niri
+        install_niri_session_wrapper "noctalia"
+        register_wayland_session "noctalia-niri.desktop"
 
-        # Injeção Dinâmica para VM: apenas se IS_VM=true (idempotente por guard de grep)
-        if [[ "${IS_VM:-false}" == true ]]; then
-            if ! grep -qF 'LIBGL_ALWAYS_SOFTWARE' "${NIRI_CONFIG_FILE}"; then
-                log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Niri..."
-                sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
-
-// =============================================================================
-// Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
-environment {
-    LIBGL_ALWAYS_SOFTWARE "1"
-    WLR_NO_HARDWARE_CURSORS "1"
-}
-EOF
-                log_success "Flags de VM anexadas dinamicamente ao final de ${NIRI_CONFIG_FILE}."
-            else
-                log_info "Flags de VM já presentes em ${NIRI_CONFIG_FILE}."
-            fi
-        fi
-
-        # Validação do arquivo final
-        log_info "Executando validador oficial do Niri (niri validate)..."
+        # Validação do arquivo da shell
+        log_info "Executando validador oficial do Niri para Noctalia (niri validate -c)..."
         if command -v niri >/dev/null 2>&1; then
-            if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
-                log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração."
+            if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate -c "${NIRI_SHELL_FILE}" 2>&1)"; then
+                log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou a configuração do Noctalia."
             else
                 log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração!"
                 while IFS= read -r val_line; do
@@ -208,7 +283,7 @@ EOF
                 exit 1
             fi
         elif [[ -x "/usr/bin/niri" ]]; then
-            if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
+            if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate -c "${NIRI_SHELL_FILE}" 2>&1)"; then
                 log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo."
             else
                 log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração!"
@@ -222,75 +297,37 @@ EOF
         fi
     fi
 elif [[ "${SELECTED_SHELL}" == "inir" ]]; then
-    NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
-    NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
+    NIRI_SHELL_FILE="${NIRI_SHELLS_DIR}/inir.kdl"
 
-    log_info "Shell selecionada é o iNiR: configurando inicialização e integração no Niri..."
-    sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
+    log_info "Configurando ambiente isolado do Niri para iNiR Shell..."
+    sudo -u "${REAL_USER}" mkdir -p "${NIRI_SHELLS_DIR}"
 
-    # Garante a existência do config.kdl (se não existir, cria vazio com permissões do usuário)
+    # Copia template dedicado do iNiR
+    sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/compositors/niri/shells/inir.kdl" "${NIRI_SHELL_FILE}"
+    apply_niri_vm_flags "${NIRI_SHELL_FILE}"
+
+    # Se config.kdl principal não existir, define o do iNiR como padrão
     if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
-        log_info "Arquivo ${NIRI_CONFIG_FILE} não encontrado. Criando arquivo base..."
-        sudo -u "${REAL_USER}" touch "${NIRI_CONFIG_FILE}"
+        sudo -u "${REAL_USER}" cp "${NIRI_SHELL_FILE}" "${NIRI_CONFIG_FILE}"
     fi
 
-    # 1. Inicialização supervisionada da shell (inir.service)
-    #    Caminho canônico upstream: niri.service (sessão) puxa inir.service via
-    #    wants link. A troca de família de painéis em runtime (iRiS) exige o
-    #    serviço supervisionado — spawn-at-startup é contingência apenas quando
-    #    a unidade de usuário do niri não existe na instalação.
-    INIR_SUPERVISED=false
-    INIR_BIN="${REAL_HOME}/.local/bin/inir"
-    [[ -x "${INIR_BIN}" ]] || INIR_BIN="$(sudo -u "${REAL_USER}" bash -lc 'command -v inir' 2>/dev/null || true)"
-    NIRI_USER_UNIT=""
-    for unit_path in /usr/lib/systemd/user/niri.service /lib/systemd/user/niri.service /usr/local/lib/systemd/user/niri.service; do
-        [[ -f "${unit_path}" ]] && { NIRI_USER_UNIT="${unit_path}"; break; }
-    done
+    # Isolamento de autostart: o autostart do iNiR roda exclusivamente via spawn-at-startup
+    # dentro de shells/inir.kdl. Removemos preventivamente vínculos globais do inir.service
+    # para impedir que o iNiR inicialize em segundo plano ao selecionar outras interfaces.
     SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
-
-    if [[ -n "${INIR_BIN}" && -n "${NIRI_USER_UNIT}" ]]; then
-        log_info "Vinculando o iNiR como serviço de usuário systemd (inir.service -> niri.service)..."
-        sudo -u "${REAL_USER}" HOME="${REAL_HOME}" "${INIR_BIN}" service install || true
-        sudo -u "${REAL_USER}" HOME="${REAL_HOME}" "${INIR_BIN}" service enable || true
-        if [[ -f "${SYSTEMD_USER_DIR}/inir.service" ]]; then
-            # Garantia apenas de sistema de arquivos (idempotente e sem D-Bus,
-            # que não está disponível durante a instalação em TTY)
-            mkdir -p "${SYSTEMD_USER_DIR}/niri.service.wants"
-            ln -sf "${SYSTEMD_USER_DIR}/inir.service" "${SYSTEMD_USER_DIR}/niri.service.wants/inir.service"
-            sudo chown -R "${REAL_USER}:${REAL_USER}" "${SYSTEMD_USER_DIR}"
-            INIR_SUPERVISED=true
-            # No modo canônico não deve haver spawn handwritten (risco de shell duplicada)
-            sudo -u "${REAL_USER}" sed -i '/^spawn-at-startup "inir" "run"$/d;/^\/\/ Autostart da interface de usuário iNiR$/d' "${NIRI_CONFIG_FILE}"
-            log_success "[Checklist] iNiR vinculado como serviço supervisionado (trocas de família em runtime habilitadas)."
+    for want_dir in "${SYSTEMD_USER_DIR}/niri.service.wants" \
+                   "${SYSTEMD_USER_DIR}/graphical-session.target.wants" \
+                   "${SYSTEMD_USER_DIR}/default.target.wants"; do
+        if [[ -d "$want_dir" ]]; then
+            sudo -u "${REAL_USER}" rm -f "${want_dir}/inir.service" 2>/dev/null || true
         fi
+    done
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+            systemctl --user disable inir.service >/dev/null 2>&1 || true
     fi
 
-    if [[ "${INIR_SUPERVISED}" == false ]]; then
-        # Contingência: sem unidade de usuário do niri ou sem lançador, a shell
-        # sobe como filha do Niri (interruptor de família em runtime ficará indisponível)
-        if ! grep -q 'spawn-at-startup "inir" "run"' "${NIRI_CONFIG_FILE}"; then
-            log_warn "Supervisionamento systemd indisponível: usando autostart de contingência via spawn-at-startup."
-            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
-
-// Autostart da interface de usuário iNiR
-spawn-at-startup "inir" "run"
-EOF
-            log_success "Autostart do iNiR adicionado ao ${NIRI_CONFIG_FILE}."
-        else
-            log_info "Autostart do iNiR já presente em ${NIRI_CONFIG_FILE} (modo de contingência)."
-        fi
-    fi
-
-    # 2. Pré-ativação declarativa da família iRiS no config.json
-    #    Equivalente ao botão "Ativar o Iris" (scripts/switch-family-restart.py),
-    #    aplicado offline antes do primeiro boot — sem depender do serviço.
-    #    ATENÇÃO AO CAMINHO: a shell em runtime lê o config de
-    #    ~/.config/illogical-impulse/config.json (modules/common/Directories.qml
-    #    fixa "shellConfig = <XDG_CONFIG>/illogical-impulse"; o mesmo caminho é
-    #    usado pelo switch-family-restart.py). O ./setup install, porém, semeia os
-    #    defaults em ~/.config/inir/config.json (resolve_inir_config_dir prefere o
-    #    diretório novo). Escrevemos no caminho operativo (illogical-impulse) e,
-    #    se existir, espelhamos em ~/.config/inir para manter o lançador coerente.
+    # Pré-ativação declarativa da família iRiS no config.json
     INIR_LEGACY_JSON="${REAL_HOME}/.config/illogical-impulse/config.json"
     INIR_NEW_JSON="${REAL_HOME}/.config/inir/config.json"
 
@@ -364,30 +401,15 @@ PYEOF
         log_warn "Nenhum config.json do iNiR encontrado (illogical-impulse nem inir) — pré-ativação do iRiS ignorada."
     fi
 
-    # 3. Injeção de variáveis de renderização segura para VM
-    if [[ "${IS_VM:-false}" == true ]]; then
-        if ! grep -q 'LIBGL_ALWAYS_SOFTWARE "1"' "${NIRI_CONFIG_FILE}"; then
-            log_info "Detectado ambiente VM (IS_VM=true). Injetando parâmetros de renderização por software no Niri..."
-            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
+    # Registra o launcher de sessão e a entrada Wayland para iNiR no Niri
+    install_niri_session_wrapper "inir"
+    register_wayland_session "inir-niri.desktop"
 
-// =============================================================================
-// Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
-environment {
-    LIBGL_ALWAYS_SOFTWARE "1"
-    WLR_NO_HARDWARE_CURSORS "1"
-}
-EOF
-            log_success "Flags de VM anexadas dinamicamente ao final de ${NIRI_CONFIG_FILE}."
-        else
-            log_info "Flags de VM já presentes em ${NIRI_CONFIG_FILE}."
-        fi
-    fi
-
-    # 4. Validação oficial do Niri
-    log_info "Validando configuração do Niri para iNiR (niri validate)..."
+    # Validação oficial do Niri para iNiR
+    log_info "Validando configuração do Niri para iNiR (niri validate -c)..."
     if command -v niri >/dev/null 2>&1; then
-        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
-            log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração do iNiR."
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate -c "${NIRI_SHELL_FILE}" 2>&1)"; then
+            log_success "[Checklist] Validação aprovada: 'niri validate' confirmou a configuração do iNiR."
         else
             log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração do iNiR!"
             while IFS= read -r val_line; do
@@ -396,8 +418,8 @@ EOF
             exit 1
         fi
     elif [[ -x "/usr/bin/niri" ]]; then
-        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
-            log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo do iNiR."
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate -c "${NIRI_SHELL_FILE}" 2>&1)"; then
+            log_success "[Checklist] Validação aprovada: '/usr/bin/niri validate' confirmou o arquivo do iNiR."
         else
             log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração do iNiR!"
             while IFS= read -r val_line; do
@@ -408,57 +430,47 @@ EOF
     else
         log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
     fi
+
 elif [[ "${SELECTED_INTERFACE}" == "duxshell" ]]; then
-    NIRI_CONFIG_DIR="${REAL_HOME}/.config/niri"
-    NIRI_CONFIG_FILE="${NIRI_CONFIG_DIR}/config.kdl"
+    NIRI_SHELL_FILE="${NIRI_SHELLS_DIR}/duxshell.kdl"
 
-    log_info "Interface selecionada é Dux Shell (DMS): ajustando configurações no Niri..."
-    sudo -u "${REAL_USER}" mkdir -p "${NIRI_CONFIG_DIR}"
+    log_info "Configurando ambiente isolado do Niri para Dux Shell (DMS)..."
+    sudo -u "${REAL_USER}" mkdir -p "${NIRI_SHELLS_DIR}"
 
+    # Copia template dedicado do Dux Shell
+    sudo -u "${REAL_USER}" cp "${DESKTOP_DIR}/compositors/niri/shells/duxshell.kdl" "${NIRI_SHELL_FILE}"
+    apply_niri_vm_flags "${NIRI_SHELL_FILE}"
+
+    # Se config.kdl principal não existir, define o do Dux Shell como padrão
     if [[ ! -f "${NIRI_CONFIG_FILE}" ]]; then
-        log_warn "Arquivo ${NIRI_CONFIG_FILE} não encontrado após a instalação do DMS. Criando arquivo base..."
-        sudo -u "${REAL_USER}" touch "${NIRI_CONFIG_FILE}"
+        sudo -u "${REAL_USER}" cp "${NIRI_SHELL_FILE}" "${NIRI_CONFIG_FILE}"
     fi
 
-    # 1. Injeção de Autostart do Dux Shell (DMS)
-    if ! grep -q 'spawn-at-startup "dms"' "${NIRI_CONFIG_FILE}"; then
-        log_info "Configurando autostart do Dux Shell (dms run) no Niri..."
-        # Injeta spawn-at-startup "dms" "run" no topo do arquivo de configuração
-        sudo -u "${REAL_USER}" sed -i '1i spawn-at-startup "dms" "run"' "${NIRI_CONFIG_FILE}"
-        log_success "Autostart do Dux Shell configurado com sucesso em ${NIRI_CONFIG_FILE}."
-    else
-        log_info "Autostart do Dux Shell já presente em ${NIRI_CONFIG_FILE}."
-    fi
+    # Registra o launcher de sessão e a entrada Wayland para Dux Shell no Niri
+    install_niri_session_wrapper "duxshell"
+    register_wayland_session "duxshell-niri.desktop"
 
-    # 2. Injeção de variáveis de renderização segura para VM
-    if [[ "${IS_VM:-false}" == true ]]; then
-        log_info "Detectado ambiente VM (IS_VM=true). Assegurando flags de renderização por software no Niri..."
-        if grep -q 'environment {' "${NIRI_CONFIG_FILE}"; then
-            if ! grep -q 'LIBGL_ALWAYS_SOFTWARE' "${NIRI_CONFIG_FILE}"; then
-                sudo -u "${REAL_USER}" sed -i '/environment {/a \    LIBGL_ALWAYS_SOFTWARE "1"\n    WLR_NO_HARDWARE_CURSORS "1"' "${NIRI_CONFIG_FILE}"
-            fi
-        else
-            sudo -u "${REAL_USER}" tee -a "${NIRI_CONFIG_FILE}" >/dev/null <<'EOF'
-
-// =============================================================================
-// Ajustes automáticos para Máquina Virtual (VMware / VirtualBox)
-environment {
-    LIBGL_ALWAYS_SOFTWARE "1"
-    WLR_NO_HARDWARE_CURSORS "1"
-}
-EOF
+    # Isolamento de autostart: o autostart do Dux Shell roda via spawn-at-startup
+    # dentro de shells/duxshell.kdl. Removemos preventivamente o link global niri.service.wants
+    # ou graphical-session.target.wants para impedir que o dms inicialize em segundo plano ao selecionar outras interfaces.
+    SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
+    for want_dir in "${SYSTEMD_USER_DIR}/niri.service.wants" \
+                   "${SYSTEMD_USER_DIR}/graphical-session.target.wants" \
+                   "${SYSTEMD_USER_DIR}/default.target.wants"; do
+        if [[ -d "$want_dir" ]]; then
+            sudo -u "${REAL_USER}" rm -f "${want_dir}/dms.service" "${want_dir}/dux.service" 2>/dev/null || true
         fi
-        log_success "Flags de VM asseguradas em ${NIRI_CONFIG_FILE}."
+    done
+    if command -v systemctl >/dev/null 2>&1; then
+        sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+            systemctl --user disable dms.service dux.service >/dev/null 2>&1 || true
     fi
 
-    # 3. Garantir permissões de posse antes da validação
-    ensure_user_ownership "${REAL_HOME}/.config"
-
-    # 4. Validação oficial do Niri
-    log_info "Validando configuração do Niri para o Dux Shell (niri validate)..."
+    # Validação oficial do Niri para o Dux Shell
+    log_info "Validando configuração do Niri para o Dux Shell (niri validate -c)..."
     if command -v niri >/dev/null 2>&1; then
-        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
-            log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração do DMS."
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate -c "${NIRI_SHELL_FILE}" 2>&1)"; then
+            log_success "[Checklist] Validação aprovada: 'niri validate' confirmou a configuração do DMS."
         else
             log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração do DMS!"
             while IFS= read -r val_line; do
@@ -467,8 +479,8 @@ EOF
             exit 1
         fi
     elif [[ -x "/usr/bin/niri" ]]; then
-        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
-            log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo do DMS."
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate -c "${NIRI_SHELL_FILE}" 2>&1)"; then
+            log_success "[Checklist] Validação aprovada: '/usr/bin/niri validate' confirmou o arquivo do DMS."
         else
             log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração do DMS!"
             while IFS= read -r val_line; do
@@ -480,6 +492,51 @@ EOF
         log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
     fi
 fi
+
+# ==============================================================================
+# Sincronização Cumulativa e Proteção Multi-Shell do Niri
+# ==============================================================================
+log_info "Verificando integridade das sessões Wayland declaradas..."
+shells_target_dir="${REAL_HOME}/.config/niri/shells"
+mkdir -p "${shells_target_dir}"
+
+# 1. Se a sessão Noctalia (Niri) existir ou estiver sendo instalada, restaura seu KDL
+if [[ -f "/usr/share/wayland-sessions/noctalia-niri.desktop" || "${SELECTED_INTERFACE}" == "noctalia" ]]; then
+    if [[ -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/noctalia.kdl" ]]; then
+        cp -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/noctalia.kdl" "${shells_target_dir}/noctalia.kdl"
+    fi
+fi
+
+# 2. Se a sessão Dux Shell existir ou estiver sendo instalada, restaura seu KDL
+if [[ -f "/usr/share/wayland-sessions/duxshell-niri.desktop" || "${SELECTED_INTERFACE}" == "duxshell" ]]; then
+    if [[ -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/duxshell.kdl" ]]; then
+        cp -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/duxshell.kdl" "${shells_target_dir}/duxshell.kdl"
+    fi
+fi
+
+# 3. Se a sessão iNiR existir ou estiver sendo instalada, restaura seu KDL
+if [[ -f "/usr/share/wayland-sessions/inir-niri.desktop" || "${SELECTED_INTERFACE}" == "inir" ]]; then
+    if [[ -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/inir.kdl" ]]; then
+        cp -f "${COMPOSITORS_CONFIG_DIR}/niri/shells/inir.kdl" "${shells_target_dir}/inir.kdl"
+    fi
+fi
+
+# Injeta flags de VM em todos os KDLs restaurados caso seja ambiente virtual
+if [[ "${IS_VM:-false}" == "true" ]]; then
+    for kdl in "${shells_target_dir}"/*.kdl; do
+        if [[ -f "$kdl" ]] && ! grep -qF "LIBGL_ALWAYS_SOFTWARE" "$kdl"; then
+            cat << 'EOF' >> "$kdl"
+
+environment {
+    LIBGL_ALWAYS_SOFTWARE "1"
+    WLR_NO_HARDWARE_CURSORS "1"
+}
+EOF
+        fi
+    done
+fi
+
+ensure_user_ownership "${REAL_HOME}/.config/niri"
 
 # Garante permissões estritas para o usuário real
 ensure_user_ownership "${REAL_HOME}/.config"
@@ -498,52 +555,119 @@ if [[ "${IS_VM:-false}" == false ]] && [[ "${INSTALL_NVIDIA:-false}" == true ]];
     log_success "Compilação do módulo NVIDIA concluída."
 fi
 
-# 5. Definição do Alvo Gráfico e Ativação do Display Manager no Systemd
-if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(duxshell|noctalia)$ ]]; then
-    log_info "Configurando inicialização gráfica padrão (Greetd)..."
-    sudo systemctl disable gdm lightdm sddm 2>/dev/null || true
-    sudo systemctl enable greetd.service
-    sudo systemctl set-default graphical.target
-    log_success "Target gráfico e greetd.service definidos como padrão."
+# 5. Definição do Alvo Gráfico e Ativação do Display Manager conforme a Interface Escolhida
+case "${SELECTED_INTERFACE}" in
+    noctalia)
+        log_info "Configurando e ativando Display Manager para Noctalia Shell (Greetd / Noctalia Greeter)..."
+        ACTIVE_DM="greetd"
 
-    log_info "Assegurando integridade do PAM oo7 em /etc/pam.d/greetd..."
-    if [[ -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
-        backup_file /etc/pam.d/greetd true
-        sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
-        sudo chmod 644 /etc/pam.d/greetd
-        sudo chown root:root /etc/pam.d/greetd
-    fi
-else
-    log_info "Configurando inicialização gráfica padrão (SDDM)..."
-    sudo systemctl disable gdm lightdm greetd 2>/dev/null || true
-    sudo systemctl enable sddm.service
-    sudo systemctl set-default graphical.target
-    log_success "Target gráfico e sddm.service definidos como padrão."
+        # Garante configuração correta do greeter no /etc/greetd/config.toml
+        sudo mkdir -p /etc/greetd
+        GREETD_CONFIG="/etc/greetd/config.toml"
+        if [[ "${IS_VM:-false}" == true ]]; then
+            GREETER_CMD="env LIBGL_ALWAYS_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 /usr/bin/noctalia-greeter-session"
+        else
+            GREETER_CMD="/usr/bin/noctalia-greeter-session"
+        fi
+        GREETD_TEMPLATE="${SYSTEM_DIR}/greetd.toml.template"
+        if [[ -f "$GREETD_TEMPLATE" ]]; then
+            sed "s|__GREETD_COMMAND__|${GREETER_CMD}|g" "$GREETD_TEMPLATE" | sudo tee "$GREETD_CONFIG" >/dev/null
+        else
+            sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
+[terminal]
+vt = 1
 
-    log_info "Aplicando pilha PAM completa do SDDM com oo7 em /etc/pam.d/sddm..."
-    if [[ -f "${SYSTEM_DIR}/pam_sddm.template" ]]; then
-        # cp INCONDICIONAL (com backup): o template é uma pilha completa e
-        # idempotente. O antigo guard 'grep pam_oo7' impediria REPARAR sistemas
-        # já deixados com o fragmento de 2 linhas (que contém a string).
-        backup_file /etc/pam.d/sddm true
-        sudo cp "${SYSTEM_DIR}/pam_sddm.template" /etc/pam.d/sddm
-        sudo chmod 644 /etc/pam.d/sddm
-        sudo chown root:root /etc/pam.d/sddm
-    fi
+[default_session]
+command = "${GREETER_CMD}"
+user = "greetd"
+EOF
+        fi
+
+        sudo usermod -aG video,render,input greetd 2>/dev/null || true
+        if command -v noctalia-greeter >/dev/null 2>&1; then
+            sudo mkdir -p /var/lib/noctalia-greeter
+            sudo chown -R greetd:greetd /var/lib/noctalia-greeter 2>/dev/null || true
+            sudo noctalia-greeter passwordless-sync enable "${REAL_USER}" 2>/dev/null || true
+        fi
+
+        sudo systemctl disable sddm.service gdm.service lightdm.service 2>/dev/null || true
+        sudo systemctl enable greetd.service
+        ;;
+
+    duxshell)
+        log_info "Configurando e ativando Display Manager para Dux Shell (Greetd / Dux Greeter)..."
+        ACTIVE_DM="greetd"
+
+        sudo mkdir -p /etc/greetd
+        GREETD_CONFIG="/etc/greetd/config.toml"
+        GREETER_BIN="/usr/bin/dms-greeter"
+        [[ -x "$GREETER_BIN" ]] || GREETER_BIN="dms-greeter"
+
+        if [[ "${IS_VM:-false}" == true ]]; then
+            GREETER_CMD="env LIBGL_ALWAYS_SOFTWARE=1 WLR_NO_HARDWARE_CURSORS=1 ${GREETER_BIN} --command niri"
+        else
+            GREETER_CMD="${GREETER_BIN} --command niri"
+        fi
+
+        sudo tee "$GREETD_CONFIG" >/dev/null <<EOF
+[terminal]
+vt = 1
+
+[default_session]
+command = "${GREETER_CMD}"
+user = "greetd"
+EOF
+
+        sudo usermod -aG video,render,input greetd 2>/dev/null || true
+        sudo systemctl disable sddm.service gdm.service lightdm.service 2>/dev/null || true
+        sudo systemctl enable greetd.service
+        ;;
+
+    inir|*)
+        # Se Greetd já estiver ativo no sistema (ex.: previamente instalado via Noctalia ou Dux Shell),
+        # preservamos o Greetd para manter a coexistência de todas as interfaces sem regressão.
+        if systemctl is-enabled greetd.service >/dev/null 2>&1; then
+            log_info "Display Manager Greetd já está ativo no sistema. Preservando Greetd como tela de login..."
+            ACTIVE_DM="greetd"
+        else
+            log_info "Configurando e ativando Display Manager para iNiR Shell (SDDM)..."
+            ACTIVE_DM="sddm"
+
+            sudo usermod -aG video,render,input sddm 2>/dev/null || true
+            sudo systemctl disable greetd.service gdm.service lightdm.service 2>/dev/null || true
+            sudo systemctl enable sddm.service
+        fi
+        ;;
+esac
+
+# Assegura a integridade do PAM para o Display Manager ativo
+if [[ "$ACTIVE_DM" == "greetd" && -f "${SYSTEM_DIR}/pam_greetd.template" ]]; then
+    backup_file /etc/pam.d/greetd true
+    sudo cp "${SYSTEM_DIR}/pam_greetd.template" /etc/pam.d/greetd
+    sudo chmod 644 /etc/pam.d/greetd
+    sudo chown root:root /etc/pam.d/greetd
+elif [[ "$ACTIVE_DM" == "sddm" && -f "${SYSTEM_DIR}/pam_sddm.template" ]]; then
+    backup_file /etc/pam.d/sddm true
+    sudo cp "${SYSTEM_DIR}/pam_sddm.template" /etc/pam.d/sddm
+    sudo chmod 644 /etc/pam.d/sddm
+    sudo chown root:root /etc/pam.d/sddm
 fi
+
+sudo systemctl set-default graphical.target
+log_success "Target gráfico e display manager (${ACTIVE_DM}) assegurados."
 
 # 6. Checklist Interno de Testes e Validação
 echo ""
 log_info "Iniciando checagens internas de integridade do sistema..."
 
 # Teste 1: Serviço de Display Manager
-if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" =~ ^(duxshell|noctalia)$ ]]; then
+if [[ "$ACTIVE_DM" == "greetd" ]]; then
     if systemctl is-enabled greetd.service >/dev/null 2>&1; then
         log_success "[Checklist] greetd.service está devidamente habilitado no systemd."
     else
         log_warn "[Checklist] greetd.service não reportou status enabled via systemctl is-enabled."
     fi
-elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]]; then
+elif [[ "$ACTIVE_DM" == "sddm" ]]; then
     if systemctl is-enabled sddm.service >/dev/null 2>&1; then
         log_success "[Checklist] sddm.service está devidamente habilitado no systemd."
     else
@@ -551,37 +675,38 @@ elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]
     fi
 fi
 
-# Teste 2: PAM do Display Manager (Checklist Final Rigoroso)
-if [[ "${SELECTED_INTERFACE:-}" =~ ^(duxshell|noctalia)$ || "${SELECTED_SHELL:-}" == "noctalia" ]]; then
-    if grep -qF "pam_oo7.so" /etc/pam.d/greetd; then
-        log_ok "[Checklist] Integração com pam_oo7.so confirmada em /etc/pam.d/greetd."
+# Teste 2: PAM do Display Manager Ativo
+if [[ "$ACTIVE_DM" == "greetd" ]]; then
+    if grep -qF "pam_oo7.so" /etc/pam.d/greetd && grep -qF "postlogin" /etc/pam.d/greetd; then
+        log_ok "[Checklist] Pilha PAM do Greetd íntegra (postlogin/pam_systemd + pam_oo7.so) confirmada."
     else
-        log_error "[Checklist] Falha: Integração com pam_oo7.so ausente em /etc/pam.d/greetd!"
+        log_error "[Checklist] Falha: /etc/pam.d/greetd sem pam_oo7.so ou sem inclusão de 'postlogin'!"
         exit 1
     fi
-elif [[ "${SELECTED_INTERFACE:-}" == "inir" || "${SELECTED_SHELL:-}" == "inir" ]]; then
-    # Verifica oo7 E a presença do include system-auth: o antigo grep isolado de
-    # pam_oo7 dava FALSO POSITIVO mesmo com a pilha truncada (só o fragmento).
-    if grep -qF "pam_oo7.so" /etc/pam.d/sddm && grep -qE "^[[:space:]]*auth[[:space:]]+include[[:space:]]+system-auth" /etc/pam.d/sddm; then
-        log_ok "[Checklist] Pilha PAM do SDDM íntegra (system-auth + pam_oo7.so) confirmada."
+elif [[ "$ACTIVE_DM" == "sddm" ]]; then
+    if grep -qF "pam_oo7.so" /etc/pam.d/sddm && grep -qF "postlogin" /etc/pam.d/sddm; then
+        log_ok "[Checklist] Pilha PAM do SDDM íntegra (postlogin/pam_systemd + pam_oo7.so) confirmada."
     else
-        log_error "[Checklist] Falha: /etc/pam.d/sddm sem pam_oo7.so ou sem 'auth include system-auth'!"
+        log_error "[Checklist] Falha: /etc/pam.d/sddm sem pam_oo7.so ou sem inclusão de 'postlogin'!"
         exit 1
     fi
 fi
 
-# Teste 3: Validação do Compositor Selecionado
+# Teste 3: Validação do Compositor e da Configuração da Shell
 if [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
-    if [[ -f "${NIRI_CONFIG_FILE}" ]]; then
-        log_success "[Checklist] Arquivo ${NIRI_CONFIG_FILE} verificado no disco."
+    TARGET_KDL="${NIRI_SHELLS_DIR}/${SELECTED_INTERFACE}.kdl"
+    [[ -f "$TARGET_KDL" ]] || TARGET_KDL="${NIRI_CONFIG_FILE}"
+
+    if [[ -f "${TARGET_KDL}" ]]; then
+        log_success "[Checklist] Arquivo de configuração verificado no disco: ${TARGET_KDL}."
     else
-        log_error "[Checklist] Falha crítica: ${NIRI_CONFIG_FILE} não existe!"
+        log_error "[Checklist] Falha crítica: arquivo de configuração ${TARGET_KDL} não existe!"
         exit 1
     fi
 
-    log_info "Executando validador oficial do Niri (niri validate)..."
+    log_info "Executando validador oficial do Niri (niri validate -c)..."
     if command -v niri >/dev/null 2>&1; then
-        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate 2>&1)"; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" niri validate -c "${TARGET_KDL}" 2>&1)"; then
             log_success "[Checklist] Validação oficial aprovada: 'niri validate' confirmou o arquivo de configuração."
         else
             log_error "[Checklist] Falha crítica: 'niri validate' retornou erro na configuração!"
@@ -591,7 +716,7 @@ if [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
             exit 1
         fi
     elif [[ -x "/usr/bin/niri" ]]; then
-        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate 2>&1)"; then
+        if NIRI_VAL_OUTPUT="$(sudo -u "${REAL_USER}" /usr/bin/niri validate -c "${TARGET_KDL}" 2>&1)"; then
             log_success "[Checklist] Validação oficial aprovada: '/usr/bin/niri validate' confirmou o arquivo."
         else
             log_error "[Checklist] Falha crítica: '/usr/bin/niri validate' retornou erro na configuração!"
@@ -604,9 +729,9 @@ if [[ "${SELECTED_COMPOSITOR}" == "niri" ]]; then
         log_warn "[Checklist] Binário 'niri' não encontrado no PATH para executar a validação nativa imediata."
     fi
 
-    CONFIG_OWNER="$(stat -c '%U' "${NIRI_CONFIG_FILE}" 2>/dev/null || echo 'desconhecido')"
+    CONFIG_OWNER="$(stat -c '%U' "${TARGET_KDL}" 2>/dev/null || echo 'desconhecido')"
     if [[ "$CONFIG_OWNER" == "$REAL_USER" ]]; then
-        log_success "[Checklist] Propriedade de ${NIRI_CONFIG_FILE} pertence corretamente ao usuário '${REAL_USER}'."
+        log_success "[Checklist] Propriedade de ${TARGET_KDL} pertence corretamente ao usuário '${REAL_USER}'."
     else
         log_warn "[Checklist] Proprietário do arquivo é '${CONFIG_OWNER}'. Corrigindo permissão..."
         ensure_user_ownership "${NIRI_CONFIG_DIR}"
@@ -645,6 +770,38 @@ elif [[ "${SELECTED_COMPOSITOR}" == "umbriel" ]]; then
         ensure_user_ownership "${UMB_CONFIG_DIR}"
     fi
 fi
+
+# Teste 3.1: Validação e Listagem de Sessões Wayland Registradas
+log_info "[Checklist] Sessões Wayland registradas no sistema (/usr/share/wayland-sessions):"
+for s_desktop in /usr/share/wayland-sessions/*.desktop; do
+    if [[ -f "$s_desktop" ]]; then
+        s_title="$(grep -E '^Name=' "$s_desktop" 2>/dev/null | head -n1 | cut -d= -f2- || echo 'Sessão')"
+        s_exec="$(grep -E '^Exec=' "$s_desktop" 2>/dev/null | head -n1 | cut -d= -f2- || echo '')"
+        # Extrai o primeiro binário do comando Exec (ignora wrappers de shell comuns)
+        bin_to_check=""
+        session_regex='^bash -c ['"'"'"]export [^;]+; exec ([^[:space:]'"'"'"]+)'
+        if [[ "$s_exec" =~ $session_regex ]]; then
+            bin_to_check="${BASH_REMATCH[1]}"
+        elif [[ "$s_exec" =~ ^bash\ -c\ [\'\"]exec\ ([^[:space:]]+) ]]; then
+            bin_to_check="${BASH_REMATCH[1]}"
+        elif [[ "$s_exec" =~ ^bash\ -c\ [\'\"]([^[:space:]]+) ]]; then
+            bin_to_check="${BASH_REMATCH[1]}"
+        else
+            bin_to_check="$(echo "$s_exec" | awk '{print $1}')"
+        fi
+
+        if [[ -n "$bin_to_check" ]]; then
+            if command -v "$bin_to_check" >/dev/null 2>&1 || [[ -x "$bin_to_check" ]]; then
+                log_success "  • ${s_title} ($(basename "$s_desktop")) -> Binário validado: '${bin_to_check}'"
+            else
+                log_error "[Checklist] Falha crítica na sessão $(basename "$s_desktop"): binário executável '${bin_to_check}' não encontrado no sistema!"
+                exit 1
+            fi
+        else
+            log_warn "  • ${s_title} ($(basename "$s_desktop")) -> Não foi possível determinar o binário executável de: ${s_exec}"
+        fi
+    fi
+done
 
 # Teste 4: Validação de ausência de NVIDIA em VM
 if [[ "${IS_VM:-false}" == true ]]; then

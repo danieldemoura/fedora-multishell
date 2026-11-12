@@ -1,54 +1,31 @@
-// Configuração do niri convertida a partir da config do Umbriel.
-// Copie para ~/.config/niri/config.kdl e valide com `niri validate`.
-//
-// Itens SEM equivalente no niri (marcados com "SEM EQUIVALENTE"):
-//   scratchpad, pinned windows, HDR, efeitos de borda, tab bar customizável,
-//   "Mod" sozinho como atalho, blur (depende da versão do niri).
-
 // ==============================================================================
-// Inicialização
+// fedora-multishell: config/desktop/niri/shells/inir.kdl
+// Configuração do Niri para iNiR Shell (Material You / Quickshell)
 // ==============================================================================
-spawn-at-startup "noctalia"
 
-// XWayland: o niri não tem XWayland embutido. Instale `xwayland-satellite`
-// e deixe no PATH (niri >= 25.08 inicia automaticamente).
+// Inicialização da interface iNiR
+spawn-at-startup "inir" "run"
+
+// XWayland: xwayland-satellite é iniciado automaticamente quando presente no PATH
 
 // ==============================================================================
 // Entrada
 // ==============================================================================
 input {
     keyboard {
-        xkb {
-            layout "br"
-        }
+        // O layout de teclado pode ser configurado conforme a preferência do usuário:
+        // xkb { layout "br"; }
         numlock
     }
-
-    // focus-follows-mouse max-scroll-amount="0%"
-
-    // touch {
-    //     map-to-output "eDP-1"
-    // }
 }
 
 // ==============================================================================
 // Monitores
 // ==============================================================================
-// Veja os nomes com `niri msg outputs`.
 output "eDP-1" {
     scale 1.25
-    // vrr "fullscreen" do Umbriel ≈ on-demand no niri
     variable-refresh-rate on-demand=true
-    // hdr = "auto": SEM EQUIVALENTE
 }
-
-// ==============================================================================
-// Eventos de tampa (lid)
-// ==============================================================================
-// switch-events {
-//     lid-close { spawn "niri" "msg" "output" "eDP-1" "off"; }
-//     lid-open  { spawn "niri" "msg" "output" "eDP-1" "on"; }
-// }
 
 // ==============================================================================
 // Layout
@@ -64,37 +41,21 @@ layout {
 }
 
 // ==============================================================================
-// Hot corner
+// Popups e Overlays do Niri
 // ==============================================================================
-// O canto superior esquerdo abre o overview por padrão no niri
-// (o delay de 500ms não é configurável).
-// gestures {
-//     hot-corners {
-//         top-left
-//     }
-// }
+hotkey-overlay {
+    skip-at-startup
+}
 
 // ==============================================================================
 // Regras de janela
 // ==============================================================================
-
-// Opacidade global (no Umbriel vinha junto com blur)
 window-rule {
-    // opacity 0.87
-}
-
-window-rule {
-    match app-id="^dev.noctalia.Noctalia$"
+    match app-id=r#"(?i).*xwaylandvideobridge.*"#
+    match title=r#"(?i).*xwaylandvideobridge.*"#
     open-floating true
-    default-column-width { fixed 1020; }
-    default-window-height { fixed 900; }
-}
-
-window-rule {
-    match app-id="^dev.noctalia.UmbrielSharePicker$"
-    open-floating true
-    default-column-width { fixed 800; }
-    default-window-height { fixed 600; }
+    default-floating-position x=-500 y=-500 relative-to="top-left"
+    opacity 0.0
 }
 
 window-rule {
@@ -108,41 +69,24 @@ window-rule {
     open-floating true
     open-focused false
     default-floating-position x=0 y=0 relative-to="bottom-right"
-    // default_pinned: SEM EQUIVALENTE
 }
 
 // ==============================================================================
-// Blur (só em versões recentes do niri com suporte a background-effect;
-// confira a documentação da sua versão antes de ativar)
-// ==============================================================================
-// window-rule {
-//     background-effect { blur true; }
-// }
-//
-// layer-rule {
-//     match namespace="^noctalia-(bar-[^\"]+|notification|dock|panel|attached-panel|osd|desktop-widget-[^\"]*)$"
-//     background-effect { blur true; }
-// }
-
-// ==============================================================================
-// Atalhos
+// Atalhos de teclado
 // ==============================================================================
 binds {
     // --- Aplicativos e sessão ---
     Mod+Return repeat=false { spawn "kitty"; }
-    // "Mod" sozinho não é suportado no niri; usando Mod+Space para o launcher
-    // (equivale ao launcher do Umbriel; no Umbriel, Mod+Space abre o scratchpad)
-    Mod+space { spawn "noctalia" "msg" "panel-toggle" "launcher"; }
     Mod+Q repeat=false { close-window; }
     Mod+Shift+Escape allow-inhibiting=false repeat=false { toggle-keyboard-shortcuts-inhibit; }
     Mod+Shift+Slash { show-hotkey-overlay; }
 
-    // --- Energia e sessão ---
+    // --- Energia e logout ---
     Mod+Escape { quit; }
     Mod+Shift+Delete { spawn "systemctl" "poweroff"; }
     Mod+Ctrl+Delete { spawn "systemctl" "reboot"; }
 
-    // --- Foco e movimento ---
+    // --- Foco e movimento de janelas/colunas ---
     Mod+Left  { focus-column-left; }
     Mod+Down  { focus-window-down; }
     Mod+Up    { focus-window-up; }
@@ -150,8 +94,7 @@ binds {
     Mod+H { focus-column-left; }
     Mod+J { focus-window-down; }
     Mod+K { focus-window-up; }
-    Mod+L { spawn "noctalia" "msg" "session" "lock"; }
-    // window-focus-next: aproximado
+    Mod+L { focus-column-right; }
     Mod+F1 { focus-column-right-or-first; }
 
     Mod+Shift+Left  { move-column-left; }
@@ -162,7 +105,6 @@ binds {
     // --- Estado da janela e layout ---
     Mod+T repeat=false { toggle-window-floating; }
     Mod+Shift+T repeat=false { switch-focus-between-floating-and-tiling; }
-    // Mod+P (pinned): SEM EQUIVALENTE
     Mod+M repeat=false { maximize-window-to-edges; }
     Mod+F repeat=false { fullscreen-window; }
     Mod+Ctrl+F repeat=false { maximize-column; }
@@ -171,7 +113,6 @@ binds {
     Mod+Comma  { consume-or-expel-window-left; }
     Mod+Period { consume-or-expel-window-right; }
     Mod+W repeat=false { toggle-column-tabbed-display; }
-    // Em coluna com abas, focus-window-up/down troca de aba
     Mod+Alt+Right { focus-window-down; }
     Mod+Alt+Left  { focus-window-up; }
     Mod+WheelScrollUp   cooldown-ms=150 { focus-column-left; }
@@ -199,19 +140,35 @@ binds {
     Mod+Ctrl+KP_8 { move-window-to-workspace 8; }
     Mod+Ctrl+KP_9 { move-window-to-workspace 9; }
 
-    // --- Scratchpad: SEM EQUIVALENTE no niri ---
-    // (Mod+Shift+Space / Mod+Space / Mod+Ctrl+Space / Mod+Tab removidos)
+    // Workspaces (fileira numérica padrão)
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
 
-    // --- Áudio ---
-    XF86AudioRaiseVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-up"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn "noctalia" "msg" "volume-down"; }
-    XF86AudioMute        allow-when-locked=true { spawn "noctalia" "msg" "volume-mute"; }
-    XF86AudioMicMute     allow-when-locked=true { spawn "noctalia" "msg" "mic-mute"; }
+    Mod+Ctrl+1 { move-window-to-workspace 1; }
+    Mod+Ctrl+2 { move-window-to-workspace 2; }
+    Mod+Ctrl+3 { move-window-to-workspace 3; }
+    Mod+Ctrl+4 { move-window-to-workspace 4; }
+    Mod+Ctrl+5 { move-window-to-workspace 5; }
+    Mod+Ctrl+6 { move-window-to-workspace 6; }
+    Mod+Ctrl+7 { move-window-to-workspace 7; }
+    Mod+Ctrl+8 { move-window-to-workspace 8; }
+    Mod+Ctrl+9 { move-window-to-workspace 9; }
 
-    // --- Brilho ---
-    XF86MonBrightnessUp   allow-when-locked=true { spawn "noctalia" "msg" "brightness-up"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "noctalia" "msg" "brightness-down"; }
+    // --- Controle de Áudio (PipeWire / wpctl) ---
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%+"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "5%-"; }
+    XF86AudioMute        allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    XF86AudioMicMute     allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
 
-    // --- Captura de tela ---
-    Print { spawn "noctalia" "msg" "screenshot-region"; }
+    // --- Controle de Brilho (brightnessctl) ---
+    XF86MonBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "set" "+5%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "set" "5%-"; }
 }
+

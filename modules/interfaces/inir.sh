@@ -61,11 +61,13 @@ else
     log_info "Runtime Deno já detectado no sistema: $(deno --version | head -n1)"
 fi
 
+log_info "Provisionando iNiR Shell sob o usuário real..."
+
 # 3. Renovação antecipada do sudo
 log_info "Renovando timestamp administrativo do sudo..."
 sudo -v
 
-# 4. Clonagem do repositório do iNiR
+# 4. Clonagem do repositório do iNiR e checkout dinâmico da última release estável
 INIR_DIR="${REAL_HOME}/.config/inir"
 if [[ ! -d "${INIR_DIR}" ]]; then
     log_info "Clonando repositório do iNiR em ${INIR_DIR}..."
@@ -75,6 +77,18 @@ if [[ ! -d "${INIR_DIR}" ]]; then
 else
     log_info "Diretório do iNiR já existente em ${INIR_DIR}. Prosseguindo..."
 fi
+
+# Detecta dinamicamente a tag de release mais recente lançada no GitHub e faz o checkout seguro
+sudo -u "${REAL_USER}" bash -c "
+    cd '${REAL_HOME}/.config/inir'
+    latest_tag=\$(git tag -l --sort=-v:refname 'v*' | head -n 1)
+    if [[ -n \"\${latest_tag}\" ]]; then
+        echo \"[iNiR] Selecionando versão oficial mais recente: \${latest_tag}\"
+        git checkout \"\${latest_tag}\"
+    else
+        echo '[iNiR] Nenhuma tag de release encontrada. Mantendo branch padrão.'
+    fi
+"
 
 # 5. Execução não-interativa sob usuário real
 if [[ -f "${INIR_DIR}/setup" ]]; then
@@ -92,7 +106,64 @@ else
     exit 1
 fi
 
-# 6. Correção de propriedade
+# 6. Saneamento de Pacotes, Eliminação de Bloatware e Otimização de RAM
+log_info "Removendo utilitários redundantes e daemons de segundo plano instalados pelo iNiR..."
+sudo dnf remove -y \
+    gnome-keyring \
+    xwaylandvideobridge \
+    kf6-baloo \
+    easyeffects \
+    blueman \
+    plasma-systemsettings \
+    systemsettings \
+    plasma-systemmonitor \
+    ksysguard \
+    2>/dev/null || true
+
+# Desativação e mascaramento de serviços residuais no systemd do usuário
+log_info "Mascarando serviços residuais de segundo plano no systemd do usuário..."
+sudo -u "${REAL_USER}" systemctl --user mask \
+    kde-baloo.service \
+    gnome-keyring-daemon.service \
+    gnome-keyring-daemon.socket \
+    2>/dev/null || true
+
+# Ocultar aplicativos utilitários mantidos por dependência visual (Kvantum e Qt6ct)
+log_info "Ocultando ferramentas gráficas de configuração estética do menu de aplicativos..."
+user_apps_dir="${REAL_HOME}/.local/share/applications"
+mkdir -p "${user_apps_dir}"
+
+for app in kvantummanager qt6ct; do
+    app_src="/usr/share/applications/${app}.desktop"
+    app_dst="${user_apps_dir}/${app}.desktop"
+    if [[ -f "$app_src" ]]; then
+        cp -f "$app_src" "$app_dst"
+        if ! grep -qF "NoDisplay=true" "$app_dst"; then
+            echo "NoDisplay=true" >> "$app_dst"
+        fi
+    fi
+done
+ensure_user_ownership "${user_apps_dir}"
+
+# 7. Isolamento de Sessões: impedir que o iNiR inicialize como serviço global de systemd
+#    (O instalador do iNiR pode habilitar inir.service via wants do systemd. No Fedora Multi-Shell,
+#     cada shell é iniciada exclusivamente via spawn-at-startup no seu KDL específico,
+#     evitando que o iNiR seja disparado em background em sessões de outras shells como Noctalia ou Dux).
+log_info "Garantindo isolamento do iNiR Shell no systemd (desativando inicialização global)..."
+SYSTEMD_USER_DIR="${REAL_HOME}/.config/systemd/user"
+for want_dir in "${SYSTEMD_USER_DIR}/niri.service.wants" \
+               "${SYSTEMD_USER_DIR}/graphical-session.target.wants" \
+               "${SYSTEMD_USER_DIR}/default.target.wants"; do
+    if [[ -d "$want_dir" ]]; then
+        sudo -u "${REAL_USER}" rm -f "${want_dir}/inir.service" 2>/dev/null || true
+    fi
+done
+if command -v systemctl >/dev/null 2>&1; then
+    sudo -u "${REAL_USER}" XDG_RUNTIME_DIR="/run/user/$(id -u "${REAL_USER}")" \
+        systemctl --user disable inir.service >/dev/null 2>&1 || true
+fi
+
+# 8. Correção de propriedade
 log_info "Ajustando propriedade e permissões de ${INIR_DIR}..."
 sudo chown -R "${REAL_USER}:${REAL_USER}" "${REAL_HOME}/.config/inir"
 log_success "Submódulo iNiR Shell configurado com sucesso."

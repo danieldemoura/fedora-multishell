@@ -28,7 +28,7 @@ Todas as futuras contribuições humanas e comandos executados por **Agentes de 
 - **Divisão Tripla da Pasta `config/`:**
   1. `config/packages/`: Manifestos declarativos `.conf` para gerenciar dependências do sistema e aplicações (DNF e Flatpak).
   2. `config/desktop/`: Configurações declarativas de interface e dotfiles do usuário aplicadas sob `~/.config/` (ex: `niri/config.kdl`, `umbriel/config.toml`).
-  3. `config/system/`: Modelos e arquivos de configuração administrativa aplicados sob `/etc/` (ex: `greetd.toml.template`, `pam_greetd.template`, `pam_sddm.template`).
+  3. `config/system/`: Modelos e arquivos de configuração administrativa aplicados sob `/etc/` e `/usr/share/` (ex: `greetd.toml.template`, `pam_greetd.template`, `pam_sddm.template`, `wayland-sessions/*.desktop`).
 - **Prevenção de Inchaço do Sistema (Anti-Bloatware):** A segregação por arquivo `.conf` especializado dentro de `config/packages/` impede que dependências pesadas de uma shell ou compositor específico (como o runtime Quickshell do iNiR ou o repositório Terra do Noctalia) poluam a base do sistema de usuários que escolheram outros ambientes.
 - **Racional Técnico e Benefícios de IaC:**
   1. _Auditabilidade e Transparência Total:_ Administradores, usuários e ferramentas de segurança podem auditar integralmente as dependências de cada camada sem precisar parsear lógica procedural ou expressões regulares em scripts bash.
@@ -159,22 +159,24 @@ set -euo pipefail
   ```
 - Esses helpers rejeitam e reperguntam valores fora do conjunto aceito (loop de validação), assumindo o padrão somente quando o usuário pressiona Enter.
 
-### 2.6 Cadeia de Suprimentos (Supply Chain) de Binários Externos
+### 2.6 Cadeia de Suprimentos (Supply Chain) e Eliminação de Pipelines Cegos
 
+- **Zero `curl | sh`:** O instalador proíbe invocações procedurais remotas como `curl ... | sh`. Todo software de terceiros e interfaces completas (como o Dux Shell) devem ser provisionados exclusivamente através de manifestos declarativos em `config/packages/*.conf` (ex: `duxshell.conf`) consumidos por `install_packages_from_conf`.
+- **Checkout Semântico de Releases Git:** Ao clonar repositórios de código fonte (como o iNiR), o instalador nunca compila a branch `main` volátil nem congela tags hardcoded legadas. Utiliza a função defensiva `security_checkout_latest_release` (`git tag -l --sort=-v:refname "v*" | head -n 1`) para compilar a última versão estável lançada.
+- **Validação Criptográfica de Repositórios:** Repositórios de terceiros como RPM Fusion devem ter suas chaves públicas GPG importadas antecipadamente via `security_import_repo_key` (`rpm --import`). Para o repositório Terra (Fyra Labs), adota-se o método oficial de bootstrap do fornecedor (`dnf install --nogpgcheck --repofrompath ... terra-release terra-gpg-keys`), no qual a flag `--nogpgcheck` fica estritamente circunscrita aos pacotes de release e chave inicial (`terra-gpg-keys`), garantindo que todos os pacotes subsequentes sejam validados com as chaves instaladas.
 - Ao provisionar binários baixados da internet (ex: runtime Deno), o instalador deve:
   1. Detectar a arquitetura do alvo (`uname -m`) em vez de assumir `x86_64`.
   2. Baixar e **verificar o checksum SHA-256** publicado na release oficial antes de instalar.
   3. Abortar com erro explícito (`exit 1`) se a verificação falhar ou a arquitetura não for suportada.
-- Pipelines `curl | sh` de terceiros são circunscritos ao usuário real (`sudo -u "${REAL_USER}"`) e sempre seguidos de reparo defensivo das configurações de sistema que possam sobrescrever.
 
 ---
 
 ## 3. Diretrizes de Autenticação, PAM e Segurança
 
 1. **Permissões de Arquivos PAM:** Qualquer arquivo em `/etc/pam.d/` deve possuir estritamente posse `root:root` e permissão `644`.
-2. **Desbloqueio de Cofre de Senhas:** Todas as sessões gráficas (SDDM ou Greetd) devem implementar integração nativa com `pam_oo7.so` (provedor oficial do Secret Service no Fedora 45, sucessor do `pam_gnome_keyring.so`) para evitar pop-ups de desbloqueio de senhas em navegadores.
-3. **Encapsulamento de Instaladores Externos:** Se um instalador terceiro (como o `dankinstall` da Dux Labs ou scripts externos) sobrescrever arquivos de sistema, o submódulo correspondente tem a obrigação de restaurar os templates de segurança antes de concluir sua execução (como efetuado em `modules/interfaces/duxshell.sh`).
-4. **Endurecimento do Drop-in Temporário de Sudoers:** A regra NOPASSWD temporária em `/etc/sudoers.d/` deve ser montada em `mktemp`, **validada com `sudo visudo -cf`** antes de qualquer instalação (sintaxe inválida aborta sem tocar `/etc/sudoers`), instalada com `sudo install -m 0440 -o root -g root` e removida por `trap` nos sinais `EXIT HUP INT TERM`. O instalador também remove drop-ins órfãos de execuções anteriores interrompidas (`kill -9`) para não deixar resquícios administrativos persistentes.
+2. **Desbloqueio de Cofre de Senhas (`pam_oo7 auto_start`):** Todas as sessões gráficas (SDDM ou Greetd) devem implementar integração nativa com `pam_oo7.so auto_start` (provedor oficial do Secret Service no Fedora 45, sucessor do `pam_gnome_keyring.so`) para acionar o socket e destrancar o chaveiro já no primeiro login, evitando pop-ups de desbloqueio (`gcr-prompter`).
+3. **Encapsulamento e Isolamento de Serviços:** Se qualquer submódulo de interface instalar serviços de usuário (como `dms.service` ou `inir.service`), deve desativá-los defensivamente de targets globais (`niri.service.wants`, `graphical-session.target.wants`, `default.target.wants`), garantindo que a execução ocorra estritamente sob demanda da sessão escolhida.
+4. **Sudo Keep-Alive em Memória vs Arquivos Permissivos em Disco:** É vedada a persistência de regras `NOPASSWD` em `/etc/sudoers.d/`. O instalador utiliza `security_init_sudo_keepalive()` para renovar o timestamp administrativo em memória do kernel a cada 50 segundos em background, atrelado ao processo pai (`$$`) e autolimpando-se no encerramento. Regras órfãs anteriores são removidas preventivamente com `security_cleanup_sudoers_temp()`.
 5. **Log Fora de Diretórios Compartilhados:** O log de instalação reside em `${XDG_STATE_HOME:-~/.local/state}/fedora-multi-shell/install.log` (nunca em `/tmp` previsível), e o `log_init` recusa um alvo que já exista como link simbólico, mitigando ataques de symlink.
 6. **Proibição de `eval` sobre Dados de Usuário:** A resolução de `$HOME` e do usuário real usa `getent passwd` e a cadeia `${SUDO_USER:-${USER:-$(id -un)}}` — jamais `eval echo ~$user`, que permitiria injeção de código via nome de usuário controlável.
 

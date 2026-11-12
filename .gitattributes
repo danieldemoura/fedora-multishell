@@ -8,6 +8,8 @@
 *.template  text eol=lf
 *.kdl       text eol=lf
 *.toml      text eol=lf
+*.desktop   text eol=lf
+*.json      text eol=lf
 *.md        text eol=lf
 
 # Binários (preservados como estão, se adicionados no futuro)

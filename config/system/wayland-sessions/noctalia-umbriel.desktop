@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Noctalia Shell (Umbriel)
+Comment=Noctalia Desktop Shell com compositor Umbriel
+Exec=start-umbriel
+Type=Application
+DesktopNames=umbriel:noctalia
+

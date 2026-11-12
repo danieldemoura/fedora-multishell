@@ -1,22 +1,29 @@
 # ==============================================================================
 # fedora-multi-shell: config/system/pam_sddm.template
 # Pilha PAM COMPLETA do SDDM com integração oo7 (Fedora 45+).
-# Espelha a estrutura do pam_greetd.template: preserva os includes 'system-auth'
-# (verificação real de senha) e injeta o pam_oo7.so nas etapas auth/password/
-# session. O pam_oo7.so NÃO aceita 'auto_start' (flag exclusiva do módulo antigo
-# gnome-keyring). Copiar um fragmento por cima da pilha quebraria o login SDDM.
+# Inclui pam_selinux, pam_loginuid, pam_namespace e postlogin (pam_systemd.so)
+# para garantir que sessões Wayland (Niri/Umbriel) obtenham controle de seat/DRM
+# via systemd-logind e transição adequada de contexto SELinux.
 # ==============================================================================
 #%PAM-1.0
-auth       include     system-auth
-auth       optional    pam_oo7.so
+auth     [success=done ignore=ignore default=bad] pam_selinux_permit.so
+auth     substack     password-auth
+auth     optional     pam_oo7.so
+-auth    optional     pam_kwallet5.so
+-auth    optional     pam_kwallet.so
+auth     include      postlogin
 
-account    include     system-auth
+account  required     pam_nologin.so
+account  include      password-auth
 
-password   include     system-auth
-password   optional    pam_oo7.so use_authtok
+password include      password-auth
+password optional     pam_oo7.so use_authtok
 
-session    optional    pam_keyinit.so revoke
-session    required    pam_limits.so
--session   optional    pam_systemd_home.so
-session    include     system-auth
-session    optional    pam_oo7.so
+session  required     pam_selinux.so close
+session  required     pam_loginuid.so
+session  required     pam_selinux.so open
+session  optional     pam_keyinit.so force revoke
+session  required     pam_namespace.so
+session  include      password-auth
+session  optional     pam_oo7.so auto_start
+session  include      postlogin

@@ -15,24 +15,46 @@
 
 > 📋 **Documento de Arquitetura Base:** Todo o projeto foi planejado e executado com base no [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md). Esse arquivo contém todas as diretrizes de arquitetura em camadas, tratamento defensivo do PAM/Keyring, suporte a máquinas virtuais e decisões de projeto utilizadas pela IA para construir o instalador.
 >
-> Consulte o [Catálogo de Pacotes e Dependências](docs/CATALOGO_DE_PACOTES.md) para ver a listagem completa e detalhada de tudo o que é provisionado pelo sistema e as [Diretrizes de Arquitetura e Boas Práticas](docs/DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md) para os padrões de engenharia e regras de programação defensiva adotadas.
+> Consulte o [Catálogo de Pacotes e Dependências](docs/CATALOGO_DE_PACOTES.md) para ver a listagem completa e detalhada de tudo o que é provisionado pelo sistema, as [Modificações e Otimizações do iNiR](docs/MODIFICACOES_E_OTIMIZACOES_INIR.md) para o guia de economia de memória e componentes opcionais, as [Diretrizes de Arquitetura e Boas Práticas](docs/DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md) para as regras de programação defensiva e o guia [Segurança e Modelo de Ameaças](docs/SEGURANCA_E_MODELO_DE_AMEACAS.md) para a análise formal de integridade e gestão de privilégios.
 
 Instalador modular, em camadas e automatizado para transformar uma instalação mínima do **Fedora Everything Netinstall** em uma workstation gráfica moderna com suporte à seleção exclusiva de **Interface Gráfica (Desktop Shell)** e **Compositor Wayland**:
 
 - **Interfaces Gráficas (Desktop Interfaces):**
-  - **iNiR Shell:** Interface moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You via COPR `errornointernet/quickshell` (utiliza exclusivamente o compositor Niri).
+  - **iNiR Shell:** Interface moderna baseada em Quickshell, C++/Qt e theming dinâmico Material You via COPR `errornointernet/quickshell` (utiliza exclusivamente o compositor Niri). O instalador detecta e compila dinamicamente a última release oficial lançada.
   - **Noctalia Shell:** Interface gráfica desktop nativa em C++/Qt via pacote nativo Fedora (permite escolher entre o compositor Niri ou Umbriel).
-  - **Dux Shell / DMS (Dux Labs):** Interface gráfica e ambiente completo da Dux Labs (a antiga DankLinux/DankMaterialShell, renomeada no release 2.0) via COPR `avengemedia/danklinux` e o instalador oficial headless `install.duxlabs.dev` (utiliza Niri, terminal Kitty, `dms-greeter`, `danksearch` e `dankcalendar`).
+  - **Dux Shell / DMS (Dux Labs):** Interface gráfica e ambiente completo da Dux Labs (a antiga DankLinux/DankMaterialShell, renomeada no release 2.0) via pacotes oficiais declarativos em `config/packages/duxshell.conf` e COPRs oficiais `duxlabs/dms` e `duxlabs/dux-repo` (utiliza Niri, terminal Kitty, `dux-greeter`, `dsearch` e `dcal`).
 - **Compositores Wayland de Alta Performance:**
   - **Niri:** Scrollable tiling Wayland compositor com rolagem horizontal contínua de colunas via COPR `yalter/niri`.
   - **Umbriel:** Compositor Wayland dinâmico via Repositório Terra do Fyra Labs, com suporte à rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de exibição dinâmicos (Dwindle e Master).
-- **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dms-greeter`) com integração e desbloqueio silencioso do cofre de credenciais **oo7** (provedor oficial do Secret Service no Fedora 45, sucessor do GNOME Keyring) + `ssh-agent` do OpenSSH via socket activation do systemd.
+- **Display Manager / Gerenciador de Login:** [SDDM](https://github.com/sddm/sddm) nativo ou [Greetd](https://git.sr.ht/~kennylevinsen/greetd) (`noctalia-greeter` / `dux-greeter`) com integração e desbloqueio silencioso do cofre de credenciais **oo7** (provedor oficial do Secret Service no Fedora 45, sucessor do GNOME Keyring) + `ssh-agent` do OpenSSH via socket activation do systemd.
 - **Emulador de Terminal & CLI:** [Kitty](https://sw.kovidgoyal.net/kitty/) (acelerado por GPU) + `fastfetch` (resumo de hardware).
 - **Compatibilidade X11:** `xwayland-satellite` (rootless isolado).
 - **Navegador Web:** Brave Origin (sem telemetria, IA ou criptomoedas).
 - **Loja de Apps:** GNOME Software (Loja gráfica nativa com integração ao Flathub e atualizações de sistema).
 - **Reprodutor de Vídeo:** Cine (`io.github.diegopvlk.Cine` via Flatpak).
 - **Documentação Técnica:** Consulte o [Plano de Implementação e Especificação Técnica](docs/PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md).
+
+---
+
+## 📑 Sumário
+
+- [Prévia Visual das Interfaces](#-prévia-visual-das-interfaces)
+  - [iNiR Shell](#inir-shell)
+  - [Noctalia Shell](#noctalia-shell)
+- [Arquitetura em Camadas (Layered Architecture)](#arquitetura)
+- [Matriz de Combinações Suportadas](#-matriz-de-combinações-suportadas)
+  - [Idempotência Cumulativa & Multi-Shell](#-idempotência-cumulativa--multi-shell)
+  - [Alternador de Tela de Login (Display Manager)](#-alternador-de-tela-de-login-display-manager)
+- [Guia de Instalação Passo a Passo](#-guia-de-instalação-passo-a-passo)
+  - [1. Preparação da Mídia (Fedora Everything Netinstall)](#1-preparação-da-mídia-fedora-everything-netinstall)
+  - [2. Executando o Instalador](#2-executando-o-instalador)
+- [Interface CLI Padronizada (pt-BR)](#-interface-cli-padronizada-pt-br)
+- [Tabela Formal de Decisões de Engenharia Defensiva](#decisoes-defensivas)
+- [Segurança, Gestão de Senhas e Isolamento de Aplicações](#seguranca-senhas)
+- [Atalhos de Teclado Nativos e Controle](#atalhos)
+  - [Niri](#niri)
+  - [Umbriel](#umbriel)
+  - [Dux Shell (DMS)](#dux-shell-dms)
 
 ---
 
@@ -58,6 +80,7 @@ Painel de **Acesso Rápido** (Quick Access) com widgets de sistema, mídia, ener
 
 ---
 
+<a id="arquitetura"></a>
 ## 🏗️ Arquitetura em Camadas (Layered Architecture)
 
 O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Idempotência**, **Infraestrutura como Código (IaC)** e **Padrão Strategy** para despachar submódulos de compositores e interfaces gráficas. Os pacotes de usuário (fontes, terminal Kitty e codecs) são instalados no Módulo 03, garantindo ambiente pronto antes de subir a stack visual:
@@ -65,10 +88,14 @@ O projeto adota os princípios de **Separação de Preocupações (SoC)**, **Ide
 ```text
 fedora-multishell/
 ├── install.sh                       # Ponto de entrada: validações, menu interativo pt-BR e orquestrador
+├── tools/
+│   └── switch-display-manager.sh    # Utilitário interativo para alternar a tela de login (SDDM, Noctalia, Dux)
 ├── docs/
 │   ├── PLANO_DE_IMPLEMENTAÇÃO_E_ESPECIFICAÇÃO_TÉCNICA.md # Especificação técnica completa
 │   ├── CATALOGO_DE_PACOTES.md       # Catálogo detalhado e mapeamento de dependências
+│   ├── MODIFICACOES_E_OTIMIZACOES_INIR.md # Otimizações de RAM, saneamento e blindagem do iNiR
 │   ├── DIRETRIZES_DE_ARQUITETURA_E_BOAS_PRATICAS.md # Regras de engenharia e boas práticas
+│   ├── SEGURANCA_E_MODELO_DE_AMEACAS.md # Modelo formal de ameaças, PAM oo7 e análise RPM vs Flatpak
 │   └── preview/                     # Capturas de prévia visual das Desktop Shells (iNiR, Noctalia)
 ├── config/
 │   ├── settings.conf                # Variáveis globais, repositórios e flags padrão
@@ -76,6 +103,7 @@ fedora-multishell/
 │   │   ├── apps.conf                # Aplicações universais de usuário (Kitty, Nautilus, Codecs)
 │   │   ├── base.conf                # Infraestrutura base do sistema (Hardware, Som, Rede, VM)
 │   │   ├── brave.conf               # Manifesto de instalação do navegador Brave Browser
+│   │   ├── duxshell.conf            # Pacotes oficiais do Dux Shell / DMS 2.x (dms, dux-greeter, dsearch, dcal)
 │   │   ├── flatpak.conf             # Lista declarativa de aplicativos Flatpak do Flathub (com overrides)
 │   │   ├── greetd.conf              # Daemons base do Display Manager Greetd
 │   │   ├── inir.conf                # Dependências, runtimes e shaders do iNiR / Iris / Quickshell
@@ -86,37 +114,49 @@ fedora-multishell/
 │   │   ├── sddm.conf                # Pacotes base do Display Manager SDDM
 │   │   └── umbriel.conf             # Pacotes do compositor Umbriel Nightly e portais
 │   ├── desktop/                     # Configurações declarativas de interface do usuário (~/.config)
-│   │   ├── niri/
-│   │   │   └── config.kdl           # Configuração com atalhos 1:1 equivalentes em sintaxe KDL
-│   │   ├── noctalia/
-│   │   │   └── config.toml          # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
-│   │   └── umbriel/
-│   │       ├── config.toml          # Configuração personalizada (atalhos, mouse, teclas Fn)
-│   │       └── noctalia.toml        # Include opcional intencionalmente vazio para customizações locais
-│   └── system/                      # Modelos declarativos do sistema operacional (/etc)
+│   │   ├── compositors/             # Dotfiles dos compositores Wayland
+│   │   │   ├── niri/
+│   │   │   │   ├── config.kdl       # Configuração padrão de fallback do Niri
+│   │   │   │   └── shells/          # Configurações do Niri isoladas por Desktop Shell
+│   │   │   │       ├── noctalia.kdl # Niri com Noctalia Shell (autostart noctalia)
+│   │   │   │       ├── inir.kdl     # Niri com iNiR Shell (autostart inir run)
+│   │   │   │       └── duxshell.kdl # Niri com Dux Shell (autostart dms run)
+│   │   │   └── umbriel/
+│   │   │       ├── config.toml      # Configuração personalizada do Umbriel (atalhos, mouse, Fn)
+│   │   │       └── noctalia.toml    # Include opcional intencionalmente vazio para customizações locais
+│   │   └── interfaces/              # Dotfiles das interfaces gráficas (Desktop Shells)
+│   │       └── noctalia/
+│   │           └── config.toml      # Configuração declarativa do Noctalia Shell (Polkit nativo ativado)
+│   └── system/                      # Modelos declarativos do sistema operacional (/etc e /usr/share)
 │       ├── greetd.toml.template     # Modelo de configuração do Greetd
 │       ├── pam_greetd.template      # Modelo de autenticação PAM para o Greetd
-│       └── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       ├── pam_sddm.template        # Modelo de autenticação PAM para o SDDM
+│       └── wayland-sessions/        # Entradas declarativas do seletor de sessões (/usr/share/wayland-sessions)
+│           ├── noctalia-niri.desktop
+│           ├── noctalia-umbriel.desktop
+│           ├── inir-niri.desktop
+│           └── duxshell-niri.desktop
 ├── lib/
 │   ├── ui.sh                        # Renderização ANSI: banner dinâmico (TARGET_FEDORA_VERSION), caixas temáticas e prompts validados (ui_ask_choice/ui_ask_yn)
 │   ├── logger.sh                    # Registro em $XDG_STATE_HOME/fedora-multi-shell/install.log (fora de /tmp) e traps de erro
-│   └── utils.sh                     # Validação de não-root, resolução segura via getent, install_packages_from_conf e cleanup do sudoers
+│   ├── security.sh                  # Módulo defensivo: sudo keepalive em memória, importação de chaves GPG e checkout de tags Git
+│   └── utils.sh                     # Validação de não-root, resolução segura via getent, install_packages_from_conf e cleanup
 └── modules/
-    ├── 00_repos.sh                  # Repositórios (RPM Fusion, Brave, Flathub, COPRs condicionais, Terra e Dux Labs)
+    ├── 00_repos.sh                  # Repositórios (RPM Fusion, Brave, Flathub, COPRs condicionais, Terra e Dux Labs com GPG import)
     ├── 01_system_hardware.sh        # Firmware, microcódigo de CPU, PipeWire, som e energia (Tuned)
     ├── 02_gpu_drivers.sh            # Drivers Mesa abertos (via mesa.conf) ou NVIDIA com akmods
     ├── 03_desktop_apps.sh           # Camada de Usuário: Kitty, fontes, codecs, Brave Origin e Flatpaks
-    ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS) e integração PAM Keyring
+    ├── 04_display_stack.sh          # Camada de Display Manager: SDDM ou Greetd (Noctalia/DMS) e integração PAM Keyring (auto_start)
     ├── 05_compositor.sh             # Roteador de Compositor (Padrão Strategy)
     ├── 06_desktop_interface.sh      # Roteador de Interface Gráfica (Padrão Strategy)
-    ├── 07_post_install.sh           # Autostart/config da interface, VM flags, ativação DM e validações
+    ├── 07_post_install.sh           # Configuração isolada, sessões Wayland, DM consciente e validações
     ├── compositors/
     │   ├── niri.sh                  # Niri (alacritty filtrado por nome), remoção defensiva, xwayland-satellite e portais
     │   └── umbriel.sh               # Umbriel Nightly, xwayland-satellite e portais Umbriel/GTK
     └── interfaces/
-        ├── inir.sh                  # Deno (sha256/arquitetura), clone e ./setup install -y sob o usuário real
+        ├── inir.sh                  # Deno (sha256/arquitetura), clone, checkout da última release estável e ./setup install -y
         ├── noctalia.sh              # Pacote nativo 'noctalia' e 'noctalia-greeter' via DNF
-        └── duxshell.sh              # Instalador oficial headless do Dux Shell (DMS)
+        └── duxshell.sh              # Provisionamento declarativo via duxshell.conf e isolamento no systemd
 ```
 
 ---
@@ -128,7 +168,27 @@ fedora-multishell/
 | **iNiR Shell**             | **Niri** (Fixo)    | Estética moderna com cores dinâmicas Material You, widgets e rolagem horizontal de janelas contínua.                                                                              |
 | **Noctalia Shell**         | **Niri**           | Shell nativa em C++/Qt com painel clássico/moderno sobre o motor de rolagem horizontal contínua do Niri.                                                                          |
 | **Noctalia Shell**         | **Umbriel**        | Shell nativa em C++/Qt sobre Umbriel, compositor Wayland dinâmico com rolagem contínua de janelas (horizontal e vertical), além de múltiplos modos de janelas (Dwindle e Master). |
-| **Dux Shell (DMS)**        | **Niri** (Fixo)    | Ambiente Dux Labs com painéis Material You, dms-greeter (Greetd), danksearch, dankcalendar e terminal Kitty fixado.                                                               |
+| **Dux Shell (DMS)**        | **Niri** (Fixo)    | Ambiente Dux Labs com painéis Material You, dux-greeter (Greetd), dsearch, dcal e terminal Kitty fixado.                                                                           |
+
+### 🔀 Idempotência Cumulativa & Multi-Shell
+O instalador é **aditivo e cumulativo**: você pode reexecutar o `./install.sh` quantas vezes desejar para adicionar novos ambientes ao seu sistema sem quebrar ou sobrescrever os anteriores:
+- Instalou **Noctalia com Niri** hoje? A sessão `Noctalia Shell (Niri)` é registrada.
+- Quer testar **iNiR** semanas depois? Execute `./install.sh` novamente e escolha iNiR. A sessão `iNiR Shell (Niri)` é adicionada ao menu de login mantendo o Noctalia 100% intacto!
+- Quer experimentar **Noctalia com Umbriel**? Execute novamente e escolha Umbriel.
+
+Todas as opções instaladas aparecem no seletor da tela de login:
+- `Noctalia Shell (Niri)`
+- `Noctalia Shell (Umbriel)`
+- `iNiR Shell (Niri)`
+- `Dux Shell (Niri)`
+
+### 🖥️ Alternador de Tela de Login (Display Manager)
+Se você instalou interfaces que utilizam telas de login distintas (SDDM, Noctalia Greeter ou Dux Greeter), use o utilitário interativo a qualquer momento para alternar qual tela de login fica ativa:
+
+```bash
+./tools/switch-display-manager.sh
+```
+O utilitário detecta os gerenciadores instalados e permite comutar entre eles com apenas uma tecla!
 
 ---
 
@@ -174,6 +234,7 @@ O instalador conta com um menu interativo sem poluição visual:
 
 ---
 
+<a id="decisoes-defensivas"></a>
 ## 🛡️ Tabela Formal de Decisões de Engenharia Defensiva
 
 | Decisão Arquitetural / Defensiva                                                  | Justificativa Técnica e Prevenção de Falhas                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
@@ -188,10 +249,38 @@ O instalador conta com um menu interativo sem poluição visual:
 | **Isolamento de Templates por Shell**                                             | A cópia dos templates do Umbriel e Niri ocorre estritamente quando `SELECTED_SHELL="noctalia"`, preservando a autonomia e configuração gerada pelo instalador nativo do iNiR quando este for o escolhido.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Autostart e VM Flags do iNiR no Niri**                                          | O instalador nativo do iNiR copia seus arquivos para `~/.config/quickshell/inir`, mas não registra a inicialização automática. O Módulo 07 vincula a shell como serviço de usuário systemd (`inir.service` ligado a `niri.service` por wants link — caminho canônico upstream e pré-requisito das trocas de família de painéis em runtime, como o iRiS), pré-ativa a família iRiS no config operativo da shell (`~/.config/illogical-impulse/config.json`, caminho que o `Directories.qml` lê em runtime, semeado a partir do default instalado em `~/.config/inir/config.json` e espelhado nele) e injeta o bloco `environment` de software rendering para VM no `config.kdl`. O `spawn-at-startup "inir" "run"` permanece apenas como contingência quando a unidade de usuário do Niri não existe, prevenindo tela cinza vazia após o login no SDDM. |
 | **Exclusão e Remoção Defensiva do Alacritty (`compositors/niri.sh`)**             | O pacote upstream do Niri pode trazer o Alacritty como dependência recomendada ou fraca. A exclusão nominal de `alacritty` (filtrado localmente antes do dnf, pois o dnf5 rejeita argumentos combinados com `--exclude`) aliada à remoção defensiva subsequente garante que apenas o Kitty permaneça como emulador de terminal oficial do sistema, sem quebrar as outras dependências normais e fracas do Niri.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| **Autorização Administrativa Temporária no Sudoers (validada via `visudo`)**      | A criação do drop-in `/etc/sudoers.d/99-fedora-installer-temp` com `trap` de autodestruição (`EXIT HUP INT TERM`) elimina o timeout de credenciais do sudo (5 minutos) durante etapas demoradas não-interativas. O fluxo é endurecido: a regra é montada em `mktemp`, **validada com `sudo visudo -cf`** antes de tocar `/etc/sudoers`, instalada com `install -m 0440` e precedida da remoção de drop-in órfão de execuções anteriormente interrompidas, sem deixar resquícios NOPASSWD.                                                                                                                                                                                                                                                                                                                                                              |
+| **Autorização Administrativa via Sudo Keep-Alive em Memória**                    | O uso de regras persistentes com permissões irrestritas (`NOPASSWD`) em disco foi descontinuado em prol do keep-alive não-persistente via memória do kernel (`security_init_sudo_keepalive`), atrelado ao PID da sessão e com cleanup preventivo de resquícios órfãos. |
+| **Resolução Dinâmica da Última Release Semântica Oficial (iNiR)**                | Evita commits voláteis da branch `main` em desenvolvimento e versões estáticas congeladas, inspecionando dinamicamente a tag de release estável mais recente (`git tag -l --sort=-v:refname "v*" \| head -n 1`).                                                                  |
+| **Desbloqueio Silencioso do Keyring no Boot (`pam_oo7 auto_start`)**              | A inclusão da diretiva `auto_start` nas pilhas PAM do Greetd e SDDM assegura que o socket do daemon de credenciais em Rust (`oo7-daemon`) seja acionado e sincronizado no primeiro login gráfico, eliminando definitivamente a janela de prompt (`gcr-prompter`).               |
+| **Remoção Defensiva de Pacotes Legados do DMS 1.x (`DankMaterialShell`)**        | Na transição de DankMaterialShell 1.x para DMS 2.x, o DNF pode acusar conflito de arquivos devido à renomeação dos binários e pacotes (`DankMaterialShell` vs `dms` e `dms-greeter` vs `dux-greeter`). O `duxshell.sh` remove preventivamente os pacotes legados antes de instalar a suíte 2.x. |
+| **Validação Criptográfica de Repositórios sem `--nogpgcheck`**                   | Repositórios externos como Terra do Fyra Labs e RPM Fusion possuem suas chaves públicas GPG validadas e importadas previamente via `rpm --import`, garantindo a integridade de todos os pacotes instalados.                                                                          |
 
 ---
 
+<a id="seguranca-senhas"></a>
+## 🛡️ Segurança, Gestão de Senhas e Isolamento de Aplicações
+
+> [!IMPORTANT]
+> **Modelo de Segurança do Desktop Linux: Process Isolation vs. Shared UID**
+> No ecossistema Linux tradicional, todos os binários nativos executam compartilhando o mesmo **UID 1000** e o mesmo Session D-Bus. Isso significa que qualquer processo executado diretamente no host possui o mesmo nível de privilégio sobre os seus arquivos pessoais em `$HOME` (`~/.ssh`, `~/.bashrc`, `~/.config`). Para aprofundamento, leia o documento técnico completo em [docs/SEGURANCA_E_MODELO_DE_AMEACAS.md](docs/SEGURANCA_E_MODELO_DE_AMEACAS.md).
+
+> [!WARNING]
+> **O Navegador Brave em RPM e a Recomendação de Cofres Dedicados**
+> O instalador disponibiliza o navegador **Brave em pacote RPM nativo** com o objetivo de oferecer a melhor aceleração de hardware por GPU (VA-API/Vulkan), baixa latência e integração com o sistema. No entanto, por operar como binário nativo com acesso ao D-Bus de sessão, **recomenda-se enfaticamente NÃO salvar credenciais e senhas críticas no preenchimento nativo do navegador**.
+> Adote gerenciadores de credenciais independentes e auditados (como **Bitwarden** ou **KeePassXC**) com **bloqueio automático por inatividade na memória**.
+
+> [!TIP]
+> **O Mito da Sandbox do AppImage vs. Segurança do Flatpak**
+> - **AppImage:** Não possui nenhum isolamento nativo por padrão. Opera como um executável ELF convencional com permissões integrais ao seu disco.
+> - **Flatpak (Padrão Recomendado para Aplicações de Terceiros):** Utiliza **Bubblewrap**, namespaces de kernel, seccomp filters e isolamento rigoroso mediado por **XDG Desktop Portals**. Para aplicações web, mensageiros e ferramentas proprietárias, prefira sempre o empacotamento em Flatpak via Flathub.
+
+> [!NOTE]
+> **Pilha de Credenciais em Rust no Fedora 45 (oo7 & pam_oo7)**
+> O Fedora Multi-Shell adota o **oo7** como provedor moderno e seguro em memória (*memory-safe*, desenvolvido em Rust) para a Freedesktop Secret Service API, substituindo o legado GNOME Keyring em C. A integração foi configurada com a diretiva `auto_start` no PAM do Greetd e SDDM, destravando o chaveiro silenciosamente no primeiro login sem exibir o pop-up `gcr-prompter`.
+
+---
+
+<a id="atalhos"></a>
 ## ⌨️ Atalhos de Teclado Nativos e Controle
 
 ### Niri
@@ -227,7 +316,7 @@ O instalador conta com um menu interativo sem poluição visual:
 | :---------------------------------------------------------------------------- | :---------------------------------------------------------------- |
 | <kbd>Super</kbd> + <kbd>T</kbd>                                               | Abre o Terminal GPU (`kitty`)                                     |
 | <kbd>Super</kbd> + <kbd>Q</kbd>                                               | Fecha a janela em foco                                            |
-| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd>                            | Lança o menu de aplicativos / busca (`danksearch`)                |
+| <kbd>Super</kbd> + <kbd>Space</kbd> / <kbd>D</kbd>                            | Lança o menu de aplicativos / busca (`dsearch`)                   |
 | <kbd>Super</kbd> + <kbd>H</kbd> / <kbd>L</kbd> ou <kbd>←</kbd> / <kbd>→</kbd> | Foca a coluna anterior / próxima no compositor Niri               |
 | <kbd>Super</kbd> + <kbd>Shift</kbd> + <kbd>H</kbd> / <kbd>L</kbd>             | Move a coluna atual para a esquerda / direita                     |
 | Controles DMS / Niri                                                          | Gestão de painéis, notificações e widgets integrados do Dux Shell |

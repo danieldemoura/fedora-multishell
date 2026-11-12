@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Dux Shell (Niri)
+Comment=Dux Shell (DMS) com compositor Niri
+Exec=duxshell-niri-session
+Type=Application
+DesktopNames=niri:duxshell
+

@@ -46,9 +46,12 @@ ensure_user_ownership() {
 }
 
 # Limpeza global de encerramento do script (usada pelo trap de install.sh).
-# Remove o drop-in temporário de sudoers e artefatos de build residuais.
+# Remove eventuais arquivos temporários e artefatos de build residuais.
 cleanup_installer() {
     local exit_code=$?
+    if [[ -n "${SUDO_KEEPALIVE_PID:-}" ]]; then
+        kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null || true
+    fi
     if [[ -n "${SUDOERS_BUILD_TMP:-}" ]]; then
         rm -f "${SUDOERS_BUILD_TMP}" 2>/dev/null || true
     fi
