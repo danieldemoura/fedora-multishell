@@ -81,3 +81,14 @@ Durante o provisionamento, o instalador upstream do iNiR pode criar um diretóri
 - O instalador **NÃO** move, altera ou apaga o diretório `~/inir-backup`.
 - O diretório permanece intocado na Home para que o próprio usuário tenha total transparência, soberania e autonomia para inspecionar, restaurar ou excluir seus arquivos de backup no momento em que desejar.
 
+---
+
+## 6. 🧩 Arquitetura Modular e Isolamento do KDL (`shells/inir.kdl`)
+
+Para assegurar o funcionamento autônomo e fidedigno do iNiR sem quebrar as outras shells do Fedora Multi-Shell, a configuração foi modularizada e isolada:
+
+- **Modularidade Direta via `../config.d/`:** O arquivo `shells/inir.kdl` importa os arquivos de `config.d/` diretamente (`include "../config.d/10-input-and-cursor.kdl"`, etc.) para evitar contaminação pelo `~/.config/niri/config.kdl` da raiz, que é disputado por outras shells (como Noctalia).
+- **Preservação de Atalhos e Efeitos:** Ao carregar diretamente `70-binds.kdl` e `60-animations.kdl`, o iNiR recupera 100% de seus atalhos nativos (ex: `Super+Shift+W` para ciclar painéis, `Super+Space` para o overview) e suas animações suaves originais.
+- **Autostart no KDL:** A instrução `spawn-at-startup "inir" "run"` reside explicitamente em `shells/inir.kdl`. Isso é necessário porque o serviço de sistema `inir.service` do systemd foi desativado globalmente para não entrar em conflito e não iniciar em segundo plano quando outras shells (como Noctalia ou Dux) forem selecionadas.
+
+
